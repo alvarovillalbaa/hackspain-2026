@@ -1,6 +1,8 @@
 # Datos del reto (645 MB) — nunca en git
 input_data/
 dataset/
+*.csv
+!tests/**/*.csv
 
 # Salidas: caches parquet, modelos, figuras
 artifacts/

@@ -43,6 +43,8 @@ SCORE_t    = 0–100 continuo = E[NIVEL_{t+6}]   ← leaderboard
 - **Evento de deterioro = ≥ 2 de las 4 señales en rojo durante ≥ 2 meses seguidos.** El índice continuo es la etiqueta de regresión a t+6; el evento sirve para AUC(h) y lead time.
 - **Normalización (18 sep, noche):** para etiqueta y modelo cada señal entra como **rango percentil dentro del mes**, porque la reconstrucción de saldo deriva hacia la foto final (§5). Las pantallas muestran los euros en bruto.
 
+**Especificación operativa (19 sep, ML-2):** rojo por percentil dentro del mes (rango ≤ 0,20), mes rojo = ≥ 2 señales rojas, evento con regla de hueco de 2 meses verdes, etiqueta = nivel a t+6 con los 6 meses presentes, outlook por persistencia y watch desde tabla de eventos aparte. Detalle en [rules_spec.md](rules_spec.md).
+
 **Presentación:** ambos. 0–100 para leaderboard y métricas; banda + outlook + watch para el producto ("BB, perspectiva negativa, watch por vencimiento en 4 meses"). Grid de explicación tipo S&P: perfil financiero (1–6) × perfil de negocio (1–6) → banda anchor, ±1 notch por liquidez / coste de deuda / concentración.
 
 ## 3. Componentes analíticos

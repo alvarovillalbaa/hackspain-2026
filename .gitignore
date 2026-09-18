@@ -1,2 +1,4 @@
-*.csv
 input_data/
+dataset/
+__pycache__/
+artifacts/

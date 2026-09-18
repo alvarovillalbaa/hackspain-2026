@@ -89,6 +89,7 @@ web/                          Next.js + agente Eve (explicación LLM y chat) + S
 notebooks/                    Experimentos compartidos; importan xray, sin outputs en git
 tests/                        pytest con fixtures mínimas (no necesita el dataset)
 docs/plan.md                  Decisiones cerradas: score, evento, componentes, API, reparto, pitch, plan B
+docs/tech_stack.md            PRD técnico: stack por capa, por qué, contratos de integración, variables, riesgos
 docs/investigacion_score.md   Evidencia (BIS, BdE, ECB, FinRegLab, agencias de rating) — 111 referencias
 docs/ideas_equipo.md          Brainstorming original y análisis por caso de uso
 CONTEXTO_RETO.md              Enunciado del reto

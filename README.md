@@ -36,7 +36,7 @@ flowchart LR
 
     subgraph PRODUCTO["Producto"]
         API["FastAPI<br/>/score · /debt · /whatif · /explain"]:::node
-        LLM["LLM explicación + agente<br/><i>solo redacta sobre el JSON</i>"]:::ext
+        LLM["Agente Eve (web/) + Supabase<br/><i>LLM solo redacta sobre el JSON</i>"]:::ext
         FRONT["React · asesor de Embat<br/>monitor → ficha → refinanciación → what-if"]:::focal
     end
 
@@ -83,12 +83,41 @@ El evento de deterioro se define sobre el propio dataset (no hay etiqueta de imp
 ## Estructura del repositorio
 
 ```
-CONTEXTO_RETO.md              Enunciado del reto
+xray/                         Paquete Python — el motor: data, features, labels, model, bands, projection, rates, score
+api/                          FastAPI, fina: importa xray y sirve el contrato /score (slice #8)
+web/                          Next.js + agente Eve (explicación LLM y chat) + Supabase; front del asesor (slices #9, #10)
+notebooks/                    Experimentos compartidos; importan xray, sin outputs en git
+tests/                        pytest con fixtures mínimas (no necesita el dataset)
 docs/plan.md                  Decisiones cerradas: score, evento, componentes, API, reparto, pitch, plan B
 docs/investigacion_score.md   Evidencia (BIS, BdE, ECB, FinRegLab, agencias de rating) — 111 referencias
 docs/ideas_equipo.md          Brainstorming original y análisis por caso de uso
+CONTEXTO_RETO.md              Enunciado del reto
 input_data/                   Dataset (9 CSV + data_dictionary.md) — fuera de git
+artifacts/                    Caché parquet, modelos, figuras — fuera de git
 ```
+
+## Cómo arrancar
+
+**Motor (Python, con [uv](https://docs.astral.sh/uv/)):**
+
+```bash
+uv sync --all-extras            # Python 3.12 + pandas, lightgbm, shap, fastapi, jupyterlab…
+uv run xray-cache               # convierte los 9 CSV de input_data/ a parquet (30 s, una vez)
+uv run pytest                   # tests del cargador, sin dataset
+uv run jupyter lab              # notebooks: from xray.data import load
+```
+
+Si el dataset está en otra carpeta: `export XRAY_DATA_DIR=/ruta/a/los/csv`. Tras la caché, `load("transactions")` tarda ~1 s en vez de ~30.
+
+**Web (Next.js + agente Eve):**
+
+```bash
+cd web && npm install && npm run dev
+```
+
+En Vercel, *Root Directory* = `web`. Variables de entorno de Supabase y del modelo en `web/.env.local` (ver `web/AGENTS.md`).
+
+**Notebooks desde otro repositorio:** `uv add "xray @ git+https://github.com/alvarovillalbaa/hackspain-2026"` y `XRAY_DATA_DIR` apuntando al dataset; reglas en [`notebooks/README.md`](notebooks/README.md).
 
 Trabajo organizado en la [épica #13](https://github.com/alvarovillalbaa/hackspain-2026/issues/13) y sus 12 slices ([#1](https://github.com/alvarovillalbaa/hackspain-2026/issues/1)–[#12](https://github.com/alvarovillalbaa/hackspain-2026/issues/12)), cada uno con responsable, dependencias y criterio de aceptación.
 

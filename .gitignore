@@ -1,47 +1,22 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Datos del reto (645 MB) — nunca en git
+input_data/
+dataset/
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+# Salidas: caches parquet, modelos, figuras
+artifacts/
 
-# testing
-/coverage
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
 
-# next.js
-/.next/
-/out/
+# Node (la app Next vive en web/ con su propio .gitignore)
+node_modules/
 
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
+# Entorno y sistema
 .env*
-
-# vercel
-.vercel
-
-# eve
-.eve
-.output
-.nitro
-dist
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+!.env.example
+.DS_Store

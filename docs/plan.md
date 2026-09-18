@@ -45,7 +45,7 @@ SCORE_t    = 0–100 continuo = E[NIVEL_{t+6}]   ← leaderboard
 
 | Componente | Decisión |
 |---|---|
-| **LLM** | Solo explica (narrativa sobre la descomposición estructurada) y recomienda (agente). **Nunca calcula** score ni features. Guardia: no puede emitir cifras que no estén en el JSON de entrada. |
+| **LLM** | Solo explica (narrativa sobre la descomposición estructurada) y recomienda (agente). **Nunca calcula** score ni features. Guardia: no puede emitir cifras que no estén en el JSON de entrada. **Vive en el agente Eve de `web/`** (decisión del 18 sep): el agente llama a FastAPI para obtener el JSON de `/score`, `/debt` y `/whatif` como herramientas, y redacta sobre él; Supabase guarda sesiones y estado del asesor. |
 | **Proyección de caja** ("DCF" reformulado) | Monte Carlo de flujos con descuento al coste de deuda observado, **sin valor terminal**. Devuelve: cuánto puedes pedir, cuota máxima, probabilidad de estrés. Alimenta el what-if y la capacidad de deuda de las empresas sin deuda. |
 | **Covarianzas** | De la **propia empresa** (decisión del equipo). Mitigación obligatoria: shrinkage hacia la diagonal; comprobar que la simulación no explota con historiales cortos. |
 | **Curva banda → tipo justo** | Dos capas: **baja fidelidad** = tipos medios BdE de nuevas operaciones a sociedades no financieras por tramo + spread por escalón CQS (ECAF); **alta fidelidad** = los 87 contratos (40 empresas) de `debt_schedule_config`, que corrigen la curva donde existen. La demo muestra de qué capa viene cada tipo. Validar con los ingenieros de Embat el sábado. Fichero de configuración con fuente citada. |

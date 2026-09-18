@@ -8,6 +8,7 @@ Módulos previstos (ver docs/plan.md):
 - bands       banda + outlook + watch                       (slice 5)
 - projection  proyección de caja Monte Carlo y what-if      (slice 6)
 - rates       curva banda → tipo justo                      (slice 7)
+- evals       AUC(h), lead time, persistencia; CLI xray-evals   (slices 4 y 15)
 - score       entrypoint del leaderboard                    (slice 11)
 """
 

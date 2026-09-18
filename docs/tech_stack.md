@@ -44,7 +44,7 @@ Dos *seams* mantienen las piezas desacopladas: la tabla `features(company_id, mo
 | Gestor de entorno | **uv** con `pyproject.toml` + `uv.lock` | Resolución en segundos, instala el intérprete, un solo comando para todos; el lock garantiza el mismo entorno en cinco portátiles | pip + venv (sin lock), conda (lento, pesado) |
 | Empaquetado | Paquete instalable `xray` (hatchling), layout plano | `import xray` desde cualquier notebook o repo personal; `uv add xray @ git+…` | Scripts sueltos con `sys.path` |
 | Dataframes | **pandas 3 + pyarrow** | El equipo lo conoce; parquet vía arrow reduce la carga de `transactions` de 30 s a ~1 s | polars (más rápido, menos conocido; se puede introducir en features si hace falta) |
-| Modelo | **LightGBM** (+ scikit-learn para splits, métricas, calibración) | Tabular, pocos datos, entrena en segundos, maneja nulos nativamente (historiales cortos) | XGBoost (equivalente), redes (sin justificación con 1.286 empresas) |
+| Modelo | **LightGBM** (+ scikit-learn para splits, métricas, calibración), como **retador** del score por reglas (plan §4 y §9, 18 sep noche) | Tabular, pocos datos, entrena en segundos, maneja nulos nativamente (historiales cortos) | XGBoost (equivalente), redes (sin justificación con 1.286 empresas) |
 | Explicabilidad | **SHAP** (TreeExplainer) | Contribución por feature y por empresa-mes → `drivers` del contrato JSON; exacto y rápido en árboles | LIME (aproximado, más lento) |
 | Simulación | numpy (Monte Carlo propio) | La proyección de caja es un bucle vectorizado; no necesita librería | PyMC/statsmodels (sobredimensionados) |
 | Tests | **pytest** con fixtures mínimas en `tests/` (CSV de 3 filas) | Corren sin el dataset; validan los hechos del dataset (dirección de factura, fechas basura, caché) | — |
@@ -203,6 +203,7 @@ Reglas: pydantic lo valida al salir, zod al entrar; `explanation` llega por `/ex
 3. **Esquema Supabase mínimo** *(full-stack, sábado mañana)*: confirmar las tres tablas o reducir a una.
 4. **Formato del leaderboard** *(ML-1, cuando llegue el script de Embat)*.
 5. **¿Polars en `features`?** *(ML-1, solo si la construcción tarda > 2 min)*.
+6. **Calibración de los pesos del índice de estado** *(ML-2, domingo 10:00; añadida el 18 sep, noche)*: la v1 usa pesos fijos por el orden de evidencia del plan §2 y un único mapa isotónico del índice suavizado al índice realizado a t+6. Candidato para después: búsqueda de pesos que maximice el Spearman con el índice a t+6 en los meses de train, **restringida a ese orden de evidencia**, para que siga siendo «reglas calibradas» y no una regresión con otro nombre. Si la restricción cuesta mucha correlación, se dice en el pitch.
 
 ## 11. Calendario del stack
 

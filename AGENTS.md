@@ -41,6 +41,8 @@ cd web && npm run typecheck # 18 errores heredados de la plantilla en components
 - `balances.csv` es solo la foto final (2026-09-01). El saldo histórico se reconstruye hacia atrás con las transacciones.
 - No hay campo sector; `country` está relleno al 18%. Los pares se definen por tamaño y patrón de flujos.
 - Solo 378 de 1.286 empresas tienen deuda; 87 contratos en `debt_schedule_config`. La curva de tipos no sale del dataset (`docs/tech_stack.md` §5.1).
+- La reconstrucción de saldo hacia atrás **deriva**: la proporción de cuentas en negativo cae del 10% al 2% hacia la foto final, también en cohorte fija y solo con `booked`. Señales de saldo como rango percentil dentro del mes para etiqueta y modelo; euros en bruto solo en pantalla (`docs/plan.md` §5).
+- `interest_charge` **no es el interés de los préstamos** (coste implícito mediana 0,3% frente a 3% en contratos). El coste de la deuda sale de `debt_schedule_config` o del tipo implícito de la anualidad en `xray/rates`.
 - Carga siempre con `xray.data.load()`: aplica lo anterior y usa la caché parquet (1 s frente a 30 s).
 
 ## Límites

@@ -35,12 +35,13 @@ Dos convenios que conviene tener presentes, porque son decisiones y no descuidos
    cierre. Nada queda diferido al mes siguiente: el saldo reportado es el que continúa, que es lo
    que permite a `advance` arrancar de `paths.eom[k, 0]` sin perder un euro por el camino.
 
-   El límite que queda: al cruzar `advance`, lo dispuesto pasa a `History.line_drawn` y en la
-   llamada siguiente ya es posición de la empresa, no coste de la acción nueva, así que su interés
-   deja de cobrarse (el interés de lo ya dispuesto vive dentro de `out_j`, que viene de la historia
-   de cargos, y cobrarlo otra vez sería contarlo dos veces frente a `none`). Un bucle mensual de
-   `policies.py` infravalora por eso el interés de lo dispuesto en meses anteriores; separarlo
-   pediría un campo nuevo en `History`.
+3. Lo que una acción deja pagando para el futuro cruza la frontera de `simulate` escrito en la
+   `History`: `committed_outflow_m` (cuota nueva, interés de lo dispuesto en el rollout, menos el
+   ahorro de la refinanciación), `committed_cost_m` (la parte reportable de eso) y `pending_flows`
+   (pagos sueltos, como la pata larga del factoring). Sin esto, un bucle mes a mes de
+   `policies.py` cobraba la caja del préstamo y nunca sus cuotas. El interés del préstamo se
+   compromete plano, al tipo del primer mes, porque un float no lleva cuadro de amortización: el
+   error va del lado conservador.
 
 `simulate`, `advance`, `Action`, `History`, `SimConfig`, `Paths` y `FlowPool` son el seam que lee
 `xray/policies.py` (MPC y evaluación en bucle cerrado): los nombres y los campos no se tocan sin
@@ -126,6 +127,12 @@ class History:
     loan_installment: float = 0.0
     loan_rate: float | None = None
     loan_remaining: int = 0
+    # Lo que una acción anterior del rollout dejó comprometido para los meses que vienen. Vacío
+    # cuando la `History` sale de `histories()` (ahí las cuotas viejas ya están dentro de los
+    # cargos históricos); lo rellena `advance`, que es quien cruza la frontera de la simulación.
+    committed_outflow_m: float = 0.0  # € que salen de la caja cada mes futuro
+    committed_cost_m: float = 0.0  # la parte de eso que es coste financiero reportable
+    pending_flows: tuple[tuple[int, float], ...] = ()  # (meses vista >= 1, € puntuales)
 
 
 @dataclass
@@ -264,6 +271,12 @@ def _check_history(hist: History) -> None:
     _check_finite("History.loan_outstanding", hist.loan_outstanding)
     _check_finite("History.loan_installment", hist.loan_installment)
     _check_finite("History.loan_remaining", hist.loan_remaining)
+    _check_finite("History.committed_outflow_m", hist.committed_outflow_m)
+    _check_finite("History.committed_cost_m", hist.committed_cost_m)
+    for offset, amount in hist.pending_flows:
+        if int(offset) < 1:
+            raise ValueError(f"`History.pending_flows` con mes vista {offset} < 1")
+        _check_finite("History.pending_flows", amount)
     # `loan_rate` no: None o NaN significan "no consta", y `refinance` ya lo rechaza por su cuenta.
 
 
@@ -472,6 +485,11 @@ def simulate(
     (números aleatorios comunes) y la diferencia de coste o de riesgo es señal, no ruido. Pasar un
     `rng` compartido entre acciones rompe ese emparejamiento; hazlo solo para barrer empresas
     distintas, como hace `backtest`. `pool` solo interviene si la historia es corta.
+
+    Antes de nada se cobran los compromisos que trae la `History` de acciones anteriores del
+    rollout: `committed_outflow_m` sale de la caja todos los meses, `committed_cost_m` se suma al
+    coste todos los meses y cada `pending_flows` cae en su mes. Se aplican con cualquier acción,
+    `none` incluida, para que la comparación entre productos siga siendo justa.
     """
     cfg = cfg or SimConfig()
     _check_history(hist)
@@ -488,9 +506,15 @@ def simulate(
     draws = _draw_triplets(hist, cfg, rng, n, h, pool)
     inflow, outflow, dip = draws[:, :, 0], draws[:, :, 1], draws[:, :, 2]
 
+    committed_out = float(hist.committed_outflow_m)
+    cash = plan.cash.copy()
+    for offset, amount in hist.pending_flows:
+        if 1 <= int(offset) <= h:  # lo que caiga más allá del horizonte lo arrastra `advance`
+            cash[int(offset) - 1] += float(amount)
+
     eom = np.empty((n, h))
     min_balance = np.empty((n, h))
-    cost = np.tile(plan.cost, (n, 1))
+    cost = np.tile(plan.cost + float(hist.committed_cost_m), (n, 1))
     line_draws = np.zeros((n, h))
     line_draws[:, 0] = plan.line_amount
     balance = np.full(n, float(hist.eom))
@@ -500,7 +524,8 @@ def simulate(
 
     for j in range(h):
         value = (
-            balance + inflow[:, j] - outflow[:, j] + plan.cash[j] - plan.cost_cash[j] - plan.inst[j]
+            balance + inflow[:, j] - outflow[:, j] + cash[j] - plan.cost_cash[j] - plan.inst[j]
+            - committed_out
         )
         low = value - dip[:, j]
         if plan.cover_capacity > 0:
@@ -532,6 +557,38 @@ def simulate(
     )
 
 
+def _commitments(hist: History, plan: _Plan, action: Action, cfg: SimConfig, drawn: float):
+    """Lo que la acción deja pagando en los meses siguientes: `(salida_m, coste_m, flujos)`.
+
+    Dentro de una sola llamada a `simulate` esto ya está en el plan (cuotas en `inst`, pata larga
+    del factoring en `cash`, interés en `cost`). Al cruzar `advance` el plan se tira, así que hay
+    que dejarlo escrito en la `History` o el mes que viene sale gratis: era el agujero que encontró
+    la tarea 5 (el MPC pedía préstamos que no pagaba).
+
+    El interés del préstamo se compromete plano, al tipo del primer mes (`rate/12 · A`), en vez de
+    amortizado: un único float no puede llevar un cuadro de amortización, y el error va del lado
+    conservador (cobra de más según baja el capital vivo, nunca de menos).
+    """
+    kind = action.kind
+    if kind == "loan":
+        return plan.ds_steady, plan.loan_state[2] / 12.0 * float(action.amount), ()
+    if kind == "refinance":
+        return plan.ds_steady, plan.ds_steady, ()  # ds_steady = −ahorro: sale menos y cuesta menos
+    if kind == "line_draw":
+        interest = cfg.line_rate / 12.0 * plan.line_amount
+        return interest, interest, ()
+    if kind in ("line_cover", "line_open"):
+        interest = cfg.line_rate / 12.0 * drawn
+        if kind == "line_open" and plan.new_line_limit is not None:
+            interest += cfg.line_undrawn_fee_m * max(0.0, plan.new_line_limit - drawn)
+        return interest, interest, ()
+    if kind == "factoring":
+        sold = plan.factoring_fraction * float(hist.receivables)
+        settle = (1 - cfg.factoring_advance) * sold - sold
+        return 0.0, 0.0, ((int(cfg.factoring_months), settle),)
+    return 0.0, 0.0, ()
+
+
 def advance(
     hist: History, paths: Paths, action: Action = NONE, k: int = 0, cfg: SimConfig | None = None
 ) -> History:
@@ -540,6 +597,11 @@ def advance(
     Mueve el saldo, alarga la historia con el triplete sorteado (y la recorta a `history_months`) y
     actualiza el estado del producto: dispuesto de la línea, límite nuevo, cartera vendida, préstamo
     o refinanciación. Es lo que necesita el MPC para simular varios meses seguidos.
+
+    Y sobre todo escribe los **compromisos**: lo que la acción va a seguir costando los meses que
+    vienen (`committed_outflow_m`, `committed_cost_m`) y los pagos sueltos que caen más adelante
+    (`pending_flows`, la pata larga del factoring). Los que ya venían se adelantan un mes y los que
+    tocaban en el mes 1 se caen, porque ya se cobraron.
     """
     cfg = cfg or SimConfig()
     if paths.draws is None:
@@ -549,6 +611,8 @@ def advance(
     keep = cfg.history_months
     drawn = float(paths.line_draws[k, 0]) if paths.line_draws is not None else plan.line_amount
     limit = plan.new_line_limit if plan.new_line_limit is not None else hist.line_limit
+    out_delta, cost_delta, new_flows = _commitments(hist, plan, action, cfg, drawn)
+    pending = tuple((o - 1, a) for o, a in hist.pending_flows if o >= 2)  # el mes 1 ya se cobró
 
     nxt = History(
         company_id=hist.company_id,
@@ -566,6 +630,9 @@ def advance(
         loan_installment=hist.loan_installment,
         loan_rate=hist.loan_rate,
         loan_remaining=hist.loan_remaining,
+        committed_outflow_m=float(hist.committed_outflow_m) + out_delta,
+        committed_cost_m=float(hist.committed_cost_m) + cost_delta,
+        pending_flows=pending + new_flows,
     )
     if plan.loan_state is not None:
         outstanding, installment, rate, remaining = plan.loan_state

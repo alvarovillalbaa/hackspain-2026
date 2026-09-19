@@ -163,3 +163,82 @@ def test_histories_drops_a_month_without_balance():
     assert sorted(m for _, m in hs) == ["2025-02", "2025-05", "2025-06"]
     for hist in hs.values():
         assert np.isfinite(hist.eom) and np.isfinite(hist.inflows).all()
+
+
+# --- regresiones de la ronda 2: lo que una acción deja pagando para el futuro -----------------
+
+
+def _steps(h, actions, cfg):
+    """Rollout mes a mes: `simulate(horizon=1)` + `advance` por acción. Devuelve los `Paths`."""
+    out = []
+    for action in actions:
+        paths = pj.simulate(h, action, cfg)
+        out.append(paths)
+        h = pj.advance(h, paths, action, k=0, cfg=cfg)
+    return out, h
+
+
+def test_loan_installments_survive_advance():
+    """El préstamo dejaba caja en el mes 1 y no pagaba nunca: el MPC pedía dinero gratis."""
+    h = _hist()
+    step = pj.SimConfig(n_paths=1, horizon=1, seed=11)
+    loan = pj.Action("loan", amount=60_000.0)
+    one = pj.simulate(h, loan, pj.SimConfig(n_paths=1, horizon=3, seed=11))
+    (p1, p2, p3), last = _steps(h, [loan, pj.NONE, pj.NONE], step)
+    i = 0.0356 / 12
+    inst = 60_000 * i / (1 - (1 + i) ** -36)
+    assert last.committed_outflow_m == pytest.approx(inst)  # la cuota queda comprometida
+    assert last.debt_service_m == pytest.approx(1_000.0 + inst)  # y el DSCR se entera
+    assert p3.eom[0, 0] == pytest.approx(one.eom[0, 2], abs=1e-6)  # las cuotas salen de la caja
+    assert p1.cost[0, 0] + p2.cost[0, 0] == pytest.approx(one.cost[0, 0] + one.cost[0, 1], abs=1e-6)
+    # El compromiso es plano (interés del primer mes), así que a partir del mes 3 cobra de más:
+    # conservador a propósito, un float no lleva cuadro de amortización.
+    assert p3.cost[0, 0] == pytest.approx(i * 60_000, abs=1e-6)
+    assert p3.cost[0, 0] > one.cost[0, 2]
+
+
+def test_factoring_long_leg_lands_after_advance():
+    """La pata larga del factoring cae en su mes aunque el rollout vaya de mes en mes."""
+    h = _hist(receivables=100_000.0)
+    step = pj.SimConfig(n_paths=1, horizon=1, seed=3)
+    fact = pj.Action("factoring", amount=0.5)
+    one = pj.simulate(h, fact, pj.SimConfig(n_paths=1, horizon=3, seed=3))
+    p1 = pj.simulate(h, fact, step)
+    h2 = pj.advance(h, p1, fact, k=0, cfg=step)
+    assert h2.receivables == pytest.approx(50_000.0)
+    offset, amount = h2.pending_flows[0]
+    assert offset == 2 and amount == pytest.approx(0.15 * 50_000 - 50_000)
+    p2 = pj.simulate(h2, pj.NONE, step)  # el mes 2 no le toca
+    h3 = pj.advance(h2, p2, pj.NONE, k=0, cfg=step)
+    assert h3.pending_flows[0][0] == 1
+    p3 = pj.simulate(h3, pj.NONE, step)
+    assert p2.eom[0, 0] == pytest.approx(one.eom[0, 1], abs=1e-6)
+    assert p3.eom[0, 0] == pytest.approx(one.eom[0, 2], abs=1e-6)  # las facturas vendidas no llegan
+
+
+def test_line_draw_keeps_paying_interest_after_advance():
+    """Lo dispuesto en el rollout sigue devengando: el agujero que quedó de la ronda 1."""
+    h = _hist(line_limit=10_000.0)
+    step = pj.SimConfig(n_paths=1, horizon=1, seed=5)
+    draw = pj.Action("line_draw", amount=4_000.0)
+    one = pj.simulate(h, draw, pj.SimConfig(n_paths=1, horizon=3, seed=5))
+    (p1, p2, p3), last = _steps(h, [draw, pj.NONE, pj.NONE], step)
+    interest = 0.0375 / 12 * 4_000.0
+    assert last.committed_outflow_m == pytest.approx(interest)
+    assert p2.cost[0, 0] == pytest.approx(interest)  # antes salía 0
+    assert p3.cost[0, 0] == pytest.approx(interest)
+    total = p1.cost[0, 0] + p2.cost[0, 0] + p3.cost[0, 0]
+    assert total == pytest.approx(one.cost[0].sum(), abs=1e-6)
+    assert p3.eom[0, 0] == pytest.approx(one.eom[0, 2], abs=1e-6)
+
+
+def test_pending_flows_outlive_a_one_month_horizon():
+    """Lo que cae más allá del horizonte no se aplica, pero tampoco se pierde: se acerca un mes."""
+    h = _hist(pending_flows=((1, -1_000.0), (3, -500.0)))
+    step = pj.SimConfig(n_paths=1, horizon=1, seed=1)
+    p = pj.simulate(h, pj.NONE, step)
+    assert p.eom[0, 0] == pytest.approx(10_000 + 2_000 - 1_000)  # solo cae el de este mes
+    nxt = pj.advance(h, p, pj.NONE, k=0, cfg=step)
+    assert len(nxt.pending_flows) == 1
+    offset, amount = nxt.pending_flows[0]
+    assert offset == 2 and amount == pytest.approx(-500.0)

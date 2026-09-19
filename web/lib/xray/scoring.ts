@@ -1,4 +1,5 @@
 import { scoreToBand } from "./bands";
+import { subScoresFromDimensions } from "./sub-scores";
 import type {
   ActionRecommendation,
   DimensionDeltas,
@@ -63,12 +64,6 @@ export function applyAction(
 
   const score = scoreFromDimensions(dimensions);
   const band = scoreToBand(score);
-  const bankability = Math.round(
-    (dimensions.liquidity * 0.4 + dimensions.debt * 0.35 + dimensions.payments * 0.25) * 100
-  );
-  const business_profile = Math.round(
-    (dimensions.collections * 0.45 + dimensions.activity * 0.55) * 100
-  );
 
   const delta = score - snapshot.score;
   const projection_6m = {
@@ -81,7 +76,7 @@ export function applyAction(
     ...snapshot,
     score,
     band,
-    sub_scores: { bankability, business_profile },
+    sub_scores: subScoresFromDimensions(dimensions),
     dimensions,
     projection_6m,
     origin: "deterministic",

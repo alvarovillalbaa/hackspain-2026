@@ -139,9 +139,19 @@ describe("snapshotFromExported", () => {
     expect(snap.explanation).toMatch(/Índice de salud 56\.9/);
     expect(snap.explanation).toMatch(/cash_buffer_days/);
     expect(snap.explanation).toMatch(/DSCR 6m/);
+    expect(snap.sub_scores).toEqual({
+      liquidity: 40,
+      collections: 50,
+      payments: 50,
+      debt: 60,
+      activity: 50,
+    });
+    expect(snap.n_signals).toBe(4);
+    expect(snap.n_red).toBe(0);
+    expect(snap.signals.dscr_6m).toBe(1.5);
   });
 
-  it("mentions watch and low DSCR when present", () => {
+  it("mentions low DSCR when present (watch stays off the narrative)", () => {
     const text = buildScoreExplanation(
       row({
         watch: "Caída brusca de caja",
@@ -153,7 +163,14 @@ describe("snapshotFromExported", () => {
         },
       })
     );
-    expect(text).toMatch(/En seguimiento/);
+    expect(text).not.toMatch(/En seguimiento/);
     expect(text).toMatch(/por debajo del suelo/);
+  });
+
+  it("does not push watch into alerts", () => {
+    const snap = snapshotFromExported(
+      row({ watch: "Caída brusca de caja" })
+    );
+    expect(snap.alerts.every((a) => a.id !== "COMP_0001-watch")).toBe(true);
   });
 });

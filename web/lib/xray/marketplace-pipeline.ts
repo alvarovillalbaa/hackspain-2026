@@ -5,12 +5,13 @@
  */
 import type { z } from "zod";
 import {
-  OffersDecisionSchema,
+  TermsDecisionSchema,
+  TermQuoteSchema,
   QuantityDecisionSchema,
   RankingDecisionSchema,
   RecommendationDecisionSchema,
-  type OfferDecision,
-  type OffersDecision,
+  type TermQuote,
+  type TermsDecision,
   type QuantityDecision,
   type RankingDecision,
   type RecommendationDecision,
@@ -54,6 +55,7 @@ function walkCandidates(value: unknown, into: unknown[]): void {
     "output",
     "result",
     "quantity",
+    "terms",
     "offers",
     "ranking",
   ]) {
@@ -172,10 +174,8 @@ export function decisionWithAmount(
   };
 }
 
-function asOffers(
-  offers: OffersDecision | OfferDecision[]
-): OfferDecision[] {
-  return Array.isArray(offers) ? offers : offers.offers;
+function asTerms(terms: TermsDecision | TermQuote[]): TermQuote[] {
+  return Array.isArray(terms) ? terms : terms.terms;
 }
 
 export function assembleRecommendation(input: {
@@ -183,17 +183,17 @@ export function assembleRecommendation(input: {
   action_id: string;
   action_kind: ActionKind;
   quantity: QuantityDecision;
-  offers: OffersDecision | OfferDecision[];
+  terms: TermsDecision | TermQuote[];
   ranking: RankingDecision;
 }): RecommendationDecision {
-  const offers = asOffers(input.offers);
+  const terms = asTerms(input.terms);
   const winnerId = input.ranking.ranking[0]?.product_id;
-  const winner = offers.find((o) => o.product_id === winnerId);
+  const winner = terms.find((o) => o.product_id === winnerId);
   const amount = Math.round(input.quantity.ideal_amount);
   const headline = [
-    winner?.label ?? "Producto recomendado",
+    winner?.product_id ?? "Producto recomendado",
     `€${amount.toLocaleString("es-ES")}`,
-    "quantity → offering → match",
+    "quantity → terms → match",
   ].join(" · ");
 
   return RecommendationDecisionSchema.parse({
@@ -205,7 +205,7 @@ export function assembleRecommendation(input: {
       company_id: input.company_id,
       action_kind: input.action_kind,
     },
-    offers,
+    terms,
     ranking: input.ranking.ranking,
     headline,
   });
@@ -248,15 +248,15 @@ export function offeringPrompt(input: {
   quantity: QuantityDecision;
 }): string {
   return [
-    `${MARKETPLACE_STAGE_PREFIX} 2/3 — OFFERING ONLY.`,
+    `${MARKETPLACE_STAGE_PREFIX} 2/3 — TERMS ONLY.`,
     "Call the `offering` subagent exactly once. Do not call quantity or match.",
-    "Its OffersDecision is read from the subagent session; reply with one short line after dispatching.",
+    "Its TermsDecision is read from the subagent session; reply with one short line after dispatching.",
     `company_id: ${input.company_id}`,
     `action_kind: ${input.action_kind}`,
     `target_amount: ${input.quantity.ideal_amount}`,
     `band: ${input.band}`,
     `quantity_decision: ${JSON.stringify(input.quantity)}`,
-    "Do not pass match scores. Offering selects catalog products and quotes terms inside ranges — never invent SKUs.",
+    "Quote point terms (amount, interest_rate, start_date, end_date) inside catalog ranges. Optimize for the issuer. No reasoning field.",
   ].join("\n");
 }
 
@@ -264,11 +264,8 @@ export function matchPrompt(input: {
   company_id: string;
   action_kind: ActionKind;
   quantity: QuantityDecision;
-  offers: OfferDecision[];
+  terms: TermQuote[];
 }): string {
-  const stripped = input.offers.map(
-    ({ issuer_rationale: _ignored, ...offer }) => offer
-  );
   return [
     `${MARKETPLACE_STAGE_PREFIX} 3/3 — MATCH ONLY.`,
     "Call the `match` subagent exactly once. Do not call quantity or offering.",
@@ -276,13 +273,14 @@ export function matchPrompt(input: {
     `company_id: ${input.company_id}`,
     `action_kind: ${input.action_kind}`,
     `amount: ${input.quantity.ideal_amount}`,
-    "Structured offers (no marketing prose):",
-    JSON.stringify(stripped),
+    "Structured terms (no marketing prose):",
+    JSON.stringify(input.terms),
+    "Write reasoning only. Do NOT invent match%. Server sorts by match%.",
   ].join("\n");
 }
 
 export const STAGE_SCHEMAS = {
   quantity: QuantityDecisionSchema,
-  offering: OffersDecisionSchema,
+  offering: TermsDecisionSchema,
   match: RankingDecisionSchema,
 } as const;

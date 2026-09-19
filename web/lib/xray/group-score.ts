@@ -5,7 +5,8 @@
  *
  * ponytail: O(members × history). Switch to groups.parquet if the pack grows.
  */
-import { scoreToBand, watchMeta } from "./bands";
+import { scoreToBand } from "./bands";
+import { subScoresFromDimensions } from "./sub-scores";
 import type {
   Confidence,
   Dimensions,
@@ -172,14 +173,6 @@ export function rollupGroup(
   const watch = watches.length ? watches.join(" · ") : null;
 
   const alerts: ScoreSnapshot["alerts"] = [];
-  if (watch) {
-    const meta = watchMeta(watch);
-    alerts.push({
-      id: `${groupId}-watch`,
-      severity: "warning",
-      message: meta.description ?? watch,
-    });
-  }
   for (const m of weighted) {
     const dscr = m.score.signals.dscr_6m;
     if (dscr != null && dscr > 0 && dscr < 1.2) {
@@ -191,6 +184,14 @@ export function rollupGroup(
     }
   }
 
+  const n_signals = Math.round(
+    weightedMean(
+      weighted.map((m) => ({ value: m.score.n_signals, weight: m.weight }))
+    )
+  );
+  const n_red = Math.max(...weighted.map((m) => m.score.n_red));
+  const signals = weakest.score.signals;
+
   const snapshot: ScoreSnapshot = {
     company_id: groupId,
     month,
@@ -200,17 +201,15 @@ export function rollupGroup(
     trend,
     watch,
     confidence: worstConfidence(weighted.map((m) => m.score.confidence)),
-    sub_scores: {
-      bankability: Math.round(
-        (dimensions.liquidity * 0.4 +
-          dimensions.debt * 0.35 +
-          dimensions.payments * 0.25) *
-          100
-      ),
-      business_profile: Math.round(
-        (dimensions.collections * 0.45 + dimensions.activity * 0.55) * 100
-      ),
+    n_signals,
+    n_red,
+    signals: {
+      cash_buffer_days: signals.cash_buffer_days,
+      overdue_flow_rate_3m: signals.overdue_flow_rate_3m,
+      dscr_6m: signals.dscr_6m,
+      net_cash_flow_ratio_3m: signals.net_cash_flow_ratio_3m,
     },
+    sub_scores: subScoresFromDimensions(dimensions),
     dimensions,
     peer_percentile: Math.round(
       weightedMean(

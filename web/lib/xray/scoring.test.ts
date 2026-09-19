@@ -12,7 +12,21 @@ const base: ScoreSnapshot = {
   trend: "flat",
   watch: null,
   confidence: "high",
-  sub_scores: { bankability: 50, business_profile: 50 },
+  sub_scores: {
+    liquidity: 50,
+    collections: 50,
+    payments: 50,
+    debt: 50,
+    activity: 50,
+  },
+  n_signals: 4,
+  n_red: 0,
+  signals: {
+    cash_buffer_days: 10,
+    overdue_flow_rate_3m: 0.02,
+    dscr_6m: 1.5,
+    net_cash_flow_ratio_3m: 0.1,
+  },
   dimensions: {
     liquidity: 0.4,
     collections: 0.5,

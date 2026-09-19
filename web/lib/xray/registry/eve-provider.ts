@@ -64,6 +64,13 @@ export const eveProvider = {
     );
   },
 
+  async getCashHistory(companyId: string) {
+    const json = await apiGet<{ history: import("../cash-history").CashHistoryPoint[] }>(
+      `/api/xray/cash/${encodeURIComponent(companyId)}`
+    );
+    return json.history ?? [];
+  },
+
   async getPeers(companyId: string, k?: number): Promise<PeerCohort | null> {
     const q = k != null ? `?k=${k}` : "";
     try {

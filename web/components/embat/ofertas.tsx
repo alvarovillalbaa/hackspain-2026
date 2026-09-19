@@ -69,6 +69,11 @@ function OfferItem({
   const uplift = scoreImprovement(match.uplift);
   const fee = embatOriginationFee(match.amount);
   const issuer = match.product.issuer.name;
+  const matchPct = Math.round(match.breakdown.match * 100);
+  const dates =
+    match.start_date && match.end_date
+      ? `${match.start_date} → ${match.end_date}`
+      : null;
 
   return (
     <Item
@@ -84,7 +89,15 @@ function OfferItem({
         <ItemTitle className="text-[15px]">{issuer}</ItemTitle>
         <ItemDescription>
           {formatCompactEuro(match.amount)} · {formatRatePct(offerRate)}
+          {dates ? ` · ${dates}` : ""}
+          {" · "}
+          match {matchPct}%
         </ItemDescription>
+        {match.rationale ? (
+          <p className="mt-1 line-clamp-2 text-[12px] text-muted-foreground">
+            {match.rationale}
+          </p>
+        ) : null}
       </ItemContent>
       <ItemActions className="flex-wrap justify-end gap-2">
         {saving === 0 ? (
@@ -166,7 +179,7 @@ export function Ofertas({
   }, [score, action, effectiveAmount]);
 
   const amountReasoning = quantity
-    ? [quantity.rationale, quantity.ceiling_reason]
+    ? [quantity.reasoning, ...(quantity.risks ?? [])]
         .filter(Boolean)
         .join("\n\n")
     : headline;

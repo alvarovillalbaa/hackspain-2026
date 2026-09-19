@@ -181,12 +181,16 @@ function ScoreSnapshotCard({
         <ScoreBandBadge band={snapshot.band} />
         <div className="grid w-full grid-cols-2 gap-2 font-mono text-sm tabular-nums">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Financiabilidad</span>
-            <span>{snapshot.sub_scores.bankability}</span>
+            <span className="text-muted-foreground">Liquidez</span>
+            <span>{snapshot.sub_scores.liquidity}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Perfil de negocio</span>
-            <span>{snapshot.sub_scores.business_profile}</span>
+            <span className="text-muted-foreground">Cobros</span>
+            <span>{snapshot.sub_scores.collections}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Deuda</span>
+            <span>{snapshot.sub_scores.debt}</span>
           </div>
         </div>
       </CardContent>

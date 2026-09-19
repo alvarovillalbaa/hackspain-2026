@@ -30,7 +30,6 @@ const PRIMARY_NAV = [
   { href: "/", label: "Dashboard", match: "dashboard" },
   { href: "/acciones", label: "Acciones", match: "acciones" },
   { href: "/productos", label: "Productos", match: "productos" },
-  { href: "/watchers", label: "Watchers", match: "watchers" },
 ] as const;
 
 type NavMatch = (typeof PRIMARY_NAV)[number]["match"];
@@ -48,7 +47,7 @@ function navActive(pathname: string, match: NavMatch): boolean {
   }
   if (match === "acciones") return pathname === "/acciones";
   if (match === "productos") return pathname === "/productos";
-  return pathname === "/watchers";
+  return false;
 }
 
 function AppShellInner({

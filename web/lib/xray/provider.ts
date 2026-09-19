@@ -4,6 +4,7 @@ import type { GroupSummary } from "./group-summary";
 import type { PeerCohort } from "./peers";
 import type { BookProduct } from "./book-products";
 import type { PortfolioAction } from "./portfolio-actions";
+import type { CashHistoryPoint } from "./cash-history";
 import type {
   ActionRecommendation,
   AmortizeContext,
@@ -30,6 +31,7 @@ export interface XrayProvider {
   listGroups(): Promise<GroupSummary[]>;
   listCompanySummaries(): Promise<CompanySummary[]>;
   getScore(companyId: string): Promise<ScoreSnapshot>;
+  getCashHistory(companyId: string): Promise<CashHistoryPoint[]>;
   getPeers(companyId: string, k?: number): Promise<PeerCohort | null>;
   getGroupScore(groupId: string): Promise<GroupScore>;
   listActions(companyId: string): Promise<ActionRecommendation[]>;

@@ -23,12 +23,12 @@ const STEPS: {
   },
   {
     id: "offering",
-    label: "Buscando los mejores proveedores para ti…",
+    label: "Cotizando los términos de cada entidad…",
     Icon: Landmark,
   },
   {
     id: "match",
-    label: "Evaluando cada una de las ofertas…",
+    label: "Evaluando el encaje de cada oferta…",
     Icon: Scale,
   },
 ];

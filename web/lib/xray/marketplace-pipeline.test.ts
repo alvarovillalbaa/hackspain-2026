@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  OfferDecisionSchema,
+  TermQuoteSchema,
   QuantityDecisionSchema,
 } from "../../agent/lib/schemas";
 import {
@@ -19,37 +19,21 @@ import type { ScoreSnapshot } from "./types";
 import { scoreFromDimensions } from "./scoring";
 import { scoreToBand } from "./bands";
 
-const terms = {
-  rate_annual: 0.045,
-  term_months: 48,
-  fees_bps: 90,
-  amortization: "constant_quote" as const,
-  collateral: "none" as const,
-};
-
 const quantity = QuantityDecisionSchema.parse({
   company_id: "COMP_0001",
   action_kind: "refinance",
   ideal_amount: 350_000,
-  amount_min: 200_000,
-  amount_max: 500_000,
-  ceiling_reason: "DSCR would fall below 1.2 above €500k",
-  rationale: "Enough to refinance the expensive pool",
+  reasoning:
+    "Enough to refinance the expensive pool; larger tickets break DSCR 1.2",
   risks: [],
 });
 
-const offer = OfferDecisionSchema.parse({
+const term = TermQuoteSchema.parse({
   product_id: "cat_bbva_refi",
-  issuer_id: "iss_bbva",
-  issuer_name: "BBVA Empresas",
-  kind: "refinance",
-  label: "Refinanciación · BBVA Empresas",
-  description: "Pool fijo",
-  amount_min: 100_000,
-  amount_max: 800_000,
-  issuer_terms: terms,
-  client_ideal_terms: { ...terms, rate_annual: 0.032, term_months: 60 },
-  issuer_rationale: "Incumbent relationship and BB band appetite",
+  amount: 350_000,
+  interest_rate: 0.045,
+  start_date: "2026-09-01",
+  end_date: "2030-09-01",
 });
 
 const ranking = {
@@ -58,47 +42,45 @@ const ranking = {
   amount: 350_000,
   ranking: [
     {
-      product_id: offer.product_id,
-      match: 0.72,
-      client_fit: 0.8,
-      issuer_appetite: 0.65,
-      rationale: "Mejor cobertura",
-      risks: [],
+      product_id: term.product_id,
+      reasoning: "Mejor cobertura",
     },
   ],
+};
+
+const dims = {
+  liquidity: 0.42,
+  collections: 0.71,
+  payments: 0.38,
+  debt: 0.35,
+  activity: 0.62,
 };
 
 const snapshot: ScoreSnapshot = {
   company_id: "COMP_0001",
   month: "2026-08",
-  score: scoreFromDimensions({
-    liquidity: 0.42,
-    collections: 0.71,
-    payments: 0.38,
-    debt: 0.35,
-    activity: 0.62,
-  }),
-  band: scoreToBand(
-    scoreFromDimensions({
-      liquidity: 0.42,
-      collections: 0.71,
-      payments: 0.38,
-      debt: 0.35,
-      activity: 0.62,
-    })
-  ),
+  score: scoreFromDimensions(dims),
+  band: scoreToBand(scoreFromDimensions(dims)),
   outlook: "stable",
   trend: "flat",
   watch: null,
   confidence: "high",
-  sub_scores: { bankability: 40, business_profile: 65 },
-  dimensions: {
-    liquidity: 0.42,
-    collections: 0.71,
-    payments: 0.38,
-    debt: 0.35,
-    activity: 0.62,
+  sub_scores: {
+    liquidity: 42,
+    collections: 71,
+    payments: 38,
+    debt: 35,
+    activity: 62,
   },
+  n_signals: 4,
+  n_red: 0,
+  signals: {
+    cash_buffer_days: 10,
+    overdue_flow_rate_3m: 0.02,
+    dscr_6m: 1.5,
+    net_cash_flow_ratio_3m: 0.1,
+  },
+  dimensions: dims,
   peer_percentile: 41,
   projection_6m: { p10: 40, p50: 48, p90: 56 },
   history: [{ month: "2026-08", score: 48 }],
@@ -138,9 +120,9 @@ describe("marketplace pipeline", () => {
       type: "action.result",
       data: { result: { ok: true, decision: quantity } },
     });
-    expect(parseStageOutput(QuantityDecisionSchema, fromSubmit)?.ideal_amount).toBe(
-      350_000
-    );
+    expect(
+      parseStageOutput(QuantityDecisionSchema, fromSubmit)?.ideal_amount
+    ).toBe(350_000);
   });
 
   it("finds the child session of a background subagent from the parent stream", () => {
@@ -160,7 +142,6 @@ describe("marketplace pipeline", () => {
     expect(childSessionFor(working, "quantity")).toBeNull();
     expect(childSessionFor(called, "quantity")).toBe("wrun_child");
     expect(childSessionFor(called, "match")).toBeNull();
-    // the working receipt is not a decision
     expect(
       parseStageOutput(QuantityDecisionSchema, extractCandidates(working, "quantity"))
     ).toBeNull();
@@ -177,11 +158,15 @@ describe("marketplace pipeline", () => {
       score: 50,
     });
     const modelId = (m: { model: { modelId: string } }) => m.model.modelId;
-    expect(modelId(rootRuntime([{ role: "user", content: stage }]))).toBe("deepseek-v4-flash");
+    expect(modelId(rootRuntime([{ role: "user", content: stage }]))).toBe(
+      "deepseek-v4-flash"
+    );
     expect(
       modelId(rootRuntime([{ role: "user", content: [{ type: "text", text: stage }] }]))
     ).toBe("deepseek-v4-flash");
-    expect(modelId(rootRuntime([{ role: "user", content: "Resume la ficha" }]))).toBe("glm5.3");
+    expect(modelId(rootRuntime([{ role: "user", content: "Resume la ficha" }]))).toBe(
+      "glm5.3"
+    );
     expect(modelId(rootRuntime([]))).toBe("glm5.3");
   });
 
@@ -191,11 +176,11 @@ describe("marketplace pipeline", () => {
       action_id: "COMP_0001-refinance-0",
       action_kind: "refinance",
       quantity,
-      offers: [offer],
+      terms: [term],
       ranking,
     });
     expect(decision.headline.length).toBeGreaterThan(8);
-    expect(decision.offers).toHaveLength(1);
+    expect(decision.terms).toHaveLength(1);
 
     const shifted = decisionWithAmount(decision, 280_000);
     const matches = reassembleMatches(

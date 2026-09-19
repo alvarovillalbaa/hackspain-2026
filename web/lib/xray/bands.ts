@@ -1,4 +1,4 @@
-import type { Band, Outlook } from "./types";
+import type { Band, Confidence, Outlook, Trend } from "./types";
 
 export interface BandMeta {
   band: Band;
@@ -103,6 +103,51 @@ export function watchMeta(watch: string | null): {
     return { active: false, label: "Sin watch", description: "Ningún evento discreto abierto" };
   }
   return { active: true, ...(WATCH_LABELS[watch] ?? { label: "Watch", description: watch }) };
+}
+
+export function trendMeta(trend: Trend): { label: string; description: string } {
+  switch (trend) {
+    case "improving":
+      return {
+        label: "Mejora",
+        description: "El índice de estado sube en los últimos meses",
+      };
+    case "worsening":
+      return {
+        label: "Empeora",
+        description: "El índice de estado baja en los últimos meses",
+      };
+    case "flat":
+      return {
+        label: "Plano",
+        description: "Sin cambio de dirección claro",
+      };
+  }
+}
+
+export function confidenceMeta(
+  confidence: Confidence
+): { label: string; description: string; level: 1 | 2 | 3 } {
+  switch (confidence) {
+    case "high":
+      return {
+        label: "Alta",
+        description: "Historia y señales suficientes",
+        level: 3,
+      };
+    case "medium":
+      return {
+        label: "Media",
+        description: "Cobertura parcial de señales o historia corta",
+        level: 2,
+      };
+    case "low":
+      return {
+        label: "Baja",
+        description: "Pocas señales o poca historia",
+        level: 1,
+      };
+  }
 }
 
 export { BANDS };

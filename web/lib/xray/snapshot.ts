@@ -4,14 +4,14 @@
  */
 import { scoreToBand } from "./bands";
 import { TreasuryProjectionSchema } from "./schemas";
+import { subScoresFromDimensions } from "./sub-scores";
 import type { ScoreSnapshot, Trend } from "./types";
 import type { ExportedScore } from "./dataset/types";
 
 /** Deterministic narrative for the Health Score (i) tooltip. */
 export function buildScoreExplanation(row: ExportedScore): string {
-  const band = scoreToBand(row.score);
   const parts: string[] = [
-    `Índice de salud ${row.score.toFixed(1)} (banda ${band}, outlook ${row.outlook}).`,
+    `Índice de salud ${row.score.toFixed(1)} (outlook ${row.outlook}, tendencia ${row.trend}).`,
   ];
   if (row.drivers.length > 0) {
     const top = row.drivers
@@ -31,9 +31,6 @@ export function buildScoreExplanation(row: ExportedScore): string {
         : `DSCR 6m = ${dscr.toFixed(2)}.`
     );
   }
-  if (row.watch) {
-    parts.push(`En seguimiento: ${row.watch}.`);
-  }
   return parts.join(" ");
 }
 
@@ -42,21 +39,9 @@ export function snapshotFromExported(row: ExportedScore): ScoreSnapshot {
   const score = row.score;
   const band = scoreToBand(score);
   const dims = row.dimensions;
-  const bankability = Math.round(
-    (dims.liquidity * 0.4 + dims.debt * 0.35 + dims.payments * 0.25) * 100
-  );
-  const business_profile = Math.round(
-    (dims.collections * 0.45 + dims.activity * 0.55) * 100
-  );
 
+  // DSCR floor only — watch stays in the JSON but is not surfaced as a banner.
   const alerts: ScoreSnapshot["alerts"] = [];
-  if (row.watch) {
-    alerts.push({
-      id: `${companyId}-watch`,
-      severity: "warning",
-      message: row.watch,
-    });
-  }
   const dscr = row.signals.dscr_6m;
   if (dscr != null && dscr > 0 && dscr < 1.2) {
     alerts.push({
@@ -80,7 +65,15 @@ export function snapshotFromExported(row: ExportedScore): ScoreSnapshot {
     trend,
     watch: row.watch,
     confidence: row.confidence,
-    sub_scores: { bankability, business_profile },
+    n_signals: row.n_signals,
+    n_red: row.n_red,
+    signals: {
+      cash_buffer_days: row.signals.cash_buffer_days,
+      overdue_flow_rate_3m: row.signals.overdue_flow_rate_3m,
+      dscr_6m: row.signals.dscr_6m,
+      net_cash_flow_ratio_3m: row.signals.net_cash_flow_ratio_3m,
+    },
+    sub_scores: subScoresFromDimensions(dims),
     dimensions: dims,
     peer_percentile: row.peer_percentile,
     projection_6m: row.projection_6m,

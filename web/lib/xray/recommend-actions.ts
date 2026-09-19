@@ -207,31 +207,39 @@ export function findRecommended(
   return actions.find((a) => a.id === actionId);
 }
 
-/** Eve writes the title and optional reasoning; amounts and grounded rationale stay. */
+/** Eve writes description + reasoning; amounts and grounded rationale stay. */
 export function applyAgentCopy(
   ground: ActionRecommendation[],
   picks: {
-    kind: ActionKind;
-    title: string;
-    rationale?: string;
+    action?: ActionKind;
+    kind?: ActionKind;
+    description?: string;
+    title?: string;
     reasoning?: string;
+    confidence?: "high" | "medium" | "low";
+    amount?: number;
   }[]
 ): ActionRecommendation[] {
   const byKind = new Map(ground.map((a) => [a.kind, a] as const));
   const seen = new Set<ActionKind>();
   const out: ActionRecommendation[] = [];
   for (const p of picks) {
-    if (seen.has(p.kind)) continue;
-    const g = byKind.get(p.kind);
+    const kind = p.action ?? p.kind;
+    if (!kind || seen.has(kind)) continue;
+    const g = byKind.get(kind);
     if (!g) continue;
-    seen.add(p.kind);
-    const title = p.title.trim();
-    const reasoning = (p.reasoning ?? p.rationale)?.trim();
+    seen.add(kind);
+    const description = (p.description ?? p.title)?.trim();
+    const reasoning = p.reasoning?.trim();
     out.push({
       ...g,
-      title: title.length >= 4 ? title : g.title,
+      title:
+        description && description.length >= 4 ? description : g.title,
+      description:
+        description && description.length >= 4 ? description : undefined,
       reasoning:
         reasoning && reasoning.length >= 8 ? reasoning : undefined,
+      confidence: p.confidence,
       origin: "eve",
     });
   }

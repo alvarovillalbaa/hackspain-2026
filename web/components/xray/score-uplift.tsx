@@ -1,19 +1,17 @@
 import { formatDelta } from "@/lib/xray/format";
-import type { Band } from "@/lib/xray/types";
-import { ScoreBandBadge } from "./score-band-badge";
 import { cn } from "@/lib/utils";
 
 export function ScoreUplift({
   uplift,
   from,
   to,
-  toBand,
   className,
 }: {
   uplift: number;
   from?: number;
   to?: number;
-  toBand?: Band;
+  /** @deprecated band hidden from UI */
+  toBand?: string;
   className?: string;
 }) {
   const positive = uplift >= 0;
@@ -30,14 +28,12 @@ export function ScoreUplift({
           {from.toLocaleString("es-ES", { maximumFractionDigits: 1 })} →{" "}
           {to.toLocaleString("es-ES", { maximumFractionDigits: 1 })}
         </span>
+      ) : to != null ? (
+        <span>
+          → {to.toLocaleString("es-ES", { maximumFractionDigits: 1 })}
+        </span>
       ) : null}
       <span className="font-medium">{formatDelta(uplift)}</span>
-      {toBand ? (
-        <>
-          <span className="text-muted-foreground">→</span>
-          <ScoreBandBadge band={toBand} />
-        </>
-      ) : null}
     </span>
   );
 }

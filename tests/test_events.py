@@ -125,3 +125,36 @@ def test_thresholds_are_configurable():
     inv = _lost_customer_invoices()
     strict = events.EventsConfig(min_share=0.90)
     assert events.build(_tables(invoices=inv), _features(), strict).empty
+
+
+def test_uploaded_pack_gets_watch_from_its_own_invoices(tmp_path):
+    from xray import features, prescore, score
+
+    months = [str(p) for p in pd.period_range("2025-01", "2026-06", freq="M")]
+    tx = "transaction_id,company_id,product_id,date,amount,category,status\n" + "".join(
+        f"in{i},C1,CHK,{m}-15,20000,collection,booked\nout{i},C1,CHK,{m}-25,-15000,salary,booked\n"
+        for i, m in enumerate(months)
+    )
+    header = ("operation_id,company_id,document_type,issuance_date,due_date,payment_date,amount,"
+              "pending_amount,currency,accounting_currency,exchange_rate,status,counterparty_id")
+    inv = [header]
+    for i, m in enumerate(months):
+        if m <= "2026-03":  # A factura hasta marzo de 2026 y desaparece: tres meses sin factura en junio
+            inv.append(f"A{i},C1,invoice,{m}-05,{m}-25,{m}-25,6000,0,EUR,EUR,1,paid,CUST_A")
+        inv.append(f"B{i},C1,invoice,{m}-05,{m}-25,{m}-25,4000,0,EUR,EUR,1,paid,CUST_B")
+    files = {
+        "companies.csv": "company_id,group_id,currency\nC1,G1,EUR\n",
+        "banking_products.csv": "product_id,company_id,type,currency\nCHK,C1,checking,EUR\n",
+        "balances.csv": "product_id,company_id,date,balance\nCHK,C1,2026-07-01,50000\n",
+        "transactions.csv": tx,
+        "invoices.csv": "\n".join(inv) + "\n",
+    }
+    for name, content in files.items():
+        (tmp_path / name).write_text(content, encoding="utf-8")
+    _, model = score.score_table(features.load_fixture())
+    result = prescore.score_pack(tmp_path, model=model, peer_ref={})
+    assert result is not None
+    record = result["scores"][0]
+    assert record["month"] == "2026-06"
+    assert record["watch"] == "main_customer_lost"
+    assert record["projection_6m"]["p10"] <= record["projection_6m"]["p50"] <= record["projection_6m"]["p90"]

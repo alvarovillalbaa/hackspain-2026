@@ -21,7 +21,7 @@ import pandas as pd
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from xray import features, rules
+from xray import events, features, rules
 from xray.data import artifacts_dir
 from xray.export_web import peer_ref_from_scores, records_from_scored
 from xray.rules import RulesModel
@@ -213,7 +213,8 @@ async def ingest(
         feats = features.derive(feats)
 
     profile = state.model.profile()
-    scored = rules.run(feats, model=state.model, rank_against=profile)
+    events_ext = events.build(tables, feats)
+    scored = rules.run(feats, model=state.model, rank_against=profile, events_ext=events_ext)
     peer = state.peer_ref if state.peer_ref else None
     records = records_from_scored(scored, peer_ref=peer, tables=tables)
 

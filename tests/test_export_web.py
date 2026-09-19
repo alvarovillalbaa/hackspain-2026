@@ -172,3 +172,14 @@ def test_projection_6m_comes_from_the_model_bins_not_from_history_deltas():
         assert r["projection_6m"]["p10"] <= r["projection_6m"]["p50"] <= r["projection_6m"]["p90"]
     with pytest.raises(ValueError, match="proj_p10"):  # sin las columnas del modelo no hay stub que las sustituya
         records_from_scored(scored.drop(columns=["proj_p10", "proj_p50", "proj_p90"]))
+
+
+def test_watch_from_events_reaches_the_record_and_expires():
+    feats = features.load_fixture()
+    ev = pd.DataFrame({"company_id": ["MOCK_DIP"], "month": ["2026-07"], "kind": ["large_maturity"]})
+    by_id = {r["company_id"]: r for r in records_from_scored(rules.run(feats, events_ext=ev))}
+    assert by_id["MOCK_DIP"]["watch"] == "large_maturity"  # 2026-07 y 2026-08 caen en los tres meses del watch
+    assert by_id["MOCK_DETERIORATION"]["watch"] is None
+    old = pd.DataFrame({"company_id": ["MOCK_DIP"], "month": ["2026-04"], "kind": ["large_maturity"]})
+    expired = {r["company_id"]: r["watch"] for r in records_from_scored(rules.run(feats, events_ext=old))}
+    assert expired["MOCK_DIP"] is None

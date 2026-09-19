@@ -161,6 +161,20 @@ def test_projection_metrics_report_misses_and_empty_test():
     assert evals.projection_metrics(df, test_months=["2030-01"], train_until="2025-02") == {"n": 0}
 
 
+# --- watch -------------------------------------------------------------------------------
+
+
+def test_watch_metrics_measure_red_within_three_months_with_and_without_watch():
+    df = _scored("a", [50.0] * 10, n_red=[0, 0, 0, 0, 2, 2, 0, 0, 0, 0])
+    df["watch"] = [None, "large_maturity", "large_maturity", "large_maturity", None, None, None, None, None, None]
+    out = evals.watch_metrics(df, test_months=None)
+    assert out["share_rows_with_watch"] == pytest.approx(0.3)
+    assert out["n_watch"] == 3 and out["p_red_3m_given_watch"] == 1.0  # t = 1, 2, 3 ven el rojo de t = 4
+    assert out["p_red_3m_given_no_watch"] == 0.0  # t = 0 y t = 6 no ven ningún rojo en (t, t+3]
+    assert out["kinds"] == {"large_maturity": 3}
+    assert evals.watch_metrics(df.drop(columns=["watch"]), test_months=None)["n_watch"] == 0
+
+
 # --- CLI sobre la fixture -----------------------------------------------------------------
 
 
@@ -170,7 +184,7 @@ def test_cli_runs_on_fixture_and_writes_artifacts(tmp_path):
     assert rc == 0
     metrics = json.loads((out_dir / "metrics.json").read_text())["rules"]
     for key in ("auc_by_horizon", "auc_external_by_horizon", "lead_time", "persistence", "directionality",
-                "projection", "trend_share", "n_events", "n_rows"):
+                "projection", "watch", "trend_share", "n_events", "n_rows"):
         assert key in metrics, key
     assert set(metrics["lead_time"]) >= {"share_crossing", "share_chronic", "share_late", "median_crossing", "cutoff"}
     assert (out_dir / "rules_model.json").exists()

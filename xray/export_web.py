@@ -28,7 +28,7 @@ import numpy as np
 import pandas as pd
 from pydantic import BaseModel, ConfigDict, Field
 
-from xray import explain, features, policies, projection, rules
+from xray import events, explain, features, policies, projection, rules
 from xray.data import data_dir, load, repo_root
 
 KEYS = ["company_id", "month"]
@@ -327,12 +327,13 @@ def records_from_scored(
 
 
 def build_scores(data_dir_arg: str | Path | None = None) -> list[dict]:
-    """features → rules.run → explain → one record per company (latest month with a score)."""
+    """features → eventos de watch → rules.run → explain → un registro por empresa (último mes con score)."""
     tables = load(data_dir=data_dir_arg)
     feats = features.build(tables=tables)
     if "cash_buffer_days" not in feats.columns:
         feats = features.derive(feats)
-    scored = rules.run(feats)
+    events_ext = events.build(tables, feats)
+    scored = rules.run(feats, events_ext=events_ext)
     return records_from_scored(scored, tables=tables)
 
 

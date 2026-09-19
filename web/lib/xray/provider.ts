@@ -10,6 +10,7 @@ import type {
   NegotiationLever,
   ProductMatch,
   ScoreSnapshot,
+  WatchQueueItem,
 } from "./types";
 import { eveProvider } from "./registry/eve-provider";
 
@@ -35,6 +36,7 @@ export interface XrayProvider {
   ): Promise<NegotiationLever[]>;
   /** Cash + debt contracts for the amortize impact dashboard. */
   getAmortizeContext(companyId: string): Promise<AmortizeContext>;
+  listWatchQueue(): Promise<WatchQueueItem[]>;
   importCompanies(req: ImportRequest): Promise<ImportResult>;
   listImportable?(): Promise<CompanyRef[]>;
 }

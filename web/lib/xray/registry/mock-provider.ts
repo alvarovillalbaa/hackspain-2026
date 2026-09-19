@@ -9,6 +9,7 @@ import type {
   NegotiationLever,
   ProductMatch,
   ScoreSnapshot,
+  WatchQueueItem,
 } from "../types";
 import { DEMO_COMPANIES, IMPORTABLE_COMPANIES } from "./companies";
 import { SCORE_BY_ID } from "./scores";
@@ -128,6 +129,11 @@ export const mockProvider = {
         },
       ],
     };
+  },
+
+  async listWatchQueue(): Promise<WatchQueueItem[]> {
+    await delay();
+    return [];
   },
 
   async getNegotiation(

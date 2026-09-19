@@ -10,6 +10,7 @@ import type {
   NegotiationLever,
   ProductMatch,
   ScoreSnapshot,
+  WatchQueueItem,
 } from "../types";
 import { leversFromMatch } from "../negotiation";
 
@@ -91,6 +92,10 @@ export const eveProvider = {
     return apiGet<AmortizeContext>(
       `/api/xray/facts/${encodeURIComponent(companyId)}`
     );
+  },
+
+  async listWatchQueue(): Promise<WatchQueueItem[]> {
+    return apiGet<WatchQueueItem[]>("/api/xray/watch");
   },
 
   async getNegotiation(

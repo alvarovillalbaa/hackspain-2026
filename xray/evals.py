@@ -369,7 +369,7 @@ def _print_summary(name: str, m: dict) -> None:
     lt, per, d = m["lead_time"], m["persistence"], m["directionality"]
     print(f"lead time: {lt['n_events']} eventos · crónicos {lt['share_chronic']:.0%} · con cruce {lt['share_crossing']:.0%} "
           f"(mediana {lt['median_crossing']} m, p25 {lt['p25_crossing']}, p75 {lt['p75_crossing']}) · tardíos {lt['share_late']:.0%} "
-          f"· corte {lt['cutoff']:.1f}")
+          f"· en el primer mes de historia {lt['share_no_history']:.0%} · corte {lt['cutoff']:.1f}")
     print(f"persistencia: horizonte {per['horizon_months']} m · base {per['base_rate']:.1%} · P(rojo t+6|rojo t) {per['p_red_given_red'].get('6')}")
     print(f"direccionalidad: Spearman {d['spearman']} (n={d['n']}) · P(rojo t+6 | negativo/estable/positivo) "
           f"{d.get('p_red_t6_given_negative')} / {d.get('p_red_t6_given_stable')} / {d.get('p_red_t6_given_positive')}"

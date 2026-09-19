@@ -9,9 +9,6 @@ import {
   getDatasetCompany,
   getExportedScore,
 } from "@/lib/xray/dataset";
-import {
-  resolveAction,
-} from "@/lib/xray/registry/actions";
 import { findRecommended, listCompanyActions } from "@/lib/xray/recommend-actions";
 import { resolveLiveSnapshot } from "@/lib/xray/live-snapshot";
 import { readImportedPack, readDecision, writeDecision } from "@/lib/xray/store";
@@ -74,17 +71,13 @@ async function actionsFor(snapshot: ScoreSnapshot) {
   return listCompanyActions(snapshot, facts, exported, currency);
 }
 
-async function actionFor(
-  companyId: string,
-  actionId: string,
-  snapshot: ScoreSnapshot
-) {
-  const list = await actionsFor(snapshot);
-  return (
-    findRecommended(list, actionId) ??
-    resolveAction(companyId, actionId, snapshot) ??
-    list[0]
-  );
+/**
+ * Only the facts-backed action with this id. Substituting a different action
+ * (or a TEMPLATE) would quote a marketplace for something the company was
+ * never recommended, so an unknown id is an error, not a fallback.
+ */
+async function actionFor(actionId: string, snapshot: ScoreSnapshot) {
+  return findRecommended(await actionsFor(snapshot), actionId) ?? null;
 }
 
 async function entryFromDecision(
@@ -96,13 +89,14 @@ async function entryFromDecision(
   source: CacheEntry["source"],
   amount?: number
 ): Promise<CacheEntry | null> {
-  const action = await actionFor(companyId, actionId, snapshot);
+  const action = await actionFor(actionId, snapshot);
   if (!action) return null;
+  const { facts } = await resolveFacts(companyId);
   const parsed = RecommendationDecisionSchema.parse(decisionRaw);
   const decision =
     amount != null ? decisionWithAmount(parsed, amount) : parsed;
   return {
-    matches: reassembleMatches(decision, snapshot, action, "eve"),
+    matches: reassembleMatches(decision, snapshot, action, "eve", facts),
     headline: headline ?? decision.headline,
     source,
     decision: parsed,
@@ -161,13 +155,11 @@ async function runEveRecommendation(input: {
 }): Promise<
   CacheEntry & { decision: z.infer<typeof RecommendationDecisionSchema> }
 > {
-  const actions = await actionsFor(input.snapshot);
-  const action =
-    (await actionFor(input.company_id, input.action_id, input.snapshot)) ??
-    actions[0];
+  const action = await actionFor(input.action_id, input.snapshot);
   if (!action) {
     throw new Error(`No action for ${input.company_id}/${input.action_id}`);
   }
+  const { facts } = await resolveFacts(input.company_id);
 
   const client = await createEveClient();
   const controller = new AbortController();
@@ -198,7 +190,7 @@ async function runEveRecommendation(input: {
     });
 
     return {
-      matches: reassembleMatches(decision, input.snapshot, action, "eve"),
+      matches: reassembleMatches(decision, input.snapshot, action, "eve", facts),
       headline: decision.headline,
       source: "eve",
       decision,
@@ -338,11 +330,7 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     console.error("[recommend] eve failed, engine fallback:", err);
-    const action = await actionFor(
-      body.company_id,
-      body.action_id,
-      snapshot
-    );
+    const action = await actionFor(body.action_id, snapshot);
     if (!action) {
       emitMarketplaceProgress(progressKey, {
         phase: "fallback",
@@ -356,7 +344,13 @@ export async function POST(req: Request) {
         { status: 502 }
       );
     }
-    const matches = deterministicMarketplace(snapshot, action, body.amount);
+    const { facts } = await resolveFacts(body.company_id);
+    const matches = deterministicMarketplace(
+      snapshot,
+      action,
+      body.amount,
+      facts
+    );
     const entry: CacheEntry = {
       matches,
       headline: "Marketplace determinista (motor de match)",

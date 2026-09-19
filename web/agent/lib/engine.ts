@@ -5,6 +5,8 @@
 export {
   computeMatch,
   defaultFitContext,
+  fitContext,
+  fitContextFromFacts,
   issuerTerms,
   solveIdealAmount,
   harmonicMean,

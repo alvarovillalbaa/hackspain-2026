@@ -1,6 +1,11 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { getCompany, getFacts, getExportedScore, getScore } from "../lib/facts";
+import {
+  getLiveCompany,
+  getLiveExportedScore,
+  getLiveFacts,
+  getLiveScore,
+} from "../lib/facts";
 import { recommendActions } from "../../lib/xray/recommend-actions";
 
 export default defineTool({
@@ -10,13 +15,14 @@ export default defineTool({
   inputSchema: z.object({ company_id: z.string().regex(/^COMP_\d{4}$/) }),
   label: { start: ({ company_id }) => `Acciones de ${company_id}` },
   async execute({ company_id }) {
-    const snapshot = getScore(company_id);
+    // Live accessors so a company imported from CSV is visible here too.
+    const snapshot = await getLiveScore(company_id);
     if (!snapshot) throw new Error(`Unknown company_id ${company_id}. IDs look like COMP_0058.`);
     const actions = recommendActions({
       snapshot,
-      facts: getFacts(company_id),
-      exported: getExportedScore(company_id),
-      currency: getCompany(company_id)?.currency,
+      facts: await getLiveFacts(company_id),
+      exported: await getLiveExportedScore(company_id),
+      currency: (await getLiveCompany(company_id))?.currency,
     });
     return {
       company_id,

@@ -6,6 +6,7 @@ import type {
   ScoreSnapshot,
   MatchBreakdown,
 } from "./types";
+import type { CompanyFacts } from "./dataset/types";
 import { applyAction, upliftPoints } from "./scoring";
 import { bandMeta } from "./bands";
 
@@ -63,12 +64,63 @@ export interface FitContext {
   monthlyInflow: number;
 }
 
+/**
+ * Degraded context for callers with no fact pack (mock provider, fixtures).
+ * Shapes the company's finances out of its score dimensions, so the euros are
+ * plausible but invented: never use it on the demo path.
+ */
 export function defaultFitContext(snapshot: ScoreSnapshot): FitContext {
   return {
     currentImpliedRate: 0.04 + (1 - snapshot.dimensions.debt) * 0.06,
     cashCycleMonths: 2 + (1 - snapshot.dimensions.collections) * 4,
     monthlyInflow: 80_000 + snapshot.dimensions.activity * 220_000,
   };
+}
+
+/**
+ * Below one month the `termFit` span collapses and every multi-year product
+ * scores 0; above twelve the curve stops discriminating. Both are properties
+ * of the fit curve, not of the company, so the real cycle is clamped here.
+ */
+const CASH_CYCLE_MONTHS = { min: 1, max: 12 } as const;
+
+/**
+ * Fit context from the fact pack — the only one the demo may use.
+ *
+ * `implied_debt_rate` is null for 97% of the dataset (87 contracts in
+ * `debt_schedule_config`): falling back to 0 keeps `rateFit` neutral instead of
+ * inventing a cost of debt the company does not have.
+ */
+export function fitContextFromFacts(facts: CompanyFacts): FitContext {
+  const inflow =
+    facts.monthly_inflow_avg_3m > 0
+      ? facts.monthly_inflow_avg_3m
+      : Math.max(0, facts.monthly_outflow_avg_3m);
+  const receivables =
+    facts.invoice_aging.issued_pending + facts.invoice_aging.issued_overdue;
+  const cycle =
+    inflow > 0 ? receivables / inflow : CASH_CYCLE_MONTHS.max;
+  const contractRate = facts.contracts.reduce(
+    (max, c) => (c.annual_rate != null && c.annual_rate > max ? c.annual_rate : max),
+    0
+  );
+
+  return {
+    currentImpliedRate: facts.implied_debt_rate ?? contractRate,
+    cashCycleMonths: Math.min(
+      CASH_CYCLE_MONTHS.max,
+      Math.max(CASH_CYCLE_MONTHS.min, cycle)
+    ),
+    monthlyInflow: inflow,
+  };
+}
+
+/** Real context when the facts are there, degraded heuristic when they are not. */
+export function fitContext(
+  snapshot: ScoreSnapshot,
+  facts: CompanyFacts | null | undefined
+): FitContext {
+  return facts ? fitContextFromFacts(facts) : defaultFitContext(snapshot);
 }
 
 export function clientFit(
@@ -87,7 +139,16 @@ export function clientFit(
     score,
     factors: [
       { label: "Cobertura del importe", side: "client", score: coverage },
-      { label: "Coste vs deuda actual", side: "client", score: rate },
+      {
+        // Only 87 debt contracts exist in the dataset: without a current rate
+        // this is a neutral 0.5, and the label has to say so.
+        label:
+          ctx.currentImpliedRate > 0
+            ? "Coste vs deuda actual"
+            : "Coste vs deuda actual (sin deuda comparable)",
+        side: "client",
+        score: rate,
+      },
       { label: "Plazo vs ciclo de caja", side: "client", score: term },
       { label: "Holgura DSCR", side: "client", score: dscr },
     ],

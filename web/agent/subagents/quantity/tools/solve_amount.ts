@@ -1,7 +1,7 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { getLiveScore } from "#lib/facts";
-import { defaultFitContext, solveIdealAmount, DSCR_FLOOR } from "#lib/engine";
+import { getLiveFacts, getLiveScore } from "#lib/facts";
+import { fitContext, solveIdealAmount, DSCR_FLOOR } from "#lib/engine";
 import { ActionKindSchema } from "#lib/schemas";
 
 export default defineTool({
@@ -62,7 +62,7 @@ export default defineTool({
       amount_max: input.amount_max,
     };
 
-    const ctx = defaultFitContext(snapshot);
+    const ctx = fitContext(snapshot, await getLiveFacts(input.company_id));
     const ideal = solveIdealAmount(
       snapshot,
       {

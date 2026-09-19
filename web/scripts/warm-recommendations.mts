@@ -1,58 +1,48 @@
 /**
  * Pre-generate recommendation decisions for default demo group (no LLM).
- * Uses Python-exported scores.json only — no mock SCORE_BY_ID fallback.
+ * Same inputs as the live route: Python-exported scores.json, facts.json and
+ * the real product catalog — so the calibration baseline is measured against
+ * what production actually serves, not against templates.
  * Usage: npm run warm:recommendations
  */
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { scoreToBand } from "../lib/xray/bands";
 import { DEFAULT_GROUP_COMPANIES } from "../lib/xray/demo";
-import { actionsForSnapshot } from "../lib/xray/registry/actions";
-import { productsForKind } from "../lib/xray/registry/products";
+import { recommendActions } from "../lib/xray/recommend-actions";
+import {
+  fairRateForBand,
+  listProducts,
+  priceWithinCatalog,
+  toProductOffer,
+} from "../lib/xray/catalog";
 import {
   computeMatch,
-  defaultFitContext,
+  fitContextFromFacts,
   issuerTerms,
   solveIdealAmount,
 } from "../lib/xray/match";
-import type { ScoreSnapshot } from "../lib/xray/types";
-import type { ExportedScore } from "../lib/xray/dataset/types";
+import { snapshotFromExported } from "../lib/xray/snapshot";
+import type {
+  ActionKind,
+  Band,
+  ProductOffer,
+  ScoreSnapshot,
+} from "../lib/xray/types";
+import type { CompanyFacts, DatasetCompany, ExportedScore } from "../lib/xray/dataset/types";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATASET = join(__dirname, "../lib/xray/dataset");
 const OUT = join(DATASET, "recommendations.json");
 
-function snapshotFromExport(row: ExportedScore): ScoreSnapshot {
-  const score = row.score;
-  const band = scoreToBand(score);
-  const dims = row.dimensions;
-  return {
-    company_id: row.company_id,
-    month: row.month,
-    score,
-    band,
-    outlook: row.outlook,
-    trend: row.trend,
-    watch: row.watch,
-    confidence: row.confidence,
-    sub_scores: {
-      bankability: Math.round(
-        (dims.liquidity * 0.4 + dims.debt * 0.35 + dims.payments * 0.25) * 100
-      ),
-      business_profile: Math.round(
-        (dims.collections * 0.45 + dims.activity * 0.55) * 100
-      ),
-    },
-    dimensions: dims,
-    peer_percentile: row.peer_percentile,
-    projection_6m: row.projection_6m,
-    history: row.history,
-    drivers: row.drivers,
-    alerts: [],
-    explanation: null,
-    origin: row.origin ?? "ml",
-  };
+function catalogOffers(kind: ActionKind, band: Band): ProductOffer[] {
+  const fair = fairRateForBand(band);
+  let products = listProducts({ kind, band });
+  if (products.length === 0) products = listProducts({ kind });
+  return products.slice(0, 5).flatMap((p) => {
+    const offer = toProductOffer(p, priceWithinCatalog(p, fair));
+    return offer ? [offer] : [];
+  });
 }
 
 function snapshotFor(
@@ -60,7 +50,7 @@ function snapshotFor(
   scores: ExportedScore[]
 ): ScoreSnapshot | null {
   const row = scores.find((d) => d.company_id === id);
-  return row ? snapshotFromExport(row) : null;
+  return row ? snapshotFromExported(row) : null;
 }
 
 function main() {
@@ -74,6 +64,16 @@ function main() {
   const scores = JSON.parse(
     readFileSync(scoresPath, "utf8")
   ) as ExportedScore[];
+  const facts = JSON.parse(
+    readFileSync(join(DATASET, "facts.json"), "utf8")
+  ) as CompanyFacts[];
+  const companies = JSON.parse(
+    readFileSync(join(DATASET, "companies.json"), "utf8")
+  ) as DatasetCompany[];
+  const factsById = new Map(facts.map((f) => [f.company_id, f] as const));
+  const currencyById = new Map(
+    companies.map((c) => [c.company_id, c.currency] as const)
+  );
 
   const out: Record<string, unknown> = {};
 
@@ -83,10 +83,25 @@ function main() {
       console.warn(`skip ${companyId}: not in scores.json`);
       continue;
     }
-    const actions = actionsForSnapshot(snapshot);
+    const companyFacts = factsById.get(companyId);
+    if (!companyFacts) {
+      console.warn(`skip ${companyId}: not in facts.json`);
+      continue;
+    }
+    const exported = scores.find((d) => d.company_id === companyId) ?? null;
+    const actions = recommendActions({
+      snapshot,
+      facts: companyFacts,
+      exported,
+      currency: currencyById.get(companyId),
+    });
     for (const action of actions.slice(0, 2)) {
-      const catalog = productsForKind(action.kind, companyId);
-      const ctx = defaultFitContext(snapshot);
+      const catalog = catalogOffers(action.kind, snapshot.band);
+      if (catalog.length === 0) {
+        console.warn(`skip ${companyId}/${action.id}: no catalog product`);
+        continue;
+      }
+      const ctx = fitContextFromFacts(companyFacts);
       const offers = catalog.slice(0, 5).map((p, i) => {
         const amount = solveIdealAmount(snapshot, action, p, ctx);
         const terms = issuerTerms(p, amount, ctx);
@@ -101,7 +116,7 @@ function main() {
           amount_max: p.amount_max,
           issuer_terms: terms,
           client_ideal_terms: p.client_ideal_terms,
-          issuer_rationale: `Warm cache offer ${i + 1} for ${p.issuer.name}`,
+          issuer_rationale: `Catálogo ${p.issuer.name} · oferta ${i + 1}`,
         };
       });
 
@@ -121,7 +136,7 @@ function main() {
           match: breakdown.match,
           client_fit: breakdown.client_fit,
           issuer_appetite: breakdown.issuer_appetite,
-          rationale: `Match ${(breakdown.match * 100).toFixed(0)}% — warm cache`,
+          rationale: `Match ${(breakdown.match * 100).toFixed(0)}% — motor de match sobre facts`,
           risks:
             ideal > product.amount_max * 0.9
               ? ["Cerca del techo del ticket"]
@@ -142,7 +157,7 @@ function main() {
           amount_max: Math.round(ideal * 1.4),
           ceiling_reason:
             "DSCR floor 1.2 and diminishing uplift above the recommended ticket",
-          rationale: `Warm amount for ${action.kind}`,
+          rationale: `Importe resuelto con DSCR sobre el inflow real de ${companyId}`,
           risks: [],
         },
         offers,

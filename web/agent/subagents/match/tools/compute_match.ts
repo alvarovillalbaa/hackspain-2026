@@ -1,7 +1,7 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { getLiveScore } from "#lib/facts";
-import { computeMatch, defaultFitContext } from "#lib/engine";
+import { getLiveFacts, getLiveScore } from "#lib/facts";
+import { computeMatch, fitContext } from "#lib/engine";
 import { ActionKindSchema, ProductTermsSchema } from "#lib/schemas";
 import type { Band } from "../../../../lib/xray/types";
 
@@ -48,7 +48,7 @@ export default defineTool({
       amount_max: input.amount_max,
     };
 
-    const ctx = defaultFitContext(snapshot);
+    const ctx = fitContext(snapshot, await getLiveFacts(input.company_id));
     const breakdown = computeMatch(
       product,
       input.amount,

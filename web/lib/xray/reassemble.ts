@@ -11,10 +11,11 @@ import type {
 } from "./types";
 import {
   computeMatch,
-  defaultFitContext,
+  fitContext,
   issuerTerms,
 } from "./match";
 import { applyAction, upliftPoints } from "./scoring";
+import type { CompanyFacts } from "./dataset/types";
 import type { RecommendationDecision } from "../../agent/lib/schemas";
 import { getProduct, toProductOffer } from "./catalog";
 
@@ -22,10 +23,11 @@ export function reassembleMatches(
   decision: RecommendationDecision,
   snapshot: ScoreSnapshot,
   action: Pick<ActionRecommendation, "dimension_deltas" | "recommended_amount">,
-  origin: ProductMatch["origin"] = "eve"
+  origin: ProductMatch["origin"] = "eve",
+  facts?: CompanyFacts | null
 ): ProductMatch[] {
   const amount = decision.quantity.ideal_amount;
-  const ctx = defaultFitContext(snapshot);
+  const ctx = fitContext(snapshot, facts);
   const rationaleById = new Map(
     decision.ranking.map((r) => [r.product_id, r] as const)
   );

@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  clientFit,
   harmonicMean,
   issuerTerms,
   solveIdealAmount,
   defaultFitContext,
+  fitContext,
+  fitContextFromFacts,
   DSCR_FLOOR,
 } from "./match";
 import type { ProductOffer, ScoreSnapshot } from "./types";
+import type { CompanyFacts } from "./dataset/types";
 
 const snapshot: ScoreSnapshot = {
   company_id: "COMP_TEST",
@@ -95,5 +99,99 @@ describe("match", () => {
     expect(terms.fees_bps).toBeGreaterThanOrEqual(
       product.client_ideal_terms.fees_bps
     );
+  });
+});
+
+function facts(over: Partial<CompanyFacts> = {}): CompanyFacts {
+  return {
+    company_id: "COMP_TEST",
+    cash_balance: 120_000,
+    monthly_inflow_avg_3m: 300_000,
+    monthly_outflow_avg_3m: 250_000,
+    incumbent_banks: [],
+    debt_by_type: {},
+    contracts: [],
+    cash_series: [],
+    invoice_aging: {
+      issued_pending: 600_000,
+      received_pending: 0,
+      issued_overdue: 0,
+      received_overdue: 0,
+      overdue_flow_rate_3m: 0,
+    },
+    top_counterparties: [],
+    implied_debt_rate: 0.05,
+    ...over,
+  };
+}
+
+describe("fitContextFromFacts", () => {
+  it("takes rate and inflow from the facts, not from the dimensions", () => {
+    const ctx = fitContextFromFacts(facts());
+    expect(ctx.currentImpliedRate).toBe(0.05);
+    expect(ctx.monthlyInflow).toBe(300_000);
+    // 600k receivables over 300k monthly inflow = 2 months of cycle
+    expect(ctx.cashCycleMonths).toBeCloseTo(2);
+  });
+
+  it("falls back to the contract rate when implied_debt_rate is missing", () => {
+    const ctx = fitContextFromFacts(
+      facts({
+        implied_debt_rate: null,
+        contracts: [
+          {
+            product_id: "P",
+            type: "loan",
+            bank_name: "B",
+            granted: 1_000_000,
+            outstanding: 400_000,
+            annual_rate: 0.042,
+            amortization_type: "constant quote",
+            total_periods: 26,
+            interest_type: "fixed",
+          },
+        ],
+      })
+    );
+    expect(ctx.currentImpliedRate).toBeCloseTo(0.042);
+  });
+
+  it("leaves the rate at zero with no debt, which keeps the rate factor neutral", () => {
+    const ctx = fitContextFromFacts(facts({ implied_debt_rate: null }));
+    expect(ctx.currentImpliedRate).toBe(0);
+
+    const { factors } = clientFit(product, 200_000, product.issuer_terms, ctx);
+    const rate = factors.find((f) => f.label.startsWith("Coste vs deuda"));
+    expect(rate?.score).toBe(0.5);
+    expect(rate?.label).toContain("sin deuda comparable");
+  });
+
+  it("uses outflow as the activity proxy when there is no inflow", () => {
+    const ctx = fitContextFromFacts(
+      facts({ monthly_inflow_avg_3m: 0, monthly_outflow_avg_3m: 90_000 })
+    );
+    expect(ctx.monthlyInflow).toBe(90_000);
+  });
+
+  it("clamps the cash cycle so the term factor stays meaningful", () => {
+    const tiny = fitContextFromFacts(
+      facts({ invoice_aging: { ...facts().invoice_aging, issued_pending: 1 } })
+    );
+    expect(tiny.cashCycleMonths).toBe(1);
+
+    const huge = fitContextFromFacts(
+      facts({
+        invoice_aging: {
+          ...facts().invoice_aging,
+          issued_pending: 90_000_000,
+        },
+      })
+    );
+    expect(huge.cashCycleMonths).toBe(12);
+  });
+
+  it("degrades to the dimension heuristic only when facts are absent", () => {
+    expect(fitContext(snapshot, null)).toEqual(defaultFitContext(snapshot));
+    expect(fitContext(snapshot, facts())).toEqual(fitContextFromFacts(facts()));
   });
 });

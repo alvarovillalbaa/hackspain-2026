@@ -8,9 +8,10 @@ import type {
   ProductOffer,
   ScoreSnapshot,
 } from "./types";
+import type { CompanyFacts } from "./dataset/types";
 import {
   computeMatch,
-  defaultFitContext,
+  fitContext,
   issuerTerms,
   solveIdealAmount,
 } from "./match";
@@ -42,10 +43,11 @@ function buildOffers(
 export function deterministicMarketplace(
   snapshot: ScoreSnapshot,
   action: ActionRecommendation,
-  amount?: number
+  amount?: number,
+  facts?: CompanyFacts | null
 ): ProductMatch[] {
   const catalog = buildOffers(action.kind, snapshot.band);
-  const ctx = defaultFitContext(snapshot);
+  const ctx = fitContext(snapshot, facts);
 
   const matches: ProductMatch[] = catalog.map((product) => {
     const ideal =

@@ -22,15 +22,115 @@ import argparse
 import json
 import math
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 import pandas as pd
+from pydantic import BaseModel, ConfigDict, Field
 
-from xray import explain, features, rules
-from xray.data import data_dir, repo_root
+from xray import explain, features, policies, projection, rules
+from xray.data import data_dir, load, repo_root
 
 KEYS = ["company_id", "month"]
 DEFAULT_OUT = repo_root() / "web" / "lib" / "xray" / "dataset" / "scores.json"
+
+
+class CashQuantiles(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)
+
+    p10: float
+    p50: float
+    p90: float
+
+
+class TreasuryAlternative(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)
+
+    kind: Literal["none", "line_draw", "line_cover", "line_open", "factoring", "loan", "refinance"]
+    amount: float = Field(ge=0)
+    rate: float | None = Field(ge=0)
+    expected_cost: float
+    breach_prob: float = Field(ge=0, le=1)
+    dscr_fail_prob: float = Field(ge=0, le=1)
+    objective: float
+
+
+class TreasuryProjection(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)
+
+    model_version: Literal["mpc-v1"]
+    currency: Literal["EUR"]
+    horizon_months: Literal[6]
+    n_paths: int = Field(gt=0)
+    seed: int = Field(ge=0)
+    history_months: int = Field(gt=0)
+    uses_pool: bool
+    calibrated: Literal[False]
+    dscr_floor: float = Field(gt=0)
+    risk_weight: float = Field(ge=0)
+    dscr_weight: float = Field(ge=0)
+    baseline: TreasuryAlternative
+    recommended: TreasuryAlternative
+    alternatives: list[TreasuryAlternative]
+    cash_projection_6m: CashQuantiles
+
+
+def _treasury_records(
+    scored: pd.DataFrame, last: pd.DataFrame, tables: dict[str, pd.DataFrame] | None
+) -> dict[str, dict]:
+    if tables is None:
+        return {}
+    companies = tables["companies"]
+    currencies = companies.set_index("company_id")["currency"].fillna("").to_dict()
+    if not any(currencies.get(cid) == "EUR" for cid in last["company_id"]):
+        return {}
+    cfg = projection.SimConfig()
+    extras = projection.company_extras(
+        tables["transactions"], tables["debt_products"], tables["banking_products"],
+        tables["debt_schedule_config"], tables["invoices"],
+        sorted(scored["month"].astype(str).unique()), features=scored,
+    )
+    histories = projection.histories(scored, extras, cfg)
+    pools: dict[str, projection.FlowPool | None] = {}
+    records: dict[str, dict] = {}
+    for row in last.itertuples(index=False):
+        month = str(row.month)
+        hist = histories.get((row.company_id, month))
+        if hist is None or currencies.get(row.company_id) != "EUR":
+            continue
+        if month not in pools:
+            donors = any(
+                h.month <= month and len(h.outflows) >= cfg.history_months
+                and float(np.median(h.outflows)) > 0
+                for h in histories.values()
+            )
+            pools[month] = projection.FlowPool.fit(
+                scored[scored["month"].astype(str) <= month], min_months=cfg.history_months,
+            ) if donors else None
+        pool = pools[month]
+        if len(hist.outflows) < cfg.min_history and pool is None:
+            continue
+        unit = float(np.median(hist.outflows))
+        lam, mu = 0.5 * unit, 0.125 * unit
+        recommendation = policies.mpc_recommend(hist, cfg, lam=lam, mu=mu, pool=pool)
+        chosen = next(
+            item for item in recommendation.alternatives
+            if item["kind"] == recommendation.action.kind
+            and item["amount"] == recommendation.action.amount
+            and item["rate"] == recommendation.action.rate
+        )
+        baseline = projection.simulate(hist, projection.NONE, cfg, pool=pool)
+        quantiles = baseline.eom_quantiles()[:, -1]
+        records[row.company_id] = TreasuryProjection(
+            model_version="mpc-v1", currency="EUR", horizon_months=6,
+            n_paths=cfg.n_paths, seed=cfg.seed, history_months=len(hist.outflows),
+            uses_pool=pool is not None and len(hist.outflows) < cfg.min_history,
+            calibrated=False, dscr_floor=cfg.dscr_floor, risk_weight=lam, dscr_weight=mu,
+            baseline=recommendation.alternatives[0], recommended=chosen,
+            alternatives=recommendation.alternatives,
+            cash_projection_6m=dict(zip(("p10", "p50", "p90"), np.round(quantiles, 2))),
+        ).model_dump(mode="json")
+    return records
 
 
 def _round(x: float | None, nd: int = 2) -> float | None:
@@ -131,6 +231,8 @@ def _f(row: object, name: str, default: float | None = None) -> float | None:
 def records_from_scored(
     scored: pd.DataFrame,
     peer_ref: dict[str, list[float]] | None = None,
+    *,
+    tables: dict[str, pd.DataFrame] | None = None,
 ) -> list[dict]:
     """Shape a scored features table into one JSON record per company (latest scored month).
 
@@ -148,6 +250,7 @@ def records_from_scored(
     if len(with_score) == 0:
         return []
     last = with_score.groupby("company_id", sort=False).tail(1).reset_index(drop=True)
+    treasury = _treasury_records(scored, last, tables)
 
     hist = (
         with_score.groupby("company_id", sort=False)
@@ -217,11 +320,12 @@ def records_from_scored(
             "rank_dscr": round(rd, 3),
             "rank_inflows": round(ri, 3),
             "dimensions": _dimensions(rb, ro, rd, ri),
-            "peer_percentile": int(round(_f(row, "peer_percentile", 50.0) or 50.0)),
+            "peer_percentile": round(_f(row, "peer_percentile", 50.0) or 50.0),
             "history": history,
             "drivers": card_drivers,
             "driver_detail": drivers,
             "projection_6m": _projection_6m(history, score_now),
+            "treasury": treasury.get(row.company_id),
             "origin": "ml",
         })
 
@@ -231,11 +335,12 @@ def records_from_scored(
 
 def build_scores(data_dir_arg: str | Path | None = None) -> list[dict]:
     """features → rules.run → explain → one record per company (latest month with a score)."""
-    feats = features.build(data_dir=data_dir_arg)
+    tables = load(data_dir=data_dir_arg)
+    feats = features.build(tables=tables)
     if "cash_buffer_days" not in feats.columns:
         feats = features.derive(feats)
     scored = rules.run(feats)
-    return records_from_scored(scored)
+    return records_from_scored(scored, tables=tables)
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -36,6 +36,36 @@ export const Projection6mSchema = z.object({
   p90: z.number(),
 });
 
+export const TreasuryAlternativeSchema = z.object({
+  kind: z.enum(["none", "line_draw", "line_cover", "line_open", "factoring", "loan", "refinance"]),
+  amount: z.number().nonnegative(),
+  rate: z.number().nonnegative().nullable(),
+  expected_cost: z.number(),
+  breach_prob: z.number().min(0).max(1),
+  dscr_fail_prob: z.number().min(0).max(1),
+  objective: z.number(),
+});
+
+export const TreasuryProjectionSchema = z.object({
+  model_version: z.literal("mpc-v1"),
+  currency: z.literal("EUR"),
+  horizon_months: z.literal(6),
+  n_paths: z.number().int().positive(),
+  seed: z.number().int().nonnegative(),
+  history_months: z.number().int().positive(),
+  uses_pool: z.boolean(),
+  calibrated: z.literal(false),
+  dscr_floor: z.number().positive(),
+  risk_weight: z.number().nonnegative(),
+  dscr_weight: z.number().nonnegative(),
+  baseline: TreasuryAlternativeSchema.extend({ kind: z.literal("none") }),
+  recommended: TreasuryAlternativeSchema,
+  alternatives: z.array(TreasuryAlternativeSchema).min(1),
+  cash_projection_6m: z.object({
+    p10: z.number(), p50: z.number(), p90: z.number(),
+  }).refine((v) => v.p10 <= v.p50 && v.p50 <= v.p90),
+});
+
 export const HistoryPointSchema = z.object({
   month: z.string(),
   score: z.number(),
@@ -67,6 +97,7 @@ export const ScoreSnapshotSchema = z.object({
   dimensions: DimensionsSchema,
   peer_percentile: z.number(),
   projection_6m: Projection6mSchema,
+  treasury: TreasuryProjectionSchema.nullable().optional(),
   history: z.array(HistoryPointSchema),
   drivers: z.array(DriverSchema),
   alerts: z.array(AlertSchema),

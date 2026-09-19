@@ -11,7 +11,9 @@ import { recommendActions } from "../../lib/xray/recommend-actions";
 export default defineTool({
   description:
     "Recommended treasury actions for a company, derived from cash/debt/invoices and Health Scorer signals. " +
-    "Amounts and uplift are deterministic (not LLM). Each rationale cites field names. Empty list means no screen fired.",
+    "Amounts and uplift are deterministic (not LLM). Each rationale cites field names. Empty list means no screen fired. " +
+    "The separate treasury result is the Python MPC simulation: compare cost, cash shortfall and DSCR together. " +
+    "Its probabilities are uncalibrated simulation frequencies, not default probabilities or causal score effects.",
   inputSchema: z.object({ company_id: z.string().regex(/^COMP_\d{4}$/) }),
   label: { start: ({ company_id }) => `Acciones de ${company_id}` },
   async execute({ company_id }) {
@@ -26,6 +28,7 @@ export default defineTool({
     });
     return {
       company_id,
+      treasury: snapshot.treasury ?? null,
       actions: actions.map(({ dimension_deltas: _d, ...a }) => a),
     };
   },

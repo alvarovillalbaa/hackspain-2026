@@ -19,13 +19,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { watchMeta } from "@/lib/xray/bands";
-import { formatDelta, formatMonth } from "@/lib/xray/format";
+import { formatCurrency, formatDelta, formatMonth, formatNumber, formatPercent } from "@/lib/xray/format";
 import type { PeerCohort } from "@/lib/xray/peers";
 import type {
   Driver,
   Projection6m,
   ScoreSnapshot,
   SubScores,
+  TreasuryProjection,
 } from "@/lib/xray/types";
 import { cn } from "@/lib/utils";
 
@@ -69,6 +70,75 @@ export function ProjectionCard({ projection }: { projection: Projection6m }) {
       <CardContent className="font-mono text-sm tabular-nums">
         {projection.p10.toFixed(1)} · {projection.p50.toFixed(1)} ·{" "}
         {projection.p90.toFixed(1)}
+      </CardContent>
+    </Card>
+  );
+}
+
+export function TreasuryCard({ treasury }: { treasury: TreasuryProjection }) {
+  const { baseline, recommended, currency, cash_projection_6m: cash } = treasury;
+  const labels: Record<TreasuryProjection["recommended"]["kind"], string> = {
+    none: "No actuar",
+    line_draw: "Disponer de la línea existente",
+    line_cover: "Cubrir descubiertos con la línea existente",
+    line_open: "Abrir una línea de crédito",
+    factoring: "Anticipar facturas elegibles",
+    loan: "Solicitar un préstamo",
+    refinance: "Refinanciar el préstamo",
+  };
+  const amount = recommended.kind === "factoring"
+    ? `${formatPercent(recommended.amount)} de la cartera elegible`
+    : recommended.amount > 0 ? formatCurrency(recommended.amount, currency) : null;
+  const rows = [
+    ["Coste financiero (6m)", formatCurrency(baseline.expected_cost, currency), formatCurrency(recommended.expected_cost, currency)],
+    ["Saldo mínimo negativo", formatPercent(baseline.breach_prob), formatPercent(recommended.breach_prob)],
+    [`DSCR agregado < ${formatNumber(treasury.dscr_floor)}`, formatPercent(baseline.dscr_fail_prob), formatPercent(recommended.dscr_fail_prob)],
+  ];
+  return (
+    <Card size="sm" className="sm:col-span-2">
+      <CardHeader>
+        <CardTitle>Simulación de tesorería · {treasury.horizon_months}m</CardTitle>
+        <CardDescription>
+          MPC · {treasury.n_paths} trayectorias · {treasury.history_months} meses de flujos propios
+          {treasury.uses_pool ? " + referencia de cartera" : ""}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm">
+        <p>
+          Recomendación simulada: <strong>{labels[recommended.kind]}</strong>
+          {amount ? ` · ${amount}` : ""}
+          {recommended.rate !== null ? ` · tipo anual ${formatPercent(recommended.rate)}` : ""}
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left tabular-nums" aria-label="Comparación de escenarios de tesorería">
+            <thead>
+              <tr className="border-b">
+                <th scope="col" className="py-2 pr-3">Escenario</th>
+                <th scope="col" className="px-3 py-2 text-right">Sin actuar</th>
+                <th scope="col" className="py-2 pl-3 text-right">Recomendación</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(([label, before, after]) => (
+                <tr key={label} className="border-b last:border-0">
+                  <th scope="row" className="py-2 pr-3 font-normal text-muted-foreground">{label}</th>
+                  <td className="px-3 py-2 text-right">{before}</td>
+                  <td className="py-2 pl-3 text-right">{after}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Saldo a 6m sin actuar (p10 / p50 / p90): {formatCurrency(cash.p10, currency)}
+          {" · "}{formatCurrency(cash.p50, currency)}{" · "}{formatCurrency(cash.p90, currency)}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Frecuencias simuladas no calibradas; no son probabilidades de impago ni efectos causales.
+          Esta comparación no recalcula el Health Score ni ejecuta ofertas.
+          {" "}Preferencias del escenario (λ / μ): {formatCurrency(treasury.risk_weight, currency)}
+          {" / "}{formatCurrency(treasury.dscr_weight, currency)}; no son parámetros estimados.
+        </p>
       </CardContent>
     </Card>
   );
@@ -137,6 +207,7 @@ export function ScoreHero({
       <div className="grid gap-4 sm:grid-cols-2">
         <SubScoresCard subScores={snapshot.sub_scores} />
         <ProjectionCard projection={snapshot.projection_6m} />
+        {snapshot.treasury ? <TreasuryCard treasury={snapshot.treasury} /> : null}
         {watch.active ? (
           <Alert className="sm:col-span-2">
             <AlertTitle>Watch activo</AlertTitle>

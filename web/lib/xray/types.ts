@@ -1,3 +1,8 @@
+import type { z } from "zod";
+import type { TreasuryProjectionSchema } from "./schemas";
+
+export type TreasuryProjection = z.infer<typeof TreasuryProjectionSchema>;
+
 /** Provenance tag for every data block — greppable when wiring real systems. */
 export type DataOrigin = "ml" | "llm" | "eve" | "deterministic";
 
@@ -88,6 +93,7 @@ export interface ScoreSnapshot {
   dimensions: Dimensions;
   peer_percentile: number;
   projection_6m: Projection6m;
+  treasury?: TreasuryProjection | null;
   history: HistoryPoint[];
   drivers: Driver[];
   alerts: Alert[];

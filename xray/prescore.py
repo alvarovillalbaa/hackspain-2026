@@ -121,7 +121,7 @@ def score_pack(
         feats = features.derive(feats)
 
     scored = rules.run(feats, model=model, rank_against=model.profile())
-    records = records_from_scored(scored, peer_ref=peer_ref or None)
+    records = records_from_scored(scored, peer_ref=peer_ref or None, tables=tables)
     if not records:
         return None
 
@@ -142,15 +142,14 @@ def score_pack(
     companies: list[dict[str, Any]] = []
     for row in companies_df.itertuples(index=False):
         cid = str(row.company_id)
-        gid = str(getattr(row, "group_id", "") or f"GROUP_{cid}")
+        group = getattr(row, "group_id", None)
+        gid = f"GROUP_{cid}" if pd.isna(group) or group == "" else str(group)
         known = _identity_from_dataset(cid) or {}
         country = getattr(row, "country", None)
-        if country is not None and (
-            (isinstance(country, float) and pd.isna(country)) or country == ""
-        ):
+        if pd.isna(country) or country == "":
             country = None
-        currency = getattr(row, "currency", None) or "EUR"
-        if isinstance(currency, float) and pd.isna(currency):
+        currency = getattr(row, "currency", None)
+        if pd.isna(currency) or currency == "":
             currency = "EUR"
         companies.append(
             {

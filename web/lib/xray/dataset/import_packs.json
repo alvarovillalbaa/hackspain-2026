@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-19T17:37:40+00:00",
+  "generated_at": "2026-09-19T18:24:43+00:00",
   "source": "xray-prescore-packs",
   "note": "Scores del Health Scorer de Python calculados offline sobre los packs de docs/data/raw/new/. Los sirve /api/xray/import cuando no hay XRAY_API_URL alcanzable (Vercel).",
   "packs": [
@@ -198,6 +198,107 @@
             "p50": 61.9,
             "p90": 66.5
           },
+          "treasury": {
+            "model_version": "mpc-v1",
+            "currency": "EUR",
+            "horizon_months": 6,
+            "n_paths": 500,
+            "seed": 0,
+            "history_months": 7,
+            "uses_pool": false,
+            "calibrated": false,
+            "dscr_floor": 1.2,
+            "risk_weight": 37415.43,
+            "dscr_weight": 9353.8575,
+            "baseline": {
+              "kind": "none",
+              "amount": 0.0,
+              "rate": null,
+              "expected_cost": 1101.9922536,
+              "breach_prob": 0.594,
+              "dscr_fail_prob": 0.0,
+              "objective": 23326.7576736
+            },
+            "recommended": {
+              "kind": "line_open",
+              "amount": 149661.72,
+              "rate": null,
+              "expected_cost": 1838.0330266508513,
+              "breach_prob": 0.002,
+              "dscr_fail_prob": 0.0,
+              "objective": 1912.8638866508513
+            },
+            "alternatives": [
+              {
+                "kind": "none",
+                "amount": 0.0,
+                "rate": null,
+                "expected_cost": 1101.9922536,
+                "breach_prob": 0.594,
+                "dscr_fail_prob": 0.0,
+                "objective": 23326.7576736
+              },
+              {
+                "kind": "line_open",
+                "amount": 74830.86,
+                "rate": null,
+                "expected_cost": 1079.1771263079497,
+                "breach_prob": 0.12,
+                "dscr_fail_prob": 0.0,
+                "objective": 5569.02872630795
+              },
+              {
+                "kind": "line_open",
+                "amount": 149661.72,
+                "rate": null,
+                "expected_cost": 1838.0330266508513,
+                "breach_prob": 0.002,
+                "dscr_fail_prob": 0.0,
+                "objective": 1912.8638866508513
+              },
+              {
+                "kind": "factoring",
+                "amount": 0.5,
+                "rate": null,
+                "expected_cost": 2699.7944521413,
+                "breach_prob": 0.584,
+                "dscr_fail_prob": 0.0,
+                "objective": 24550.4055721413
+              },
+              {
+                "kind": "factoring",
+                "amount": 1.0,
+                "rate": null,
+                "expected_cost": 4428.915483704402,
+                "breach_prob": 0.596,
+                "dscr_fail_prob": 0.0,
+                "objective": 26728.5117637044
+              },
+              {
+                "kind": "loan",
+                "amount": 74830.86,
+                "rate": null,
+                "expected_cost": 1166.046605070562,
+                "breach_prob": 0.15,
+                "dscr_fail_prob": 0.0,
+                "objective": 6778.361105070561
+              },
+              {
+                "kind": "loan",
+                "amount": 149661.72,
+                "rate": null,
+                "expected_cost": 2106.0755463460478,
+                "breach_prob": 0.014,
+                "dscr_fail_prob": 0.0,
+                "objective": 2629.8915663460475
+              }
+            ],
+            "cash_projection_6m": {
+              "p10": -58611.38,
+              "p50": 28640.35,
+              "p90": 113960.05
+            }
+          },
           "origin": "ml"
         },
         {
@@ -323,6 +424,107 @@
             "p50": 52.2,
             "p90": 56.1
           },
+          "treasury": {
+            "model_version": "mpc-v1",
+            "currency": "EUR",
+            "horizon_months": 6,
+            "n_paths": 500,
+            "seed": 0,
+            "history_months": 7,
+            "uses_pool": false,
+            "calibrated": false,
+            "dscr_floor": 1.2,
+            "risk_weight": 1233813.285,
+            "dscr_weight": 308453.32125,
+            "baseline": {
+              "kind": "none",
+              "amount": 0.0,
+              "rate": null,
+              "expected_cost": 1150.0516133999986,
+              "breach_prob": 0.224,
+              "dscr_fail_prob": 0.0,
+              "objective": 277524.2274534
+            },
+            "recommended": {
+              "kind": "line_cover",
+              "amount": 0.0,
+              "rate": null,
+              "expected_cost": 345.09298158630577,
+              "breach_prob": 0.002,
+              "dscr_fail_prob": 0.0,
+              "objective": 2812.719551586306
+            },
+            "alternatives": [
+              {
+                "kind": "none",
+                "amount": 0.0,
+                "rate": null,
+                "expected_cost": 1150.0516133999986,
+                "breach_prob": 0.224,
+                "dscr_fail_prob": 0.0,
+                "objective": 277524.2274534
+              },
+              {
+                "kind": "line_cover",
+                "amount": 0.0,
+                "rate": null,
+                "expected_cost": 345.09298158630577,
+                "breach_prob": 0.002,
+                "dscr_fail_prob": 0.0,
+                "objective": 2812.719551586306
+              },
+              {
+                "kind": "line_draw",
+                "amount": 670000.0,
+                "rate": null,
+                "expected_cost": 12564.617443199999,
+                "breach_prob": 0.002,
+                "dscr_fail_prob": 0.0,
+                "objective": 15032.2440132
+              },
+              {
+                "kind": "factoring",
+                "amount": 0.5,
+                "rate": null,
+                "expected_cost": 20507.673027295048,
+                "breach_prob": 0.25,
+                "dscr_fail_prob": 0.0,
+                "objective": 328960.994277295
+              },
+              {
+                "kind": "factoring",
+                "amount": 1.0,
+                "rate": null,
+                "expected_cost": 39966.77618338531,
+                "breach_prob": 0.268,
+                "dscr_fail_prob": 0.0,
+                "objective": 370628.7365633853
+              },
+              {
+                "kind": "loan",
+                "amount": 2467626.57,
+                "rate": null,
+                "expected_cost": 36913.902560956296,
+                "breach_prob": 0.0,
+                "dscr_fail_prob": 0.0,
+                "objective": 36913.902560956296
+              },
+              {
+                "kind": "loan",
+                "amount": 4935253.14,
+                "rate": null,
+                "expected_cost": 73827.80512191259,
+                "breach_prob": 0.0,
+                "dscr_fail_prob": 0.0,
+                "objective": 73827.80512191259
+              }
+            ],
+            "cash_projection_6m": {
+              "p10": -5851.6,
+              "p50": 476122.54,
+              "p90": 999376.61
+            }
+          },
           "origin": "ml"
         },
         {
@@ -447,6 +649,107 @@
             "p10": 47.7,
             "p50": 52.9,
             "p90": 56.0
+          },
+          "treasury": {
+            "model_version": "mpc-v1",
+            "currency": "EUR",
+            "horizon_months": 6,
+            "n_paths": 500,
+            "seed": 0,
+            "history_months": 7,
+            "uses_pool": false,
+            "calibrated": false,
+            "dscr_floor": 1.2,
+            "risk_weight": 30916.805,
+            "dscr_weight": 7729.20125,
+            "baseline": {
+              "kind": "none",
+              "amount": 0.0,
+              "rate": null,
+              "expected_cost": 482.4645485999997,
+              "breach_prob": 0.386,
+              "dscr_fail_prob": 0.0,
+              "objective": 12416.3512786
+            },
+            "recommended": {
+              "kind": "line_open",
+              "amount": 123667.22,
+              "rate": null,
+              "expected_cost": 1446.559450310048,
+              "breach_prob": 0.006,
+              "dscr_fail_prob": 0.0,
+              "objective": 1632.060280310048
+            },
+            "alternatives": [
+              {
+                "kind": "none",
+                "amount": 0.0,
+                "rate": null,
+                "expected_cost": 482.4645485999997,
+                "breach_prob": 0.386,
+                "dscr_fail_prob": 0.0,
+                "objective": 12416.3512786
+              },
+              {
+                "kind": "line_open",
+                "amount": 61833.61,
+                "rate": null,
+                "expected_cost": 796.0353288101942,
+                "breach_prob": 0.062,
+                "dscr_fail_prob": 0.0,
+                "objective": 2712.8772388101943
+              },
+              {
+                "kind": "line_open",
+                "amount": 123667.22,
+                "rate": null,
+                "expected_cost": 1446.559450310048,
+                "breach_prob": 0.006,
+                "dscr_fail_prob": 0.0,
+                "objective": 1632.060280310048
+              },
+              {
+                "kind": "factoring",
+                "amount": 0.5,
+                "rate": null,
+                "expected_cost": 523.8050050917748,
+                "breach_prob": 0.386,
+                "dscr_fail_prob": 0.0,
+                "objective": 12457.691735091776
+              },
+              {
+                "kind": "factoring",
+                "amount": 1.0,
+                "rate": null,
+                "expected_cost": 565.5510370847998,
+                "breach_prob": 0.382,
+                "dscr_fail_prob": 0.0,
+                "objective": 12375.770547084801
+              },
+              {
+                "kind": "loan",
+                "amount": 61833.61,
+                "rate": null,
+                "expected_cost": 920.3719877186196,
+                "breach_prob": 0.072,
+                "dscr_fail_prob": 0.0,
+                "objective": 3146.3819477186194
+              },
+              {
+                "kind": "loan",
+                "amount": 123667.22,
+                "rate": null,
+                "expected_cost": 1741.2772826215964,
+                "breach_prob": 0.01,
+                "dscr_fail_prob": 0.0,
+                "objective": 2050.445332621596
+              }
+            ],
+            "cash_projection_6m": {
+              "p10": -38041.68,
+              "p50": 58436.62,
+              "p90": 155009.67
+            }
           },
           "origin": "ml"
         }
@@ -626,6 +929,107 @@
             "p10": 44.3,
             "p50": 51.7,
             "p90": 56.5
+          },
+          "treasury": {
+            "model_version": "mpc-v1",
+            "currency": "EUR",
+            "horizon_months": 6,
+            "n_paths": 500,
+            "seed": 0,
+            "history_months": 8,
+            "uses_pool": false,
+            "calibrated": false,
+            "dscr_floor": 1.2,
+            "risk_weight": 40712.6275,
+            "dscr_weight": 10178.156875,
+            "baseline": {
+              "kind": "none",
+              "amount": 0.0,
+              "rate": null,
+              "expected_cost": 18753.588611699997,
+              "breach_prob": 1.0,
+              "dscr_fail_prob": 0.0,
+              "objective": 59466.2161117
+            },
+            "recommended": {
+              "kind": "line_open",
+              "amount": 162850.51,
+              "rate": null,
+              "expected_cost": 9781.506835524566,
+              "breach_prob": 0.794,
+              "dscr_fail_prob": 0.0,
+              "objective": 42107.33307052457
+            },
+            "alternatives": [
+              {
+                "kind": "none",
+                "amount": 0.0,
+                "rate": null,
+                "expected_cost": 18753.588611699997,
+                "breach_prob": 1.0,
+                "dscr_fail_prob": 0.0,
+                "objective": 59466.2161117
+              },
+              {
+                "kind": "line_open",
+                "amount": 81425.255,
+                "rate": null,
+                "expected_cost": 13604.652180736472,
+                "breach_prob": 1.0,
+                "dscr_fail_prob": 0.0,
+                "objective": 54317.27968073647
+              },
+              {
+                "kind": "line_open",
+                "amount": 162850.51,
+                "rate": null,
+                "expected_cost": 9781.506835524566,
+                "breach_prob": 0.794,
+                "dscr_fail_prob": 0.0,
+                "objective": 42107.33307052457
+              },
+              {
+                "kind": "factoring",
+                "amount": 0.5,
+                "rate": null,
+                "expected_cost": 17912.126608297953,
+                "breach_prob": 1.0,
+                "dscr_fail_prob": 0.0,
+                "objective": 58624.75410829796
+              },
+              {
+                "kind": "factoring",
+                "amount": 1.0,
+                "rate": null,
+                "expected_cost": 17237.736010084205,
+                "breach_prob": 1.0,
+                "dscr_fail_prob": 0.0,
+                "objective": 57950.36351008421
+              },
+              {
+                "kind": "loan",
+                "amount": 81425.255,
+                "rate": null,
+                "expected_cost": 13221.076320140213,
+                "breach_prob": 1.0,
+                "dscr_fail_prob": 0.0,
+                "objective": 53933.70382014022
+              },
+              {
+                "kind": "loan",
+                "amount": 162850.51,
+                "rate": null,
+                "expected_cost": 8976.671622903972,
+                "breach_prob": 0.836,
+                "dscr_fail_prob": 0.0,
+                "objective": 43012.42821290397
+              }
+            ],
+            "cash_projection_6m": {
+              "p10": -417863.77,
+              "p50": -237221.82,
+              "p90": -67283.93
+            }
           },
           "origin": "ml"
         }

@@ -1,4 +1,4 @@
-import type { Dimensions, HistoryPoint } from "../types";
+import type { Dimensions, HistoryPoint, TreasuryProjection } from "../types";
 
 /** Compact company record for the portfolio list. */
 export interface DatasetCompany {
@@ -72,6 +72,7 @@ export interface ExportedScore {
   drivers: { signal: string; delta: number; since: string }[];
   driver_detail?: unknown[];
   projection_6m: { p10: number; p50: number; p90: number };
+  treasury?: TreasuryProjection | null;
   origin?: "ml" | "deterministic";
 }
 

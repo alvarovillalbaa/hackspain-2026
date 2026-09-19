@@ -1,15 +1,50 @@
 "use client"
 
+import * as React from "react"
 import { PreviewCard as PreviewCardPrimitive } from "@base-ui/react/preview-card"
 import { cn } from "cn"
 
-function HoverCard({ ...props }: PreviewCardPrimitive.Root.Props) {
-  return <PreviewCardPrimitive.Root data-slot="hover-card" {...props} />
+// Base UI takes the hover delays on the trigger (`delay`/`closeDelay`), while
+// callers use the root-level `openDelay`/`closeDelay` pair. Passing them to the
+// root silently drops them, so carry them down to the trigger instead.
+type HoverCardDelays = {
+  openDelay?: number
+  closeDelay?: number
 }
 
-function HoverCardTrigger({ ...props }: PreviewCardPrimitive.Trigger.Props) {
+const HoverCardDelayContext = React.createContext<HoverCardDelays>({})
+
+function HoverCard({
+  openDelay,
+  closeDelay,
+  ...props
+}: PreviewCardPrimitive.Root.Props & HoverCardDelays) {
+  const delays = React.useMemo(
+    () => ({ openDelay, closeDelay }),
+    [openDelay, closeDelay]
+  )
+
   return (
-    <PreviewCardPrimitive.Trigger data-slot="hover-card-trigger" {...props} />
+    <HoverCardDelayContext.Provider value={delays}>
+      <PreviewCardPrimitive.Root data-slot="hover-card" {...props} />
+    </HoverCardDelayContext.Provider>
+  )
+}
+
+function HoverCardTrigger({
+  delay,
+  closeDelay,
+  ...props
+}: PreviewCardPrimitive.Trigger.Props) {
+  const inherited = React.useContext(HoverCardDelayContext)
+
+  return (
+    <PreviewCardPrimitive.Trigger
+      data-slot="hover-card-trigger"
+      delay={delay ?? inherited.openDelay}
+      closeDelay={closeDelay ?? inherited.closeDelay}
+      {...props}
+    />
   )
 }
 

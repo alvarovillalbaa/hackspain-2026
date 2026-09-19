@@ -1,0 +1,194 @@
+import type {
+  ActionRecommendation,
+  CompanyRef,
+  ImportRequest,
+  NegotiationContext,
+  NegotiationLever,
+  ProductMatch,
+  ScoreSnapshot,
+} from "../types";
+import { DEMO_COMPANIES, IMPORTABLE_COMPANIES } from "./companies";
+import { SCORE_BY_ID } from "./scores";
+import { ACTIONS_BY_COMPANY, findAction } from "./actions";
+import { productsForKind } from "./products";
+import {
+  computeMatch,
+  defaultFitContext,
+  issuerTerms,
+  solveIdealAmount,
+} from "../match";
+import { applyAction, upliftPoints } from "../scoring";
+
+const importedStore: CompanyRef[] = [];
+
+function delay(ms = 40): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+export const mockProvider = {
+  async listCompanies(): Promise<CompanyRef[]> {
+    await delay();
+    return [...DEMO_COMPANIES, ...importedStore];
+  },
+
+  async getScore(companyId: string): Promise<ScoreSnapshot> {
+    await delay();
+    const score = SCORE_BY_ID[companyId];
+    if (!score) throw new Error(`Company not found: ${companyId}`);
+    return score;
+  },
+
+  async listActions(companyId: string): Promise<ActionRecommendation[]> {
+    await delay();
+    return ACTIONS_BY_COMPANY[companyId] ?? [];
+  },
+
+  async listProducts(
+    companyId: string,
+    actionId: string,
+    amount?: number
+  ): Promise<ProductMatch[]> {
+    await delay(60);
+    const snapshot = SCORE_BY_ID[companyId];
+    const action = findAction(companyId, actionId);
+    if (!snapshot || !action) return [];
+
+    const catalog = productsForKind(action.kind, companyId);
+    const ctx = defaultFitContext(snapshot);
+
+    const matches: ProductMatch[] = catalog.map((product) => {
+      const idealAmount =
+        amount ?? solveIdealAmount(snapshot, action, product, ctx);
+      const clamped = Math.max(
+        product.amount_min,
+        Math.min(product.amount_max, idealAmount)
+      );
+      // Recompute issuer terms for this amount (optimized for issuer)
+      const optimizedIssuer = issuerTerms(product, clamped, ctx);
+      const offer = { ...product, issuer_terms: optimizedIssuer };
+      const breakdown = computeMatch(
+        offer,
+        clamped,
+        snapshot.band,
+        optimizedIssuer,
+        ctx
+      );
+      const after = applyAction(snapshot, action, clamped);
+      return {
+        product: offer,
+        amount: clamped,
+        breakdown,
+        uplift: upliftPoints(snapshot, after),
+        projected_score: after.score,
+        projected_band: after.band,
+        origin: "deterministic",
+      };
+    });
+
+    return matches.sort((a, b) => b.breakdown.match - a.breakdown.match);
+  },
+
+  async getNegotiation(
+    productId: string,
+    ctx: NegotiationContext
+  ): Promise<NegotiationLever[]> {
+    await delay();
+    const matches = await this.listProducts(
+      ctx.company_id,
+      ctx.action_id,
+      ctx.amount
+    );
+    const match = matches.find((m) => m.product.product_id === productId);
+    if (!match) return [];
+
+    const { product } = match;
+    const issuer = product.issuer_terms;
+    const ideal = product.client_ideal_terms;
+
+    return [
+      {
+        id: "rate",
+        label: "Bajar tipo",
+        description: `Desde ${issuer.rate_annual} hacia ${ideal.rate_annual} (ideal cliente)`,
+        field: "rate_annual",
+        suggested: ideal.rate_annual,
+        match_delta: 0.08,
+        origin: "llm",
+      },
+      {
+        id: "fees",
+        label: "Reducir comisiones",
+        description: `Desde ${issuer.fees_bps} bps hacia ${ideal.fees_bps} bps`,
+        field: "fees_bps",
+        suggested: ideal.fees_bps,
+        match_delta: 0.04,
+        origin: "deterministic",
+      },
+      {
+        id: "term",
+        label: "Alargar plazo",
+        description: `Desde ${issuer.term_months}m hacia ${ideal.term_months}m`,
+        field: "term_months",
+        suggested: ideal.term_months,
+        match_delta: 0.05,
+        origin: "eve",
+      },
+      {
+        id: "collateral",
+        label: "Suavizar colateral",
+        description: `Desde ${issuer.collateral} hacia ${ideal.collateral}`,
+        field: "collateral",
+        suggested: ideal.collateral,
+        match_delta: 0.06,
+        origin: "llm",
+      },
+    ];
+  },
+
+  async importCompanies(req: ImportRequest): Promise<CompanyRef[]> {
+    await delay(80);
+    const ids = new Set(req.datasets.flatMap((d) => d.selected_company_ids));
+    const added: CompanyRef[] = [];
+    for (const id of ids) {
+      if (importedStore.some((c) => c.company_id === id)) continue;
+      if (DEMO_COMPANIES.some((c) => c.company_id === id)) continue;
+      const found = IMPORTABLE_COMPANIES.find((c) => c.company_id === id);
+      if (found) {
+        const ref = { ...found, imported: true };
+        importedStore.push(ref);
+        added.push(ref);
+      } else {
+        // Synthetic from import
+        const ref: CompanyRef = {
+          company_id: id,
+          group_id: "GROUP_IMPORT",
+          name: `Importada ${id}`,
+          country: "ES",
+          currency: "EUR",
+          n_companies_in_group: 1,
+          imported: true,
+        };
+        importedStore.push(ref);
+        // Ensure score exists
+        if (!SCORE_BY_ID[id]) {
+          SCORE_BY_ID[id] = {
+            ...SCORE_BY_ID["COMP_0001"]!,
+            company_id: id,
+            origin: "deterministic",
+          };
+        }
+        added.push(ref);
+      }
+    }
+    return added;
+  },
+
+  /** Exposed for import picker UI. */
+  async listImportable(): Promise<CompanyRef[]> {
+    await delay();
+    const existing = new Set(
+      [...DEMO_COMPANIES, ...importedStore].map((c) => c.company_id)
+    );
+    return IMPORTABLE_COMPANIES.filter((c) => !existing.has(c.company_id));
+  },
+};

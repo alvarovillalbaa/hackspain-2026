@@ -1,6 +1,7 @@
 # Datos del reto (645 MB) — nunca en git
 input_data/
 dataset/
+docs/data/
 *.csv
 !tests/**/*.csv
 

@@ -13,9 +13,14 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 This Next.js app also hosts an eve agent. `withEve()` in `next.config.ts` mounts the agent in `agent/` at `/eve/v1/*`, so `npm run dev` runs both, and one Vercel deploy ships both. There is no separate agent package: eve, the agent and the web app share this `package.json` and `node_modules`.
 
 - `agent/` — the agent (instructions, `agent.ts`, tools, channels, subagents, …). Import its files with `#…` (for example `#lib/foo.ts`).
-- `app/page.tsx`, `app/s/`, `app/_components/` — the web chat that talks to the agent through `useEveAgent` from `eve/react`.
+- `app/chat/`, `app/s/`, `app/_components/` — the web chat that talks to the agent through `useEveAgent` from `eve/react`.
+- `app/page.tsx`, `app/c/` — demo X Ray (portfolio → score → marketplace). Docs: `docs/frontend_v0.md`.
 
 For a content-only change to the agent's identity, purpose, tone, or response guidelines, edit `agent/instructions.md`. Preserve the model in `agent/agent.ts` unless asked to change it.
+
+## X Ray demo seam
+
+All demo data goes through `lib/xray/provider.ts` (`export const provider`). Screens and `components/xray/**` must **never** import `lib/xray/registry/` — only the provider does. Swap the mock by changing the single `provider` assignment. Score JSON mirrors `docs/plan.md` §6 (`lib/xray/schemas.ts`).
 
 ## Read the eve docs before writing agent code
 

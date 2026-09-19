@@ -127,6 +127,34 @@ def test_thresholds_are_configurable():
     assert events.build(_tables(invoices=inv), _features(), strict).empty
 
 
+# --- robustez ante datos sucios y pools pequeños (revisión) ------------------------------------
+
+
+def test_non_numeric_cells_do_not_crash_and_are_dropped():
+    schedule = pd.DataFrame([
+        {"product_id": "L1", "company_id": "C1", "last_payment_date": pd.Timestamp("2026-05-15"),
+         "outstanding_balance": "1.234,56", "annual_interest_rate_or_spread": 0.03},
+        {"product_id": "L2", "company_id": "C1", "last_payment_date": pd.Timestamp("2026-05-15"),
+         "outstanding_balance": 50_000.0, "annual_interest_rate_or_spread": 0.03},
+    ])
+    out = events.build(_tables(schedule=schedule), _features(outflows=10_000.0))
+    assert out.to_dict("records") == [{"company_id": "C1", "month": "2026-02", "kind": "large_maturity"}]
+
+
+def test_expensive_new_debt_needs_a_reference_pool():
+    # con menos de `expensive_min_contracts` contratos con tipo no hay percentil de referencia:
+    # en un pack de una sola empresa el evento no dispara aunque un contrato sea más caro que otro
+    debt = pd.DataFrame([
+        {"product_id": "D1", "company_id": "C1", "type": "loan", "created_at": pd.Timestamp("2026-02-10")},
+    ])
+    schedule = pd.DataFrame([
+        {"product_id": "D1", "company_id": "C1", "annual_interest_rate_or_spread": 0.09},
+        {"product_id": "D2", "company_id": "C1", "annual_interest_rate_or_spread": 0.03},
+        {"product_id": "D3", "company_id": "C1", "annual_interest_rate_or_spread": 0.04},
+    ])
+    assert events.build(_tables(debt=debt, schedule=schedule), _features()).empty
+
+
 def test_uploaded_pack_gets_watch_from_its_own_invoices(tmp_path):
     from xray import features, prescore, score
 

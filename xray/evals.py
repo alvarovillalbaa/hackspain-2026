@@ -198,9 +198,11 @@ def projection_metrics(
     realizado a t+6, en test; y la base martingala (centro = score de hoy, cuantiles del cambio a
     6 meses por tramo de score ajustados en train), que cualquier proyección tiene que batir."""
     o = _sorted(scored)
+    cols = rules.PROJECTION_COLUMNS
+    if not set(cols) <= set(o.columns):
+        return {"n": 0}
     g = o.groupby("company_id", sort=False)
     future = g["score"].shift(-horizon)
-    cols = rules.PROJECTION_COLUMNS
     has = o["score"].notna() & future.notna() & o[cols].notna().all(axis=1)
     month = o["month"].astype(str)
     train = has & (month <= train_until)

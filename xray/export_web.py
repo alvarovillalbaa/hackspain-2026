@@ -26,7 +26,7 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from xray import events, explain, features, policies, projection, rules
 from xray.data import artifacts_dir, data_dir, load, repo_root
@@ -179,10 +179,18 @@ def write_method_metrics(src: Path, dst: Path, name: str = "rules") -> bool:
     if not src.exists():
         print(f"aviso: no encuentro {src}; el pack se queda sin métricas del método (uv run xray-evals)")
         return False
-    data = method_metrics(json.loads(src.read_text(encoding="utf-8")), name, source=str(src))
+    try:
+        source = str(src.relative_to(repo_root()))
+    except ValueError:
+        source = str(src)
+    try:
+        data = method_metrics(json.loads(src.read_text(encoding="utf-8")), name, source=source)
+    except (json.JSONDecodeError, KeyError, ValidationError) as exc:
+        print(f"aviso: {src} no es un metrics.json usable ({exc}); el pack se queda sin métricas")
+        return False
     dst.parent.mkdir(parents=True, exist_ok=True)
     dst.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    print(f"Wrote method metrics → {dst}")
+    print(f"Wrote method metrics -> {dst}")
     return True
 
 

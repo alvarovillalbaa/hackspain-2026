@@ -9,10 +9,14 @@ Tres códigos, los de `rules.WATCH_KINDS`:
 - `large_maturity`: contrato de `debt_schedule_config` cuyo último pago cae en los
   `maturity_days` días siguientes al fin del mes t, con saldo pendiente ≥
   `maturity_min_outflow_months` meses de cargos (media de 3 meses de `outflows_eur`). Evento en
-  el primer mes dentro de la ventana. Solo existe con cuadro de amortización.
+  el primer mes dentro de la ventana que cumple el saldo, una vez por contrato. Solo existe con
+  cuadro de amortización.
 - `expensive_new_debt`: producto de deuda dado de alta con tipo de contrato por encima del
   percentil `expensive_percentile` de los tipos de contrato de la tabla. Evento en el mes del alta;
-  sin contrato no hay evento (nulo, no estimado; `interest_charge` no sirve, plan §5).
+  sin contrato no hay evento (nulo, no estimado; `interest_charge` no sirve, plan §5). El percentil
+  se calcula sobre la tabla que recibe el llamador: con menos de `expensive_min_contracts`
+  contratos con tipo no hay referencia y el evento no se emite (en ingest/packs la tabla es la del
+  propio pack, así que allí prácticamente nunca dispara; la referencia es la de la cartera).
 
 Determinista y sin mirar el futuro: lo que ocurre en t solo usa filas con fecha ≤ fin de t. La
 rejilla es la de la tabla de features (empresa, mes): fuera de ella no se emiten eventos.
@@ -42,6 +46,7 @@ class EventsConfig:
     maturity_days: int = 90  # vencimiento dentro de estos días tras el fin de mes
     maturity_min_outflow_months: float = 1.0  # saldo pendiente mínimo, en meses de cargos
     expensive_percentile: float = 75.0  # percentil de los tipos de contrato que define «caro»
+    expensive_min_contracts: int = 4  # contratos con tipo mínimos para que el percentil sea referencia
 
 
 def _empty() -> pd.DataFrame:
@@ -102,7 +107,8 @@ def large_maturity(schedule: pd.DataFrame, features: pd.DataFrame, grid: pd.Data
         return _empty()
     sched = schedule[list(need)].dropna(subset=["product_id", "company_id", "last_payment_date", "outstanding_balance"]).copy()
     sched["last_payment_date"] = pd.to_datetime(sched["last_payment_date"], errors="coerce")
-    sched = sched[sched["last_payment_date"].notna() & (sched["outstanding_balance"].astype(float).abs() > 0)]
+    sched["outstanding_balance"] = pd.to_numeric(sched["outstanding_balance"], errors="coerce")
+    sched = sched[sched["last_payment_date"].notna() & (sched["outstanding_balance"].abs() > 0)]
     if len(sched) == 0:
         return _empty()
     feats = features[KEYS + ["outflows_eur"]].copy()
@@ -116,11 +122,11 @@ def large_maturity(schedule: pd.DataFrame, features: pd.DataFrame, grid: pd.Data
         return _empty()
     month_end = cross["month"].dt.end_time.dt.normalize()
     days = (cross["last_payment_date"].dt.normalize() - month_end).dt.days
-    big = cross["outstanding_balance"].astype(float).abs() >= cfg.maturity_min_outflow_months * cross["outflows_3m"].fillna(0.0)
+    big = cross["outstanding_balance"].abs() >= cfg.maturity_min_outflow_months * cross["outflows_3m"].fillna(0.0)
     cross["flag"] = (days > 0) & (days <= cfg.maturity_days) & big
-    cross = cross.sort_values(["product_id", "month"])
-    prev = cross.groupby("product_id")["flag"].shift(1).fillna(False).astype(bool)
-    return _in_grid(cross[cross["flag"] & ~prev], grid, "large_maturity")
+    # una vez por contrato: el primer mes dentro de la ventana que cumple el saldo
+    first = cross[cross["flag"]].groupby(["company_id", "product_id"], as_index=False)["month"].min()
+    return _in_grid(first, grid, "large_maturity")
 
 
 def expensive_new_debt(debt: pd.DataFrame, schedule: pd.DataFrame, grid: pd.DataFrame, cfg: EventsConfig) -> pd.DataFrame:
@@ -131,14 +137,17 @@ def expensive_new_debt(debt: pd.DataFrame, schedule: pd.DataFrame, grid: pd.Data
         return _empty()
     if not {"product_id", "annual_interest_rate_or_spread"} <= set(schedule.columns):
         return _empty()
-    rates = schedule.dropna(subset=["product_id", "annual_interest_rate_or_spread"]).drop_duplicates("product_id")
+    rates = schedule.dropna(subset=["product_id", "annual_interest_rate_or_spread"]).copy()
+    rates["annual_interest_rate_or_spread"] = pd.to_numeric(rates["annual_interest_rate_or_spread"], errors="coerce")
+    rates = rates.dropna(subset=["annual_interest_rate_or_spread"])
+    rates = rates.sort_values("annual_interest_rate_or_spread").drop_duplicates("product_id")
     rates = rates[["product_id", "annual_interest_rate_or_spread"]]
-    if len(rates) == 0:
+    if len(rates) < cfg.expensive_min_contracts:
         return _empty()
-    threshold = float(np.percentile(rates["annual_interest_rate_or_spread"].astype(float), cfg.expensive_percentile))
+    threshold = float(np.percentile(rates["annual_interest_rate_or_spread"], cfg.expensive_percentile))
     new = debt.dropna(subset=["product_id", "company_id", "created_at"]).merge(rates, on="product_id")
     new = new.assign(created_at=pd.to_datetime(new["created_at"], errors="coerce"))
-    new = new[new["created_at"].notna() & (new["annual_interest_rate_or_spread"].astype(float) > threshold)]
+    new = new[new["created_at"].notna() & (new["annual_interest_rate_or_spread"] > threshold)]
     if len(new) == 0:
         return _empty()
     rows = pd.DataFrame({"company_id": new["company_id"].to_numpy(), "month": new["created_at"].dt.to_period("M").to_numpy()})

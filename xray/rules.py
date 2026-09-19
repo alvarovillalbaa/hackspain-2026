@@ -93,12 +93,11 @@ class RulesModel:
     def project(self, level: np.ndarray | pd.Series) -> np.ndarray:
         """Cuantiles del score a t+6 (n, 3) según el tramo de nivel de hoy; nivel NaN → fila NaN."""
         if self.projection_edges is None or self.projection_points is None:
-            raise ValueError("RulesModel sin proyección a t+6: vuelve a ajustar con `uv run xray-score`")
+            raise ValueError(_NO_PROJECTION_MSG)
         x = np.asarray(level, dtype=float)
         edges = np.asarray(self.projection_edges, dtype=float)
         points = np.asarray(self.projection_points, dtype=float)
-        idx = np.clip(np.searchsorted(edges[1:-1], x, side="right"), 0, len(points) - 1)
-        out = points[idx].astype(float)
+        out = points[_bin_index(edges, x)].astype(float)
         out[np.isnan(x)] = np.nan
         return out
 
@@ -110,11 +109,25 @@ class RulesModel:
     def load(cls, path: str | Path) -> RulesModel:
         model = cls(**json.loads(Path(path).read_text(encoding="utf-8")))
         if model.projection_edges is None or model.projection_points is None:
+            raise ValueError(f"{path}: {_NO_PROJECTION_MSG}")
+        if len(model.projection_points) != len(model.projection_edges) - 1:
             raise ValueError(
-                f"{path}: RulesModel sin proyección a t+6 (modelo anterior al slice 14); "
+                f"{path}: RulesModel con proyección inconsistente "
+                f"({len(model.projection_points)} puntos para {len(model.projection_edges)} cortes); "
                 "regenera con `uv run xray-score --features artifacts/features.parquet`"
             )
         return model
+
+
+_NO_PROJECTION_MSG = (
+    "RulesModel sin proyección a t+6 (modelo anterior al slice 14); "
+    "regenera con `uv run xray-score --features artifacts/features.parquet`"
+)
+
+
+def _bin_index(edges: np.ndarray, x: np.ndarray) -> np.ndarray:
+    """Tramo de nivel de cada valor: la misma regla en fit y en serve."""
+    return np.clip(np.searchsorted(edges[1:-1], x, side="right"), 0, len(edges) - 2)
 
 
 def _fit_projection(
@@ -130,7 +143,7 @@ def _fit_projection(
     edges = np.unique(np.quantile(level, np.linspace(0.0, 1.0, bins + 1)))
     if len(edges) < 2:
         edges = np.array([edges[0], edges[0]])
-    idx = np.clip(np.searchsorted(edges[1:-1], level, side="right"), 0, len(edges) - 2)
+    idx = _bin_index(edges, level)
     points: list[list[float]] = []
     for b in range(len(edges) - 1):
         rows = label[idx == b]

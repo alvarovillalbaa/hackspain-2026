@@ -5,6 +5,8 @@
 > Objetivo: que `labels`, `score`, `bands` y `projection` (slices #15, #4, #5, #6) se puedan escribir hoy contra `tests/fixtures/features_mock.csv` sin esperar a la tabla real, y que cuando la tabla real llegue `features.validate()` diga si encaja.
 >
 > **Actualización 19 sep 2026 (mañana), tras la revisión del score:** tres columnas nuevas (`net_cash_flow_ratio_3m`, `cash_buffer_days`, `overdue_flow_rate_3m`) que son las señales v2 del índice de estado; las columnas antiguas siguen para la pantalla. `features.derive()` calcula las dos primeras desde el contrato y `features.overdue_flow_rate()` es la implementación de referencia de la tercera desde `invoices`. Añadir columnas es libre (AGENTS.md), así que el grano y los nombres existentes no cambian. La tabla termina en el **último mes completo**.
+>
+> **19 sep 2026 (tarde): `features.build()` está implementado** (slice #2) sobre `xray.data.load()`, en pandas, 8 s para las 1.265 empresas: `uv run xray-features` escribe `artifacts/features.parquet`, la ruta por defecto de `xray-evals` y `xray-score`. Las decisiones de construcción están en §3 (puntos 7–12) y se prueban con tablas mínimas en `tests/test_features_build.py` más un humo sobre el dataset real.
 
 ## 1. Grano y reglas
 
@@ -55,6 +57,11 @@ Las cuatro señales del índice de estado están en `features.SIGNAL_COLUMNS`, e
 5. **`has_debt` desde movimientos**, no desde `debt_products`, porque 378 empresas tienen producto de deuda pero lo que mide la señal son las cuotas que salen de la cuenta.
 6. **Sin filas para meses sin movimientos fuera del rango activo.** Una empresa que empieza en 2025-06 no tiene filas anteriores; el `has_prior_year` cubre el interanual.
 7. **Las señales v2 son del builder, no de `labels`** (19 sep): `derive(df)` añade `net_cash_flow_ratio_3m` y `cash_buffer_days` a cualquier tabla con las columnas base, y `overdue_flow_rate(invoices, months)` devuelve la tasa de vencidas por empresa-mes lista para el merge (NaN donde `has_invoices` es False). Motivo: la pantalla y la proyección también quieren los días de caja y el flujo neto, y una sola tabla es el sentido del seam. Por qué cambian las señales: el interanual tenía cobertura 0 % en todo el tramo de train y 29 % en total, el rango del saldo en euros mezclaba tamaño con liquidez y el stock de vencidas crecía sin límite hacia la foto (mediana 0,05 → 0,79) porque las `overdue` nunca se resuelven; medido contra el saldo bruto pasando a negativo a 6 meses, el nivel pasa de AUC 0,679 a 0,720 y las empresas sin score de 112 a 1.
+8. **Solo facturas de verdad** (19 sep, tarde): `invoice_rows()` deja `document_type == "invoice"` (el 85 % de las recibidas; fuera documentos de pago, notas, depósitos y albaranes) y quita las canceladas (2 %). Se aplica a todas las columnas que salen de facturas. Cambia la tasa de vencidas en el 13 % de los meses-empresa (mediana 0,30 → 0,26) y la AUC externa a 6 meses sube de 0,676 a 0,685.
+9. **`exchange_rate` no convierte moneda**: vale 1,0 en el 90 % de los movimientos de las 137 empresas no-EUR (los importes en COP siguen en cientos de miles tras multiplicar). Las columnas en euros de esas empresas están en su moneda; las cuatro señales son ratios y no les afecta; la ficha debe enseñar la moneda de `companies.csv`.
+10. **Saldo = cuentas corrientes con saldo en `balances.csv`**, reconstruido hacia atrás con todos los movimientos (también los posteriores al último mes completo, porque la foto los incluye) y mínimo sobre los días con movimiento más el cierre del mes anterior. Las 21 empresas sin ninguna cuenta corriente con saldo quedan fuera de la tabla: sin señal (i) no hay índice fiable.
+11. **Grano**: del primer al último mes con movimientos de cada empresa, dentro de los meses completos (hasta 2026-08). Una empresa sin movimientos recientes no tiene filas ahí; el aviso de inactividad queda para el monitor.
+12. **Todos los movimientos, no solo `booked`**, como en la tabla provisional con la que se evaluó el score; los pendientes son pocos y el análisis de deriva del notebook 01 §9 no cambia con ellos.
 
 ## 4. La fixture
 
@@ -78,4 +85,8 @@ tabla = features.derive(tabla)        # añade net_cash_flow_ratio_3m y cash_buf
 tasa = features.overdue_flow_rate(invoices, meses)   # (company_id, month, …, overdue_flow_rate_3m)
 ```
 
-`features.build()` lanza `NotImplementedError` hasta que el slice #2 la implemente en este mismo módulo.
+```bash
+uv run xray-features                  # CSV → artifacts/features.parquet (8 s desde la caché parquet)
+```
+
+`features.build(tables=...)` acepta tablas propias con las columnas que usa `xray.data.load()`; así se prueba con tablas mínimas sin dataset.

@@ -19,7 +19,10 @@
 | `rules` | `run(features, events=None, model=None, cfg=None)` | Encadena todo; ajusta si no recibe modelo |
 | `rules` | `RulesModel.save(path)` / `RulesModel.load(path)` | JSON con nudos del mapa y corte |
 | `evals` | `xray-evals` (CLI) | AUC(h) propia y externa, lead time en tres cifras, horizonte de persistencia, direccionalidad, dispersión por grupos → `artifacts/evals/metrics.json` |
-| `score` | `xray-score` (CLI) / `score_table()` | Puntuador por lotes; con `--extra` ranquea las empresas nuevas sobre la unión con la referencia (19 sep, mañana) |
+| `score` | `xray-score` (CLI) / `score_table()` | Puntuador por lotes; con `--extra` ranquea las empresas nuevas contra el perfil de referencia del modelo (19 sep) |
+| `profile` | `RankProfile.fit / rank` | Población de referencia por mes y señal; viaja dentro de `RulesModel` (19 sep, tarde) |
+| `explain` | `drivers`, `drivers_json`, `group_rollup` | Atribución exacta por señal para el campo `drivers` y vista por grupo (19 sep, tarde) |
+| `features` | `build()` / `xray-features` (CLI) | La tabla real del contrato desde los CSV (19 sep, tarde) |
 
 `xray/score.py` (slice #11) llama a `rules.run` sobre la unión de referencia + nuevas; la API nunca ajusta, solo lee resultados.
 
@@ -103,3 +106,10 @@ Revisión de ML-2 sobre la tabla provisional (`artifacts/features_quick.parquet`
 | Embat no tiene algoritmo de scoring y valora el producto sobre el score | `xray-score` es el puntuador por lotes de la API y el monitor; con `--extra` ranquea las empresas nuevas sobre la unión con la referencia; el leaderboard deja de ser objetivo | `xray/score.py` |
 
 Números en la tabla provisional, meses de test 2025-09…2026-02, antes → después: AUC externa (6) 0,634 → 0,676 (h = 1: 0,717); AUC propia (6) 0,752 → 0,709 (etiqueta distinta: con las señales v2 casi todas las empresas tienen ≥ 2 señales y la tasa base de mes rojo pasa de 7,5 % a 11,9 %); eventos 270 → 388, de los que 27 % están en el primer mes de historia; lead time: crónicos 15 %, con cruce 7 % (mediana 3 meses), tardíos 51 %; P(rojo en t+6 | rojo en t) 52 % frente a 11,9 % de base; outlook negativo 6 % / positivo 3,7 %; trend improving 6,4 % / worsening 6,2 %; confidence low 31 %. Pendiente: el primer mes de historia de una empresa suele ser parcial y produce eventos no anticipables; si sobra tiempo, la tabla debería empezar en el primer mes completo igual que termina en el último.
+
+### 11.1 Hecho por la tarde (19 sep): tabla real, perfil de rangos y explicación
+
+- **`features.build()`** (slice #2) construye la tabla del contrato en 8 s; solo cuenta facturas de verdad (`features_seam.md` §3.8). Sobre la tabla real (21.423 filas): AUC externa (6) **0,685** (h = 1: 0,718), AUC propia (6) 0,715; 379 eventos; lead time: crónicos 17 %, con cruce 7 % (mediana 3 meses), tardíos 50 %, en el primer mes de historia 26 %; P(rojo en t+6 | rojo en t) 54 % frente a 11,7 % de base; P(rojo en t+6 | outlook negativo / estable / positivo) 66 / 8 / 16 %; dispersión por grupos 0,69 ± 0,05.
+- **Perfil de rangos por mes** (`xray/profile.py`, guardado en `RulesModel.rank_profile`): las empresas nuevas se ranquean contra la población de referencia de su mes con la misma convención de empates que el rango dentro del mes, así que una copia de una empresa de referencia obtiene su misma puntuación y dos empresas nuevas del mismo lote no se influyen. `rules.run(rank_against=modelo.profile())` es el camino; `xray-score --extra` lo usa. Para un mes sin referencia, el más cercano. Sustituye al ranking sobre la unión de la mañana.
+- **`xray/explain.py`**: `drivers()` reparte exactamente el cambio de score entre t−3 y t entre las cuatro señales (peso × Δ media móvil del rango × pendiente del mapa) con `since` = primer mes de la racha roja; `drivers_json()` es el campo `drivers` del JSON de `/score`; `group_rollup()` es la vista por grupo del monitor (score ponderado por entradas, mínimo, empresa más débil, cuota negativa).
+- Sigue pendiente: extracción de eventos de watch desde los CSV, bandas ancladas a PD (slice #5) y la propuesta de `revision_objetivo_score.md`.

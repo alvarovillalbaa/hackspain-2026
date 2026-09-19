@@ -96,6 +96,8 @@ SCORE_t    = 0–100 continuo = E[NIVEL_{t+6}]   ← leaderboard
 | **Embat no tiene algoritmo de scoring y valora el producto construido sobre el score más que el número** (19 sep, mañana) | El leaderboard deja de ser objetivo: `xray-score` es el puntuador por lotes de la API y el monitor (con `--extra` ranquea empresas nuevas sobre la unión con la referencia). Lo que el score tiene que ser es estable y explicable en pantalla. |
 | 2026-09 tiene un solo día de movimientos (19 sep, mañana) | La tabla de features termina en el último mes completo, 2026-08; la foto de `balances.csv` es su cierre. |
 | Las banderas rojas co-ocurren a 0,9–1,8× de la independencia (19 sep, mañana) | Un mes rojo son dos síntomas persistentes que coinciden, no un co-movimiento; la tasa de mes rojo sube con el número de señales que tiene la empresa. Se dice así en el pitch. |
+| `exchange_rate` vale 1,0 en el 90 % de los movimientos de las 137 empresas no-EUR: no es una conversión de moneda (19 sep, tarde) | Las columnas en euros de esas empresas están en su moneda; las cuatro señales son ratios y no les afecta; la ficha enseña la moneda. |
+| El 15 % de las facturas recibidas no son facturas (documentos de pago, notas, depósitos, albaranes) y el 2 % están canceladas (19 sep, tarde) | Solo cuentan las de `document_type == "invoice"` no canceladas: cambia la tasa de vencidas en el 13 % de los meses-empresa. |
 
 ## 6. Contrato de la API (fijado el viernes)
 
@@ -120,6 +122,8 @@ SCORE_t    = 0–100 continuo = E[NIVEL_{t+6}]   ← leaderboard
 `confidence` ∈ {`high`, `medium`, `low`} (18 sep, noche): meses de historial y cobertura de las cuatro señales; lo leen el front y las guardias de Eve.
 
 `trend` ∈ {`improving`, `flat`, `worsening`} (19 sep, mañana): media de (índice − nivel) de los últimos 3 meses frente a ±0,10. Es la señal de «mejora» de la ficha y el disparador del monitor; no toca el score. Cambio de contrato anunciado antes de que exista `api/` o el esquema zod de `web/`: hoy es solo documentación y stubs.
+
+`drivers` (19 sep, tarde): los calcula `xray.explain.drivers_json` de forma exacta, sin SHAP: por señal, `delta` = peso × Δ(media móvil del rango entre t−3 y t) × pendiente del mapa, `since` = primer mes de la racha roja de esa señal, más el valor bruto y el rango. La suma de los `delta` es el cambio del score cuando las cuatro señales están presentes. `signal` lleva el nombre de la columna del contrato (`cash_buffer_days`, `overdue_flow_rate_3m`, `dscr_6m`, `net_cash_flow_ratio_3m`).
 
 Front y back arrancan el viernes sobre stubs con datos ficticios. `score.py` produce el CSV del leaderboard sin tocar la web.
 

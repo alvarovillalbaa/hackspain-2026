@@ -35,7 +35,7 @@ def test_red_since_is_the_first_month_of_the_current_red_run():
                        "red_balance": [False, True, False, True, True], "red_overdue": [True] * 5,
                        "red_dscr": [False] * 5, "red_inflows": [False] * 5})
     out = explain.red_since(df).set_index("month")
-    as_list = lambda s: [None if pd.isna(x) else x for x in s]  # noqa: E731 - pandas 3 guarda el hueco como NaN
+    as_list = lambda s: [None if pd.isna(x) else x for x in s]
     assert as_list(out["since_balance"]) == [None, "2025-02", None, "2025-04", "2025-04"]
     assert as_list(out["since_overdue"]) == ["2025-01"] * 5
     assert out["since_dscr"].isna().all()

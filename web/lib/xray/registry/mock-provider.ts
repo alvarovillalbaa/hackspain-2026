@@ -1,4 +1,6 @@
+import type { CompanySummary } from "../company-summary";
 import type { GroupScore } from "../group-score";
+import type { GroupSummary } from "../group-summary";
 import type { PeerCohort } from "../peers";
 import type {
   ActionRecommendation,
@@ -33,6 +35,66 @@ export const mockProvider = {
   async listCompanies(): Promise<CompanyRef[]> {
     await delay();
     return [...DEMO_COMPANIES, ...importedStore];
+  },
+
+  async listGroups(): Promise<GroupSummary[]> {
+    await delay();
+    const companies = [...DEMO_COMPANIES, ...importedStore];
+    const byGroup = new Map<string, CompanyRef[]>();
+    for (const c of companies) {
+      const list = byGroup.get(c.group_id) ?? [];
+      list.push(c);
+      byGroup.set(c.group_id, list);
+    }
+    const out: GroupSummary[] = [];
+    for (const [groupId, members] of byGroup) {
+      const scored = members.flatMap((m) => {
+        const s = SCORE_BY_ID[m.company_id];
+        return s ? [{ m, s }] : [];
+      });
+      if (scored.length === 0) continue;
+      const best = [...scored].sort((a, b) => b.s.score - a.s.score)[0]!;
+      const score =
+        Math.round(
+          (scored.reduce((sum, x) => sum + x.s.score, 0) / scored.length) * 10
+        ) / 10;
+      out.push({
+        group_id: groupId,
+        name: best.m.name,
+        score,
+        outlook: best.s.outlook,
+        n_companies: members.length,
+        best_company_id: best.m.company_id,
+        best_company_name: best.m.name,
+        cash_close: 0,
+        month: best.s.month,
+      });
+    }
+    return out.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, "es"));
+  },
+
+  async listCompanySummaries(): Promise<CompanySummary[]> {
+    await delay();
+    const companies = [...DEMO_COMPANIES, ...importedStore];
+    return companies
+      .flatMap((c) => {
+        const s = SCORE_BY_ID[c.company_id];
+        if (!s) return [];
+        return [
+          {
+            company_id: c.company_id,
+            group_id: c.group_id,
+            name: c.name,
+            score: s.score,
+            outlook: s.outlook,
+            situation: "—",
+            implied_rate: null,
+            cash_close: 0,
+            month: s.month,
+          },
+        ];
+      })
+      .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, "es"));
   },
 
   async getScore(companyId: string): Promise<ScoreSnapshot> {

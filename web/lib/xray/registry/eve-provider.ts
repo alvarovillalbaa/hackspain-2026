@@ -1,4 +1,6 @@
+import type { CompanySummary } from "../company-summary";
 import type { GroupScore } from "../group-score";
+import type { GroupSummary } from "../group-summary";
 import type { PeerCohort } from "../peers";
 import type {
   ActionRecommendation,
@@ -34,6 +36,14 @@ async function apiGet<T>(path: string): Promise<T> {
 export const eveProvider = {
   async listCompanies(): Promise<CompanyRef[]> {
     return apiGet<CompanyRef[]>("/api/xray/companies");
+  },
+
+  async listGroups(): Promise<GroupSummary[]> {
+    return apiGet<GroupSummary[]>("/api/xray/groups");
+  },
+
+  async listCompanySummaries(): Promise<CompanySummary[]> {
+    return apiGet<CompanySummary[]>("/api/xray/companies/summaries");
   },
 
   async getScore(companyId: string): Promise<ScoreSnapshot> {

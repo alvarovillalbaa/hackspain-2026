@@ -12,6 +12,12 @@ describe("mockProvider smoke", () => {
     expect(score.history.length).toBeGreaterThan(0);
   });
 
+  it("lists company summaries for scored companies", async () => {
+    const rows = await mockProvider.listCompanySummaries();
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows[0]?.score).toBeGreaterThanOrEqual(0);
+  });
+
   it("returns products sorted by match for an action", async () => {
     const companies = await mockProvider.listCompanies();
     const id = companies[0]!.company_id;

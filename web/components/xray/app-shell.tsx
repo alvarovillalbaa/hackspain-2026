@@ -29,6 +29,8 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   useWatchSlackSync();
+  const companiesHome =
+    pathname.startsWith("/c/") || pathname.startsWith("/compare");
 
   return (
     <div className="flex min-h-full flex-col bg-background">
@@ -44,10 +46,12 @@ export function AppShell({
           <Breadcrumb className="min-w-0 flex-1">
             <BreadcrumbList>
               <BreadcrumbItem>
-                {pathname === "/" ? (
-                  <BreadcrumbPage>Portfolio</BreadcrumbPage>
+                {companiesHome ? (
+                  <BreadcrumbLink render={<Link href="/companies" />}>
+                    Compañías
+                  </BreadcrumbLink>
                 ) : (
-                  <BreadcrumbLink render={<Link href="/" />}>Portfolio</BreadcrumbLink>
+                  <BreadcrumbLink render={<Link href="/" />}>Grupos</BreadcrumbLink>
                 )}
               </BreadcrumbItem>
               {crumbs.map((c, i) => (

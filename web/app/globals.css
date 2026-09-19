@@ -11,6 +11,11 @@
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-heading);
+  --font-embat: "Inter Variable", var(--font-inter-variable), ui-sans-serif,
+    system-ui, sans-serif;
+  --font-embat-display: "Inter Display", var(--font-inter-display),
+    "Inter Variable", var(--font-inter-variable), ui-sans-serif, system-ui,
+    sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -128,4 +133,44 @@
   html {
     @apply font-sans;
   }
+}
+
+@font-face {
+  font-family: "Inter Variable";
+  src: url("/embat/fonts/InterVariable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter Display";
+  src: url("/embat/fonts/InterDisplay-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Embat chrome: Figma Inter Variable (UI) + Inter Display (títulos 20px). */
+.embat-ui,
+.font-embat {
+  font-family: "Inter Variable", var(--font-inter-variable), ui-sans-serif,
+    system-ui, sans-serif;
+  font-feature-settings: "liga" 1, "calt" 1;
+}
+.embat-ui :is(.font-sans, .font-heading, .font-mono),
+.font-embat :is(.font-sans, .font-heading, .font-mono) {
+  font-family: inherit;
+}
+.embat-display,
+.font-embat-display,
+.embat-ui .embat-display,
+.embat-ui .font-embat-display,
+.font-embat .embat-display,
+.font-embat .font-embat-display {
+  font-family: "Inter Display", var(--font-inter-display), "Inter Variable",
+    var(--font-inter-variable), ui-sans-serif, system-ui, sans-serif;
+}
+.embat-ui text,
+.font-embat text {
+  font-family: "Inter Variable", var(--font-inter-variable), sans-serif;
 }

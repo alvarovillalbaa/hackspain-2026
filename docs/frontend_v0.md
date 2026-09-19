@@ -1,14 +1,17 @@
 # Frontend v0 — X Ray demo
 
-Demo de cuatro pantallas dentro de `web/`. Sin auth, sin sidebar, sin backend.
+Demo de pantallas dentro de `web/`. Sidebar Embat en grupos, compañías y ficha; marketplace y resto usan AppShell.
 Todo el dato pasa por un único seam: `provider` en [`web/lib/xray/provider.ts`](../web/lib/xray/provider.ts).
 
 ## Pantallas
 
 | Ruta | Qué hace |
 |---|---|
-| `/` | Portfolio: empresas agrupadas por `group_id`, búsqueda, import CSV |
-| `/c/[companyId]` | Financial Health Score + acciones con uplift |
+| `/` | Grupos empresariales (tabla Embat, rollup por `group_id`) |
+| `/g/[groupId]` | Ficha Embat del grupo: score ponderado, desglose, drivers, acciones, trayectoria, empresas |
+| `/companies` | Compañías: score, estado, situación, tipo actual, cierre; import CSV |
+| `/grupo-empresarial` | Redirect a `/` |
+| `/c/[companyId]` | Ficha Embat: score, desglose, drivers, acciones, trayectoria |
 | `/c/[companyId]/a/[actionId]` | Marketplace de productos ordenado por match |
 | `?p=PRODUCT_ID` | Expansión full-screen del producto (negociación) |
 | `/chat` | Chat Eve (movido desde `/`) |
@@ -19,7 +22,7 @@ Todo el dato pasa por un único seam: `provider` en [`web/lib/xray/provider.ts`]
 export const provider: XrayProvider = mockProvider; // ← única línea a cambiar
 ```
 
-Métodos: `listCompanies`, `getScore`, `listActions`, `listProducts`, `getNegotiation`, `importCompanies`.
+Métodos: `listCompanies`, `listGroups`, `listCompanySummaries`, `getScore`, `listActions`, `listProducts`, `getNegotiation`, `importCompanies`.
 
 Cada bloque de datos lleva `origin: "ml" | "llm" | "eve" | "deterministic"`. La UI lo muestra como chip; al cablear sistemas reales, grepea `origin`.
 

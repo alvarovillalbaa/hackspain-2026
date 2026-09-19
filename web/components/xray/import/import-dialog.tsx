@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { UploadIcon, XIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { XIcon } from "lucide-react";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -20,7 +20,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
+import {
+  EmbatButton,
+  EmbatIcon,
+  embatSelectContentClass,
+  embatSelectItemClass,
+  embatSelectTriggerClass,
+} from "@/components/embat/chrome";
+import { embatDisplayClass, embatUiClass } from "@/components/embat/font";
+import { cn } from "@/lib/utils";
 import { useCsvPreview } from "@/hooks/xray/use-csv-preview";
 import { useColumnMapping } from "@/hooks/xray/use-column-mapping";
 import { useSelection } from "@/hooks/xray/use-selection";
@@ -45,6 +53,13 @@ const PREV_STEP_UPDATE: Record<Step, Step | null> = {
   map: "drop",
   pick: "map",
   confirm: "map",
+};
+
+const STEP_LABEL: Record<Step, string> = {
+  drop: "Archivos",
+  map: "Columnas",
+  pick: "Empresas",
+  confirm: "Confirmar",
 };
 
 function formatKb(n: number): string {
@@ -219,35 +234,61 @@ export function ImportDialog({
     }
   };
 
+  const steps = isUpdate
+    ? (["drop", "map", "confirm"] as Step[])
+    : (["drop", "map", "pick", "confirm"] as Step[]);
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>
-            {lockedTarget ? "Actualizar datos" : "Importar empresas"}
+      <DialogContent
+        showCloseButton={false}
+        overlayClassName="bg-[#03122f]/50"
+        className={cn(
+          embatUiClass,
+          "max-h-[85vh] gap-5 overflow-y-auto rounded-[8px] border border-[#dce0e6] bg-white p-5 text-[13px] text-black shadow-[0px_1px_2px_0px_rgba(13,19,30,0.1)] ring-0 sm:max-w-2xl"
+        )}
+      >
+        <DialogClose
+          render={
+            <button
+              type="button"
+              aria-label="Cerrar"
+              className="absolute top-4 right-4 inline-flex size-7 items-center justify-center rounded-[4px] text-[#666] outline-none hover:bg-[rgba(220,224,230,0.45)]"
+            />
+          }
+        >
+          <XIcon className="size-4" />
+          <span className="sr-only">Cerrar</span>
+        </DialogClose>
+
+        <DialogHeader className="gap-1 pr-8">
+          <DialogTitle
+            className={`${embatDisplayClass} font-medium text-[20px] tracking-[-0.3px] text-black`}
+          >
+            {lockedTarget ? "Actualizar datos" : "Importar Compañía"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-[13px] font-medium tracking-[-0.13px] text-[#666]">
             {lockedTarget
               ? `Los CSV se asignan a ${targetCompanyId}. Se recalcula el score, las acciones y el marketplace, y se avisa al watcher.`
-              : "Sube uno o varios CSV del dataset Embat. Empresas nuevas, o datos nuevos de una empresa que ya está en el portfolio."}
+              : "Sube uno o varios CSV del dataset Embat. Empresas nuevas, o datos nuevos de una empresa que ya está en el listado."}
           </DialogDescription>
         </DialogHeader>
 
         {error ? (
-          <p className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p className="rounded-[4px] border border-[#fbd3dc] bg-[#fef4f6] px-2.5 py-2 text-[13px] font-medium tracking-[-0.13px] text-[#e61847]">
             {error}
           </p>
         ) : null}
 
         {step === "drop" && (
-          <div className="space-y-4">
+          <div className="flex flex-col gap-4">
             <div
               onDragOver={(e) => e.preventDefault()}
               onDrop={onDrop}
-              className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border px-6 py-12 text-center"
+              className="flex flex-col items-center justify-center gap-2.5 rounded-[8px] border border-dashed border-[#dce0e6] bg-white px-6 py-10 text-center"
             >
-              <UploadIcon className="size-6 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
+              <EmbatIcon src="/embat/icon-import.svg" />
+              <p className="text-[13px] font-medium tracking-[-0.13px] text-[#666]">
                 Suelta uno o varios CSV · se sube el fichero entero (máx. 4,5 MB)
               </p>
               <label className="inline-flex cursor-pointer">
@@ -258,65 +299,67 @@ export function ImportDialog({
                   className="hidden"
                   onChange={(e) => e.target.files && void addFiles(e.target.files)}
                 />
-                <span className="inline-flex h-9 items-center rounded-4xl bg-secondary px-3 text-sm font-medium text-secondary-foreground">
+                <span className="inline-flex items-center rounded-[4px] border border-[#dce0e6] bg-white px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] text-[#666]">
                   Elegir ficheros
                 </span>
               </label>
             </div>
-            <ul className="space-y-2">
+            <ul className="flex flex-col gap-2">
               {files.map((f) => (
                 <li
                   key={f.preview.fileName}
-                  className="flex items-center justify-between rounded-xl bg-muted/40 px-3 py-2 text-sm"
+                  className="flex items-center justify-between gap-3 rounded-[4px] border border-[#dce0e6] bg-[rgba(220,224,230,0.2)] px-2.5 py-2"
                 >
-                  <div>
-                    <div className="font-medium">{f.preview.fileName}</div>
-                    <div className="text-xs text-muted-foreground">
+                  <div className="min-w-0">
+                    <div className="truncate text-[13px] font-medium tracking-[-0.13px] text-black">
+                      {f.preview.fileName}
+                    </div>
+                    <div className="text-[13px] tracking-[-0.13px] text-[#666]">
                       {formatKb(f.file.size)} · {f.preview.headers.length} cols ·{" "}
                       {f.kind ? getDatasetSpec(f.kind).label : "tipo desconocido"}
                     </div>
                   </div>
-                  <Button
+                  <EmbatButton
                     variant="ghost"
-                    size="icon-sm"
+                    aria-label={`Quitar ${f.preview.fileName}`}
                     onClick={() => removeFile(f.preview.fileName)}
+                    className="size-7 shrink-0 px-0"
                   >
-                    <XIcon />
-                  </Button>
+                    <XIcon className="size-4" />
+                  </EmbatButton>
                 </li>
               ))}
             </ul>
             {files.length > 0 ? (
               <p
-                className={`text-xs ${overLimit ? "text-destructive" : "text-muted-foreground"}`}
+                className={cn(
+                  "text-[13px] font-medium tracking-[-0.13px]",
+                  overLimit ? "text-[#e61847]" : "text-[#666]"
+                )}
               >
                 Total {formatKb(totalBytes)}
                 {overLimit ? " — supera 4,5 MB" : " / 4,5 MB"}
               </p>
             ) : null}
             {!lockedTarget ? (
-              <div className="space-y-3 rounded-2xl border border-border p-3">
-                <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              <div className="flex flex-col gap-2.5 rounded-[8px] border border-[#dce0e6] p-3">
+                <p className="text-[13px] font-medium tracking-[-0.13px] text-[#999]">
                   Destino
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={mode === "create" ? "default" : "outline"}
+                  <EmbatButton
+                    variant={mode === "create" ? "primary" : "secondary"}
                     onClick={() => setMode("create")}
                   >
                     Empresas nuevas
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={mode === "update" ? "default" : "outline"}
+                  </EmbatButton>
+                  <EmbatButton
+                    variant={mode === "update" ? "primary" : "secondary"}
                     disabled={companies.length === 0}
                     onClick={() => setMode("update")}
                   >
                     Actualizar existente
-                  </Button>
+                  </EmbatButton>
                 </div>
                 {mode === "update" ? (
                   <Select
@@ -325,12 +368,16 @@ export function ImportDialog({
                       if (v) setPickedTarget(v);
                     }}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Elige la empresa del portfolio" />
+                    <SelectTrigger className={embatSelectTriggerClass}>
+                      <SelectValue placeholder="Elige la empresa del listado" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className={embatSelectContentClass}>
                       {companies.map((c) => (
-                        <SelectItem key={c.company_id} value={c.company_id}>
+                        <SelectItem
+                          key={c.company_id}
+                          value={c.company_id}
+                          className={embatSelectItemClass}
+                        >
                           {c.name} · {c.company_id}
                         </SelectItem>
                       ))}
@@ -343,7 +390,7 @@ export function ImportDialog({
         )}
 
         {step === "map" && (
-          <div className="space-y-6">
+          <div className="flex flex-col gap-4">
             {files.map((f) => (
               <MappingBlock
                 key={f.preview.fileName}
@@ -360,27 +407,32 @@ export function ImportDialog({
         )}
 
         {step === "pick" && (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
+          <div className="flex flex-col gap-2.5">
+            <p className="text-[13px] font-medium tracking-[-0.13px] text-[#666]">
               Empresas detectadas en los CSV subidos. Selecciona cuáles incorporar.
             </p>
             {discovered.map((c) => (
               <label
                 key={c.company_id}
-                className="flex cursor-pointer items-center gap-3 rounded-xl border border-border px-3 py-2.5"
+                className="flex cursor-pointer items-center gap-2.5 rounded-[4px] border border-[#dce0e6] px-2.5 py-2"
               >
                 <Checkbox
                   checked={companySel.isSelected(c.company_id)}
                   onCheckedChange={() => companySel.toggle(c.company_id)}
+                  className="rounded-[4px] border-[#dce0e6] bg-white data-checked:border-[#11a8ff] data-checked:bg-[#11a8ff] data-checked:text-white dark:bg-white"
                 />
                 <div className="min-w-0 flex-1">
-                  <div className="font-mono text-sm font-medium">{c.company_id}</div>
-                  <div className="text-xs text-muted-foreground">{c.group_id}</div>
+                  <div className="truncate text-[13px] font-medium tracking-[-0.13px] text-black">
+                    {c.company_id}
+                  </div>
+                  <div className="text-[13px] tracking-[-0.13px] text-[#666]">
+                    {c.group_id}
+                  </div>
                 </div>
               </label>
             ))}
             {discovered.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-[13px] font-medium tracking-[-0.13px] text-[#666]">
                 No se detectaron company_id. ¿Incluye companies.csv o una columna
                 company_id?
               </p>
@@ -389,28 +441,28 @@ export function ImportDialog({
         )}
 
         {step === "confirm" && (
-          <div className="space-y-3 text-sm">
-            <p>
+          <div className="flex flex-col gap-2.5 text-[13px] tracking-[-0.13px] text-black">
+            <p className="font-medium">
               {files.length} dataset(s) ·{" "}
               {isUpdate
                 ? `actualizar ${effectiveTarget}`
                 : `${companySel.count} empresa(s)`}{" "}
               · {formatKb(totalBytes)}
             </p>
-            <ul className="space-y-1 text-muted-foreground">
+            <ul className="flex flex-col gap-1 text-[#666]">
               {files.map((f) => (
                 <li key={f.preview.fileName}>
                   {f.preview.fileName} → {f.kind}
                 </li>
               ))}
             </ul>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[#666]">
               {isUpdate
                 ? "Se recalcula el Health Score, las acciones recomendadas y el marketplace. El watcher evalúa si hay que alertar."
-                : "Se unificarán por empresa, se puntuarán contra la población de referencia y quedarán en el portfolio. El watcher revisará alertas."}
+                : "Se unificarán por empresa, se puntuarán contra la población de referencia y quedarán en Compañías. El watcher revisará alertas."}
             </p>
             {warnings.length > 0 ? (
-              <ul className="space-y-1 text-xs text-amber-600">
+              <ul className="flex flex-col gap-1 text-[#e61847]">
                 {warnings.map((w) => (
                   <li key={w}>⚠ {w}</li>
                 ))}
@@ -419,24 +471,25 @@ export function ImportDialog({
           </div>
         )}
 
-        <DialogFooter className="gap-2 sm:justify-between">
-          <div className="flex gap-1">
-            {(isUpdate
-              ? (["drop", "map", "confirm"] as Step[])
-              : (["drop", "map", "pick", "confirm"] as Step[])
-            ).map((s) => (
-              <Badge
+        <DialogFooter className="gap-2.5 sm:items-center sm:justify-between">
+          <div className="flex flex-wrap gap-[5px]">
+            {steps.map((s) => (
+              <span
                 key={s}
-                variant={s === step ? "default" : "outline"}
-                className="capitalize"
+                className={cn(
+                  "inline-flex items-center rounded-[4px] border px-[5px] py-[2px] text-[13px] font-medium tracking-[-0.13px]",
+                  s === step
+                    ? "border-[#11a8ff] bg-[#11a8ff] text-white"
+                    : "border-[#dce0e6] bg-white text-[#666]"
+                )}
               >
-                {s}
-              </Badge>
+                {STEP_LABEL[s]}
+              </span>
             ))}
           </div>
           <div className="flex gap-2">
             {step !== "drop" ? (
-              <Button
+              <EmbatButton
                 variant="ghost"
                 onClick={() => {
                   const prev = prevStep[step];
@@ -444,10 +497,10 @@ export function ImportDialog({
                 }}
               >
                 Atrás
-              </Button>
+              </EmbatButton>
             ) : null}
             {step === "drop" ? (
-              <Button
+              <EmbatButton
                 disabled={
                   files.length === 0 ||
                   overLimit ||
@@ -456,28 +509,31 @@ export function ImportDialog({
                 onClick={() => setStep("map")}
               >
                 Mapear columnas
-              </Button>
+              </EmbatButton>
             ) : null}
             {step === "map" ? (
-              <Button
+              <EmbatButton
                 disabled={!allMapped}
                 onClick={() => setStep(isUpdate ? "confirm" : "pick")}
               >
                 {isUpdate ? "Revisar" : "Elegir empresas"}
-              </Button>
+              </EmbatButton>
             ) : null}
             {step === "pick" ? (
-              <Button
+              <EmbatButton
                 disabled={companySel.count === 0}
                 onClick={() => setStep("confirm")}
               >
                 Revisar
-              </Button>
+              </EmbatButton>
             ) : null}
             {step === "confirm" ? (
-              <Button disabled={busy || overLimit} onClick={() => void submit()}>
+              <EmbatButton
+                disabled={busy || overLimit}
+                onClick={() => void submit()}
+              >
                 {busy ? "Puntuando…" : "Confirmar importación"}
-              </Button>
+              </EmbatButton>
             ) : null}
           </div>
         </DialogFooter>
@@ -507,21 +563,27 @@ function MappingBlock({
   const fields = kind ? getDatasetSpec(kind).fields : [];
 
   return (
-    <div className="space-y-3 rounded-2xl border border-border p-4">
+    <div className="flex flex-col gap-2.5 rounded-[8px] border border-[#dce0e6] p-3">
       <div className="flex items-center justify-between gap-3">
-        <div className="font-medium">{fileName}</div>
+        <div className="min-w-0 truncate text-[13px] font-medium tracking-[-0.13px] text-black">
+          {fileName}
+        </div>
         <Select
           value={kind ?? undefined}
           onValueChange={(v) => {
             if (v) onKind(v as DatasetKind);
           }}
         >
-          <SelectTrigger size="sm">
+          <SelectTrigger size="sm" className={cn(embatSelectTriggerClass, "w-auto")}>
             <SelectValue placeholder="Tipo de dataset" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className={embatSelectContentClass}>
             {DATASET_SPECS.map((s) => (
-              <SelectItem key={s.kind} value={s.kind}>
+              <SelectItem
+                key={s.kind}
+                value={s.kind}
+                className={embatSelectItemClass}
+              >
                 {s.label}
               </SelectItem>
             ))}
@@ -529,21 +591,23 @@ function MappingBlock({
         </Select>
       </div>
       {traps.length > 0 ? (
-        <ul className="space-y-1 text-xs text-muted-foreground">
+        <ul className="flex flex-col gap-1 text-[13px] tracking-[-0.13px] text-[#666]">
           {traps.map((t) => (
             <li key={t}>⚠ {t}</li>
           ))}
         </ul>
       ) : null}
       {missing.length > 0 ? (
-        <p className="text-xs text-destructive">
+        <p className="text-[13px] font-medium tracking-[-0.13px] text-[#e61847]">
           Faltan campos obligatorios: {missing.join(", ")}
         </p>
       ) : null}
       <div className="grid gap-2">
         {headers.map((h) => (
           <Field key={h} className="grid grid-cols-[1fr_1fr] items-center gap-2">
-            <FieldLabel className="font-mono text-xs">{h}</FieldLabel>
+            <FieldLabel className="text-[13px] font-medium tracking-[-0.13px] text-[#666]">
+              {h}
+            </FieldLabel>
             <Select
               value={mapping.map[h] ?? "__none__"}
               onValueChange={(v) => {
@@ -551,13 +615,19 @@ function MappingBlock({
                 setField(h, v === "__none__" ? null : v);
               }}
             >
-              <SelectTrigger size="sm" className="w-full">
+              <SelectTrigger size="sm" className={embatSelectTriggerClass}>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">— ignorar —</SelectItem>
+              <SelectContent className={embatSelectContentClass}>
+                <SelectItem value="__none__" className={embatSelectItemClass}>
+                  — ignorar —
+                </SelectItem>
                 {fields.map((f) => (
-                  <SelectItem key={f.key} value={f.key}>
+                  <SelectItem
+                    key={f.key}
+                    value={f.key}
+                    className={embatSelectItemClass}
+                  >
                     {f.key}
                     {f.required ? " *" : ""}
                   </SelectItem>

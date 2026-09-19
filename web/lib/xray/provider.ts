@@ -1,4 +1,6 @@
+import type { CompanySummary } from "./company-summary";
 import type { GroupScore } from "./group-score";
+import type { GroupSummary } from "./group-summary";
 import type { PeerCohort } from "./peers";
 import type {
   ActionRecommendation,
@@ -21,6 +23,8 @@ import { eveProvider } from "./registry/eve-provider";
  */
 export interface XrayProvider {
   listCompanies(): Promise<CompanyRef[]>;
+  listGroups(): Promise<GroupSummary[]>;
+  listCompanySummaries(): Promise<CompanySummary[]>;
   getScore(companyId: string): Promise<ScoreSnapshot>;
   getPeers(companyId: string, k?: number): Promise<PeerCohort | null>;
   getGroupScore(groupId: string): Promise<GroupScore>;

@@ -82,6 +82,8 @@ export const CompanyRefSchema = z.object({
   currency: z.string(),
   n_companies_in_group: z.number(),
   imported: z.boolean().optional(),
+  score: z.number().optional(),
+  band: BandSchema.optional(),
 });
 
 export const ActionKindSchema = z.enum([
@@ -98,6 +100,7 @@ export const ActionRecommendationSchema = z.object({
   kind: ActionKindSchema,
   title: z.string(),
   rationale: z.string(),
+  reasoning: z.string().optional(),
   uplift: z.number(),
   recommended_amount: z.number(),
   dimension_deltas: DimensionsSchema.partial(),

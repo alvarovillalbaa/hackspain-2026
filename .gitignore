@@ -1,9 +1,14 @@
 # Datos del reto (645 MB) — nunca en git
 /input_data/
 /dataset/
-/docs/data/
+# Ignorar todo docs/data salvo packs de demo bajo raw/new/
+/docs/data/**
+!/docs/data/raw/
+!/docs/data/raw/new/
+!/docs/data/raw/new/**
 *.csv
 !tests/**/*.csv
+!/docs/data/raw/new/**/*.csv
 
 # Salidas: caches parquet, modelos, figuras
 /artifacts/

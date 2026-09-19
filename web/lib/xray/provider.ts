@@ -8,6 +8,7 @@ import type {
   NegotiationLever,
   ProductMatch,
   ScoreSnapshot,
+  TermContext,
 } from "./types";
 import { eveProvider } from "./registry/eve-provider";
 
@@ -31,6 +32,8 @@ export interface XrayProvider {
   ): Promise<NegotiationLever[]>;
   /** Cash + debt contracts for the amortize impact dashboard. */
   getAmortizeContext(companyId: string): Promise<AmortizeContext>;
+  /** Slim facts for company-side term-improvement tips. */
+  getTermContext?(companyId: string): Promise<TermContext>;
   importCompanies(req: ImportRequest): Promise<ImportResult>;
   listImportable?(): Promise<CompanyRef[]>;
 }

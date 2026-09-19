@@ -1,15 +1,11 @@
 /**
  * Deterministic marketplace when Eve is unavailable.
- * Uses the shared issuer catalog + match.ts — never RNG mock scores.
+ * Picks eligible catalog SKUs and prices within allowable ranges — never mints ENG_* ids.
  */
 import type {
-  ActionKind,
   ActionRecommendation,
-  Band,
-  IssuerProfile,
   ProductMatch,
   ProductOffer,
-  ProductTerms,
   ScoreSnapshot,
 } from "./types";
 import {
@@ -19,90 +15,28 @@ import {
   solveIdealAmount,
 } from "./match";
 import { applyAction, upliftPoints } from "./scoring";
-import { DEFAULT_ISSUERS } from "./issuers";
-
-const KIND_LABELS: Record<ActionKind, string> = {
-  refinance: "Préstamo refinanciación",
-  new_debt: "Préstamo circulante",
-  amortize: "Cancelación anticipada",
-  extend_line: "Ampliación de línea",
-  factoring: "Factoring con recurso",
-  confirming: "Confirming proveedores",
-};
-
-/** Fair rate by band (same table as offering get_rate_context). */
-function fairRate(band: Band): number {
-  const table: Record<Band, number> = {
-    AAA: 0.028,
-    AA: 0.032,
-    A: 0.036,
-    BBB: 0.042,
-    BB: 0.055,
-    B: 0.072,
-    CCC: 0.095,
-    CC: 0.11,
-    C: 0.13,
-  };
-  return table[band] ?? 0.05;
-}
-
-function termsFor(
-  issuer: IssuerProfile,
-  kind: ActionKind,
-  band: Band
-): { issuer: ProductTerms; client: ProductTerms; min: number; max: number } {
-  const fair = fairRate(band);
-  const margin = issuer.margin_target_bps / 10_000;
-  const issuerRate = Math.round((fair + margin) * 10_000) / 10_000;
-  const clientRate = Math.round((fair * 0.92) * 10_000) / 10_000;
-  const termMonths =
-    kind === "factoring" || kind === "confirming"
-      ? 12
-      : kind === "extend_line"
-        ? 24
-        : 48;
-  return {
-    issuer: {
-      rate_annual: issuerRate,
-      term_months: termMonths,
-      fees_bps: Math.round(issuer.margin_target_bps / 4),
-      amortization: "constant_quote",
-      collateral: kind === "refinance" ? "personal" : "none",
-    },
-    client: {
-      rate_annual: clientRate,
-      term_months: termMonths + 12,
-      fees_bps: Math.round(issuer.margin_target_bps / 8),
-      amortization: "constant_quote",
-      collateral: "none",
-    },
-    min: issuer.ticket_min,
-    max: issuer.ticket_max,
-  };
-}
+import {
+  fairRateForBand,
+  listProducts,
+  priceWithinCatalog,
+  toProductOffer,
+} from "./catalog";
 
 function buildOffers(
-  kind: ActionKind,
-  band: Band,
-  companyId: string
+  kind: ActionRecommendation["kind"],
+  band: ScoreSnapshot["band"]
 ): ProductOffer[] {
-  return Object.values(DEFAULT_ISSUERS)
-    .filter((issuer) => issuer.risk_appetite.includes(band) || band === "BB" || band === "B")
-    .slice(0, 5)
-    .map((issuer) => {
-      const t = termsFor(issuer, kind, band);
-      return {
-        product_id: `ENG_${kind}_${issuer.id}_${companyId}`,
-        issuer,
-        kind,
-        label: `${KIND_LABELS[kind]} · ${issuer.name}`,
-        description: `Oferta determinista ${issuer.name} (motor de match).`,
-        issuer_terms: t.issuer,
-        client_ideal_terms: t.client,
-        amount_min: t.min,
-        amount_max: t.max,
-      };
-    });
+  const fair = fairRateForBand(band);
+  // Soft band filter: prefer appetite match, but keep BB/B from falling empty.
+  let products = listProducts({ kind, band });
+  if (products.length === 0 && (band === "BB" || band === "B")) {
+    products = listProducts({ kind });
+  }
+  return products.slice(0, 6).flatMap((p) => {
+    const priced = priceWithinCatalog(p, fair);
+    const offer = toProductOffer(p, priced);
+    return offer ? [offer] : [];
+  });
 }
 
 export function deterministicMarketplace(
@@ -110,7 +44,7 @@ export function deterministicMarketplace(
   action: ActionRecommendation,
   amount?: number
 ): ProductMatch[] {
-  const catalog = buildOffers(action.kind, snapshot.band, snapshot.company_id);
+  const catalog = buildOffers(action.kind, snapshot.band);
   const ctx = defaultFitContext(snapshot);
 
   const matches: ProductMatch[] = catalog.map((product) => {

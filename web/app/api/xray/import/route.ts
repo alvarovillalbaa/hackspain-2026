@@ -13,6 +13,8 @@ import { invalidateRecommendCache } from "@/lib/xray/recommend-cache";
 import { snapshotFromExported } from "@/lib/xray/snapshot";
 import {
   deleteDecisionsForCompany,
+  deleteDealsForCompanies,
+  invalidateActions,
   readImportedPack,
   writeImportedPack,
 } from "@/lib/xray/store";
@@ -55,7 +57,7 @@ export async function POST(req: Request) {
   if (contentLength > MAX_BODY_BYTES) {
     return NextResponse.json(
       {
-        error: `Payload ${Math.round(contentLength / 1024)} KB supera el límite de 4,5 MB de Vercel. Usa un slice más pequeño (p. ej. single_company).`,
+        error: `Payload ${Math.round(contentLength / 1024)} KB supera el límite de 4,5 MB de Vercel. Usa un pack más pequeño (p. ej. docs/data/raw/new/update).`,
       },
       { status: 413 }
     );
@@ -194,6 +196,8 @@ export async function POST(req: Request) {
     });
     invalidateRecommendCache(company.company_id);
     await deleteDecisionsForCompany(company.company_id);
+    await invalidateActions(company.company_id);
+    await deleteDealsForCompanies([company.company_id]);
   }
 
   const watchAlerts = scores.flatMap((row) =>

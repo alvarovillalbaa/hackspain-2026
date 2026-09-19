@@ -1,0 +1,21 @@
+product_id,entity_id,kind,label,description,amount_min,amount_max,rate_min,rate_max,term_months_min,term_months_max,fees_bps_min,fees_bps_max,amortization_options,collateral_options
+cat_bbva_circulante,iss_bbva,new_debt,Préstamo circulante BBVA,Circulante a tipo fijo para pymes. Ticket desde 50k.,50000,1500000,0.035,0.09,12,60,40,150,constant_quote|interest_only,none|personal
+cat_bbva_refi,iss_bbva,refinance,Refinanciación BBVA,Pool de refinanciación con aval personal opcional.,100000,2000000,0.032,0.085,24,84,50,180,constant_quote,none|personal
+cat_bbva_linea,iss_bbva,extend_line,Línea de crédito BBVA,Ampliación de línea revolving.,50000,800000,0.04,0.1,12,36,30,120,interest_only,none
+cat_bbva_factoring,iss_bbva,factoring,Factoring BBVA,Factoring con recurso sobre facturas emitidas.,30000,1000000,0.045,0.11,3,12,60,200,bullet,receivables
+cat_santander_circulante,iss_santander,new_debt,Circulante Santander,Préstamo a corto-medio plazo.,75000,2000000,0.033,0.095,12,60,35,140,constant_quote|interest_only,none|personal
+cat_santander_refi,iss_santander,refinance,Refinanciación Santander,Refinanciación de deuda cara.,150000,3000000,0.03,0.08,24,96,40,160,constant_quote,none|personal|asset
+cat_santander_confirming,iss_santander,confirming,Confirming Santander,Confirming de pagos a proveedores.,50000,1500000,0.025,0.07,3,12,20,100,bullet,none
+cat_santander_linea,iss_santander,extend_line,Línea Santander,Ampliación de póliza.,75000,1200000,0.038,0.105,12,36,25,110,interest_only,none
+cat_sabadell_circulante,iss_sabadell,new_debt,Circulante Sabadell,Préstamo ICO/comercial para pymes medianas.,40000,1000000,0.038,0.1,12,48,45,160,constant_quote,none|personal
+cat_sabadell_refi,iss_sabadell,refinance,Refinanciación Sabadell,Reestructuración de préstamos existentes.,80000,1500000,0.035,0.09,24,72,50,170,constant_quote,personal
+cat_sabadell_factoring,iss_sabadell,factoring,Factoring Sabadell,Anticipo de facturas con recurso.,25000,800000,0.05,0.12,3,12,70,220,bullet,receivables
+cat_sabadell_confirming,iss_sabadell,confirming,Confirming Sabadell,Gestión de pagos a proveedores.,40000,900000,0.028,0.075,3,12,25,110,bullet,none
+cat_march_prestamo_500k,iss_march,new_debt,Préstamo Banca March 500k+,Préstamo a medio plazo. Importe mínimo 500.000 €; tipo entre 4 % y 12 %.,500000,5000000,0.04,0.12,36,120,40,150,constant_quote|interest_only,none|personal|asset
+cat_march_refi,iss_march,refinance,Refinanciación Banca March,Refinanciación premium para clientes investment-grade.,200000,4000000,0.028,0.075,36,120,30,120,constant_quote,none|personal
+cat_march_linea,iss_march,extend_line,Línea Banca March,Póliza de crédito flexible.,100000,2000000,0.035,0.09,12,36,20,100,interest_only,none
+cat_march_confirming,iss_march,confirming,Confirming Banca March,Confirming corporativo.,100000,3000000,0.022,0.065,3,12,15,80,bullet,none
+cat_embat_bridge,iss_fintech,new_debt,Bridge Embat Capital,Financiación puente para pymes con score medio-bajo.,30000,500000,0.055,0.14,6,36,80,280,constant_quote|bullet,none|personal
+cat_embat_refi,iss_fintech,refinance,Refi Embat Capital,Refinanciación rápida sin bancarización larga.,40000,600000,0.05,0.13,12,48,70,250,constant_quote,personal
+cat_embat_factoring,iss_fintech,factoring,Factoring Embat,Anticipo de facturas digital.,20000,400000,0.06,0.15,1,6,90,300,bullet,receivables
+cat_embat_linea,iss_fintech,extend_line,Línea Embat,Línea revolving fintech.,30000,400000,0.06,0.145,6,24,60,220,interest_only,none

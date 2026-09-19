@@ -3,10 +3,10 @@
 import { useMemo, useState } from "react";
 import { AmountSolver } from "@/components/xray/amount-solver";
 import { DimensionRadar } from "@/components/xray/dimension-radar";
-import { OriginChip } from "@/components/xray/origin-chip";
 import { ScoreBandBadge } from "@/components/xray/score-band-badge";
 import { ScoreGauge } from "@/components/xray/score-gauge";
 import { ScoreTrajectory } from "@/components/xray/score-trajectory";
+import { ReasoningHint } from "@/components/xray/reasoning-hint";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Card,
@@ -66,20 +66,9 @@ export function AmortizeDashboard({
 
   return (
     <div className="space-y-8">
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <OriginChip origin={action.origin} />
-          <span className="text-xs text-muted-foreground">
-            {actionKindLabel(action.kind)}
-          </span>
-        </div>
-        <h1 className="font-heading text-3xl font-semibold tracking-tight">
-          {action.title}
-        </h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          {action.rationale} No hay producto que ofrecer: el impacto se proyecta
-          sobre el score y el cuadro de deuda existente.
-        </p>
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span>{actionKindLabel(action.kind)}</span>
+        <ReasoningHint text={action.reasoning ?? action.rationale} />
       </div>
 
       <Card size="sm">
@@ -98,7 +87,10 @@ export function AmortizeDashboard({
             min={bounds.min}
             max={sliderMax}
             uplift={uplift}
+            from={score.score}
+            to={after.score}
             toBand={after.band}
+            reasoning={action.reasoning ?? action.rationale}
             onChange={setAmount}
           />
           {plan.exceeds_cash ? (

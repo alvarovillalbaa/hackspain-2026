@@ -5,24 +5,9 @@ import { provider } from "@/lib/xray/provider";
 import { emitDataImported } from "@/lib/xray/import-events";
 import type { CompanyRef } from "@/lib/xray/types";
 
-const STORAGE_KEY = "xray.imported.v0";
-
-function loadImported(): CompanyRef[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as CompanyRef[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveImported(companies: CompanyRef[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(companies));
-}
-
 export function useCompanies() {
   const [data, setData] = useState<CompanyRef[]>([]);
+  const [groupId, setGroupId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [tick, setTick] = useState(0);
@@ -31,17 +16,13 @@ export function useCompanies() {
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     provider
       .listCompanies()
       .then((list) => {
         if (cancelled) return;
-        const imported = loadImported();
-        const ids = new Set(list.map((c) => c.company_id));
-        const merged = [
-          ...list,
-          ...imported.filter((c) => !ids.has(c.company_id)),
-        ];
-        setData(merged);
+        setData(list);
+        setGroupId(list[0]?.group_id ?? null);
         setError(null);
         setLoading(false);
       })
@@ -56,11 +37,6 @@ export function useCompanies() {
   }, [tick]);
 
   const addImported = useCallback((companies: CompanyRef[]) => {
-    const existing = loadImported();
-    const byId = new Map(existing.map((c) => [c.company_id, c]));
-    for (const c of companies) byId.set(c.company_id, { ...c, imported: true });
-    const next = [...byId.values()];
-    saveImported(next);
     setData((prev) => {
       const map = new Map(prev.map((c) => [c.company_id, c]));
       for (const c of companies) {
@@ -72,5 +48,5 @@ export function useCompanies() {
     emitDataImported(companies.map((c) => c.company_id));
   }, []);
 
-  return { data, loading, error, refresh, addImported };
+  return { data, groupId, loading, error, refresh, addImported };
 }

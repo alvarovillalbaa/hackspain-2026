@@ -7,6 +7,7 @@ import type {
   NegotiationLever,
   ProductMatch,
   ScoreSnapshot,
+  TermContext,
 } from "../types";
 import { DEMO_COMPANIES, IMPORTABLE_COMPANIES } from "./companies";
 import { SCORE_BY_ID } from "./scores";
@@ -114,6 +115,27 @@ export const mockProvider = {
           amortization_type: "constant quote",
         },
       ],
+    };
+  },
+
+  async getTermContext(companyId: string): Promise<TermContext> {
+    await delay();
+    return {
+      company_id: companyId,
+      cash_balance: 180_000,
+      monthly_inflow_avg_3m: 95_000,
+      monthly_outflow_avg_3m: 80_000,
+      invoice_aging: {
+        issued_pending: 40_000,
+        received_pending: 20_000,
+        issued_overdue: 25_000,
+        received_overdue: 12_000,
+        overdue_flow_rate_3m: 0.18,
+      },
+      implied_debt_rate: 0.055,
+      cash_buffer_days: 12,
+      dscr_6m: 1.35,
+      overdue_flow_rate_3m: 0.18,
     };
   },
 

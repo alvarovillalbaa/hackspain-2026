@@ -16,38 +16,38 @@
       },
       "offers": [
         {
-          "product_id": "PROD_new_debt_iss_march_0",
-          "issuer_id": "iss_march",
-          "issuer_name": "Banca March",
+          "product_id": "cat_bbva_circulante",
+          "issuer_id": "iss_bbva",
+          "issuer_name": "BBVA Empresas",
           "kind": "new_debt",
-          "label": "Préstamo circulante · Banca March",
-          "description": "Oferta Banca March optimizada para ticket 800k €.",
+          "label": "Préstamo circulante BBVA",
+          "description": "Circulante a tipo fijo para pymes. Ticket desde 50k.",
           "amount_min": 117042,
-          "amount_max": 4482124,
+          "amount_max": 1500000,
           "issuer_terms": {
             "rate_annual": 0.040624999999999994,
-            "term_months": 83,
+            "term_months": 60,
             "fees_bps": 40,
             "amortization": "interest_only",
             "collateral": "none"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0338,
-            "term_months": 93,
-            "fees_bps": 27,
+            "rate_annual": 0.035,
+            "term_months": 60,
+            "fees_bps": 40,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 1 for Banca March"
         },
         {
-          "product_id": "PROD_new_debt_iss_sabadell_1",
-          "issuer_id": "iss_sabadell",
-          "issuer_name": "Sabadell Empresas",
+          "product_id": "cat_santander_circulante",
+          "issuer_id": "iss_santander",
+          "issuer_name": "Santander Empresas",
           "kind": "new_debt",
-          "label": "Préstamo circulante · Sabadell Empresas",
-          "description": "Oferta Sabadell Empresas optimizada para ticket 250k €.",
-          "amount_min": 33018,
+          "label": "Circulante Santander",
+          "description": "Préstamo a corto-medio plazo.",
+          "amount_min": 75000,
           "amount_max": 1463143,
           "issuer_terms": {
             "rate_annual": 0.048883333333333334,
@@ -59,45 +59,45 @@
           "client_ideal_terms": {
             "rate_annual": 0.0333,
             "term_months": 60,
-            "fees_bps": 50,
+            "fees_bps": 55,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 2 for Sabadell Empresas"
         },
         {
-          "product_id": "PROD_new_debt_iss_sabadell_2",
+          "product_id": "cat_sabadell_circulante",
           "issuer_id": "iss_sabadell",
           "issuer_name": "Sabadell Empresas",
           "kind": "new_debt",
-          "label": "Préstamo circulante · Sabadell Empresas",
-          "description": "Oferta Sabadell Empresas optimizada para ticket 250k €.",
+          "label": "Circulante Sabadell",
+          "description": "Préstamo ICO/comercial para pymes medianas.",
           "amount_min": 46218,
           "amount_max": 852576,
           "issuer_terms": {
-            "rate_annual": 0.0379,
+            "rate_annual": 0.038,
             "term_months": 18,
             "fees_bps": 109,
             "amortization": "constant_quote",
             "collateral": "personal"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0251,
-            "term_months": 31,
-            "fees_bps": 67,
+            "rate_annual": 0.038,
+            "term_months": 30,
+            "fees_bps": 55,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 3 for Sabadell Empresas"
         },
         {
-          "product_id": "PROD_new_debt_iss_bbva_3",
-          "issuer_id": "iss_bbva",
-          "issuer_name": "BBVA Empresas",
+          "product_id": "cat_march_prestamo_500k",
+          "issuer_id": "iss_march",
+          "issuer_name": "Banca March",
           "kind": "new_debt",
-          "label": "Préstamo circulante · BBVA Empresas",
-          "description": "Oferta BBVA Empresas optimizada para ticket 400k €.",
-          "amount_min": 55165,
+          "label": "Préstamo Banca March 500k+",
+          "description": "Préstamo a medio plazo. Importe mínimo 500.000 €; tipo entre 4 % y 12 %.",
+          "amount_min": 500000,
           "amount_max": 1988883,
           "issuer_terms": {
             "rate_annual": 0.04496666666666667,
@@ -107,9 +107,9 @@
             "collateral": "none"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0381,
-            "term_months": 39,
-            "fees_bps": 54,
+            "rate_annual": 0.04,
+            "term_months": 49,
+            "fees_bps": 40,
             "amortization": "constant_quote",
             "collateral": "none"
           },
@@ -118,34 +118,34 @@
       ],
       "ranking": [
         {
-          "product_id": "PROD_new_debt_iss_sabadell_2",
-          "match": 0.746,
-          "client_fit": 0.667,
-          "issuer_appetite": 0.845,
+          "product_id": "cat_bbva_circulante",
+          "match": 0.85,
+          "client_fit": 0.8,
+          "issuer_appetite": 0.75,
           "rationale": "Match 75% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_bbva_3",
-          "match": 0.613,
-          "client_fit": 0.465,
-          "issuer_appetite": 0.899,
+          "product_id": "cat_santander_circulante",
+          "match": 0.73,
+          "client_fit": 0.7000000000000001,
+          "issuer_appetite": 0.65,
           "rationale": "Match 61% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_sabadell_1",
-          "match": 0.599,
-          "client_fit": 0.464,
-          "issuer_appetite": 0.845,
+          "product_id": "cat_sabadell_circulante",
+          "match": 0.61,
+          "client_fit": 0.6000000000000001,
+          "issuer_appetite": 0.55,
           "rationale": "Match 60% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_march_0",
-          "match": 0.502,
-          "client_fit": 0.453,
-          "issuer_appetite": 0.563,
+          "product_id": "cat_march_prestamo_500k",
+          "match": 0.49,
+          "client_fit": 0.5,
+          "issuer_appetite": 0.44999999999999996,
           "rationale": "Match 50% — warm cache",
           "risks": []
         }
@@ -171,136 +171,136 @@
       },
       "offers": [
         {
-          "product_id": "PROD_factoring_iss_march_0",
-          "issuer_id": "iss_march",
-          "issuer_name": "Banca March",
+          "product_id": "cat_bbva_factoring",
+          "issuer_id": "iss_bbva",
+          "issuer_name": "BBVA Empresas",
           "kind": "factoring",
-          "label": "Factoring con recurso · Banca March",
-          "description": "Oferta Banca March optimizada para ticket 800k €.",
+          "label": "Factoring BBVA",
+          "description": "Factoring con recurso sobre facturas emitidas.",
           "amount_min": 86454,
-          "amount_max": 3119775,
+          "amount_max": 1000000,
           "issuer_terms": {
-            "rate_annual": 0.04318333333333333,
-            "term_months": 71,
+            "rate_annual": 0.045,
+            "term_months": 12,
             "fees_bps": 153,
-            "amortization": "constant_quote",
-            "collateral": "personal"
+            "amortization": "bullet",
+            "collateral": "receivables"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0363,
-            "term_months": 73,
-            "fees_bps": 117,
-            "amortization": "constant_quote",
-            "collateral": "none"
+            "rate_annual": 0.045,
+            "term_months": 12,
+            "fees_bps": 77,
+            "amortization": "bullet",
+            "collateral": "receivables"
           },
           "issuer_rationale": "Warm cache offer 1 for Banca March"
         },
         {
-          "product_id": "PROD_factoring_iss_sabadell_1",
+          "product_id": "cat_sabadell_factoring",
           "issuer_id": "iss_sabadell",
           "issuer_name": "Sabadell Empresas",
           "kind": "factoring",
-          "label": "Factoring con recurso · Sabadell Empresas",
-          "description": "Oferta Sabadell Empresas optimizada para ticket 250k €.",
+          "label": "Factoring Sabadell",
+          "description": "Anticipo de facturas con recurso.",
           "amount_min": 39029,
-          "amount_max": 1198262,
+          "amount_max": 800000,
           "issuer_terms": {
-            "rate_annual": 0.0342,
-            "term_months": 32,
+            "rate_annual": 0.05,
+            "term_months": 12,
             "fees_bps": 129,
-            "amortization": "constant_quote",
-            "collateral": "none"
+            "amortization": "bullet",
+            "collateral": "receivables"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0239,
-            "term_months": 42,
-            "fees_bps": 87,
-            "amortization": "constant_quote",
-            "collateral": "none"
+            "rate_annual": 0.05,
+            "term_months": 12,
+            "fees_bps": 70,
+            "amortization": "bullet",
+            "collateral": "receivables"
           },
           "issuer_rationale": "Warm cache offer 2 for Sabadell Empresas"
         },
         {
-          "product_id": "PROD_factoring_iss_fintech_2",
+          "product_id": "cat_embat_factoring",
           "issuer_id": "iss_fintech",
           "issuer_name": "Embat Capital Desk",
           "kind": "factoring",
-          "label": "Factoring con recurso · Embat Capital Desk",
-          "description": "Oferta Embat Capital Desk optimizada para ticket 150k €.",
+          "label": "Factoring Embat",
+          "description": "Anticipo de facturas digital.",
           "amount_min": 32378,
-          "amount_max": 746031,
+          "amount_max": 400000,
           "issuer_terms": {
-            "rate_annual": 0.05803333333333333,
-            "term_months": 74,
-            "fees_bps": 58,
-            "amortization": "constant_quote",
-            "collateral": "none"
+            "rate_annual": 0.06,
+            "term_months": 6,
+            "fees_bps": 90,
+            "amortization": "bullet",
+            "collateral": "receivables"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0507,
-            "term_months": 89,
-            "fees_bps": 42,
-            "amortization": "constant_quote",
-            "collateral": "none"
+            "rate_annual": 0.06,
+            "term_months": 6,
+            "fees_bps": 90,
+            "amortization": "bullet",
+            "collateral": "receivables"
           },
           "issuer_rationale": "Warm cache offer 3 for Embat Capital Desk"
         },
         {
-          "product_id": "PROD_factoring_iss_santander_3",
-          "issuer_id": "iss_santander",
-          "issuer_name": "Santander Empresas",
+          "product_id": "cat_bbva_factoring",
+          "issuer_id": "iss_bbva",
+          "issuer_name": "BBVA Empresas",
           "kind": "factoring",
-          "label": "Factoring con recurso · Santander Empresas",
-          "description": "Oferta Santander Empresas optimizada para ticket 500k €.",
+          "label": "Factoring BBVA",
+          "description": "Factoring con recurso sobre facturas emitidas.",
           "amount_min": 75406,
-          "amount_max": 2967765,
+          "amount_max": 1000000,
           "issuer_terms": {
-            "rate_annual": 0.043583333333333335,
-            "term_months": 46,
+            "rate_annual": 0.045,
+            "term_months": 12,
             "fees_bps": 86,
-            "amortization": "constant_quote",
-            "collateral": "none"
+            "amortization": "bullet",
+            "collateral": "receivables"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.029,
-            "term_months": 56,
-            "fees_bps": 41,
-            "amortization": "constant_quote",
-            "collateral": "none"
+            "rate_annual": 0.045,
+            "term_months": 12,
+            "fees_bps": 60,
+            "amortization": "bullet",
+            "collateral": "receivables"
           },
           "issuer_rationale": "Warm cache offer 4 for Santander Empresas"
         }
       ],
       "ranking": [
         {
-          "product_id": "PROD_factoring_iss_sabadell_1",
-          "match": 0.722,
-          "client_fit": 0.672,
-          "issuer_appetite": 0.78,
+          "product_id": "cat_bbva_factoring",
+          "match": 0.85,
+          "client_fit": 0.8,
+          "issuer_appetite": 0.75,
           "rationale": "Match 72% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_factoring_iss_santander_3",
-          "match": 0.602,
-          "client_fit": 0.458,
-          "issuer_appetite": 0.881,
+          "product_id": "cat_sabadell_factoring",
+          "match": 0.73,
+          "client_fit": 0.7000000000000001,
+          "issuer_appetite": 0.65,
           "rationale": "Match 60% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_factoring_iss_fintech_2",
-          "match": 0.589,
-          "client_fit": 0.54,
-          "issuer_appetite": 0.648,
+          "product_id": "cat_embat_factoring",
+          "match": 0.61,
+          "client_fit": 0.6000000000000001,
+          "issuer_appetite": 0.55,
           "rationale": "Match 59% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_factoring_iss_march_0",
-          "match": 0.512,
-          "client_fit": 0.457,
-          "issuer_appetite": 0.584,
+          "product_id": "cat_bbva_factoring",
+          "match": 0.49,
+          "client_fit": 0.5,
+          "issuer_appetite": 0.44999999999999996,
           "rationale": "Match 51% — warm cache",
           "risks": []
         }
@@ -326,100 +326,100 @@
       },
       "offers": [
         {
-          "product_id": "PROD_refinance_iss_sabadell_0",
-          "issuer_id": "iss_sabadell",
-          "issuer_name": "Sabadell Empresas",
+          "product_id": "cat_bbva_refi",
+          "issuer_id": "iss_bbva",
+          "issuer_name": "BBVA Empresas",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Sabadell Empresas",
-          "description": "Oferta Sabadell Empresas optimizada para ticket 250k €.",
-          "amount_min": 43271,
+          "label": "Refinanciación BBVA",
+          "description": "Pool de refinanciación con aval personal opcional.",
+          "amount_min": 100000,
           "amount_max": 1152124,
           "issuer_terms": {
             "rate_annual": 0.0702,
             "term_months": 60,
             "fees_bps": 166,
-            "amortization": "interest_only",
+            "amortization": "constant_quote",
             "collateral": "personal"
           },
           "client_ideal_terms": {
             "rate_annual": 0.0453,
-            "term_months": 78,
-            "fees_bps": 73,
+            "term_months": 72,
+            "fees_bps": 83,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 1 for Sabadell Empresas"
         },
         {
-          "product_id": "PROD_refinance_iss_santander_1",
+          "product_id": "cat_santander_refi",
           "issuer_id": "iss_santander",
           "issuer_name": "Santander Empresas",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Santander Empresas",
-          "description": "Oferta Santander Empresas optimizada para ticket 500k €.",
-          "amount_min": 87940,
+          "label": "Refinanciación Santander",
+          "description": "Refinanciación de deuda cara.",
+          "amount_min": 150000,
           "amount_max": 2297601,
           "issuer_terms": {
             "rate_annual": 0.0789,
-            "term_months": 12,
-            "fees_bps": 163,
-            "amortization": "interest_only",
+            "term_months": 24,
+            "fees_bps": 160,
+            "amortization": "constant_quote",
             "collateral": "none"
           },
           "client_ideal_terms": {
             "rate_annual": 0.0567,
-            "term_months": 22,
-            "fees_bps": 107,
+            "term_months": 36,
+            "fees_bps": 80,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 2 for Santander Empresas"
         },
         {
-          "product_id": "PROD_refinance_iss_santander_2",
-          "issuer_id": "iss_santander",
-          "issuer_name": "Santander Empresas",
+          "product_id": "cat_sabadell_refi",
+          "issuer_id": "iss_sabadell",
+          "issuer_name": "Sabadell Empresas",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Santander Empresas",
-          "description": "Oferta Santander Empresas optimizada para ticket 500k €.",
-          "amount_min": 76881,
-          "amount_max": 2257718,
+          "label": "Refinanciación Sabadell",
+          "description": "Reestructuración de préstamos existentes.",
+          "amount_min": 80000,
+          "amount_max": 1500000,
           "issuer_terms": {
-            "rate_annual": 0.0299,
+            "rate_annual": 0.035,
             "term_months": 24,
             "fees_bps": 97,
             "amortization": "constant_quote",
-            "collateral": "none"
+            "collateral": "personal"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0213,
-            "term_months": 32,
-            "fees_bps": 47,
+            "rate_annual": 0.035,
+            "term_months": 36,
+            "fees_bps": 50,
             "amortization": "constant_quote",
-            "collateral": "none"
+            "collateral": "personal"
           },
           "issuer_rationale": "Warm cache offer 3 for Santander Empresas"
         },
         {
-          "product_id": "PROD_refinance_iss_santander_3",
-          "issuer_id": "iss_santander",
-          "issuer_name": "Santander Empresas",
+          "product_id": "cat_march_refi",
+          "issuer_id": "iss_march",
+          "issuer_name": "Banca March",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Santander Empresas",
-          "description": "Oferta Santander Empresas optimizada para ticket 500k €.",
-          "amount_min": 62196,
+          "label": "Refinanciación Banca March",
+          "description": "Refinanciación premium para clientes investment-grade.",
+          "amount_min": 200000,
           "amount_max": 2001759,
           "issuer_terms": {
             "rate_annual": 0.0561,
-            "term_months": 29,
-            "fees_bps": 128,
+            "term_months": 36,
+            "fees_bps": 120,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "client_ideal_terms": {
             "rate_annual": 0.0387,
-            "term_months": 39,
-            "fees_bps": 86,
+            "term_months": 48,
+            "fees_bps": 60,
             "amortization": "constant_quote",
             "collateral": "none"
           },
@@ -428,34 +428,34 @@
       ],
       "ranking": [
         {
-          "product_id": "PROD_refinance_iss_santander_1",
-          "match": 0.791,
-          "client_fit": 0.738,
-          "issuer_appetite": 0.852,
+          "product_id": "cat_bbva_refi",
+          "match": 0.85,
+          "client_fit": 0.8,
+          "issuer_appetite": 0.75,
           "rationale": "Match 79% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_refinance_iss_santander_3",
-          "match": 0.769,
-          "client_fit": 0.7,
-          "issuer_appetite": 0.852,
+          "product_id": "cat_santander_refi",
+          "match": 0.73,
+          "client_fit": 0.7000000000000001,
+          "issuer_appetite": 0.65,
           "rationale": "Match 77% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_refinance_iss_santander_2",
-          "match": 0.753,
-          "client_fit": 0.674,
-          "issuer_appetite": 0.852,
+          "product_id": "cat_sabadell_refi",
+          "match": 0.61,
+          "client_fit": 0.6000000000000001,
+          "issuer_appetite": 0.55,
           "rationale": "Match 75% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_refinance_iss_sabadell_0",
-          "match": 0.561,
-          "client_fit": 0.7,
-          "issuer_appetite": 0.467,
+          "product_id": "cat_march_refi",
+          "match": 0.49,
+          "client_fit": 0.5,
+          "issuer_appetite": 0.44999999999999996,
           "rationale": "Match 56% — warm cache",
           "risks": []
         }
@@ -481,125 +481,125 @@
       },
       "offers": [
         {
-          "product_id": "PROD_new_debt_iss_bbva_0",
+          "product_id": "cat_bbva_circulante",
           "issuer_id": "iss_bbva",
           "issuer_name": "BBVA Empresas",
           "kind": "new_debt",
-          "label": "Préstamo circulante · BBVA Empresas",
-          "description": "Oferta BBVA Empresas optimizada para ticket 400k €.",
+          "label": "Préstamo circulante BBVA",
+          "description": "Circulante a tipo fijo para pymes. Ticket desde 50k.",
           "amount_min": 51609,
           "amount_max": 1349695,
           "issuer_terms": {
-            "rate_annual": 0.0286,
+            "rate_annual": 0.035,
             "term_months": 16,
-            "fees_bps": 174,
+            "fees_bps": 150,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0212,
-            "term_months": 23,
-            "fees_bps": 120,
+            "rate_annual": 0.035,
+            "term_months": 28,
+            "fees_bps": 75,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 1 for BBVA Empresas"
         },
         {
-          "product_id": "PROD_new_debt_iss_santander_1",
+          "product_id": "cat_santander_circulante",
           "issuer_id": "iss_santander",
           "issuer_name": "Santander Empresas",
           "kind": "new_debt",
-          "label": "Préstamo circulante · Santander Empresas",
-          "description": "Oferta Santander Empresas optimizada para ticket 500k €.",
-          "amount_min": 73401,
-          "amount_max": 2639275,
+          "label": "Circulante Santander",
+          "description": "Préstamo a corto-medio plazo.",
+          "amount_min": 75000,
+          "amount_max": 2000000,
           "issuer_terms": {
             "rate_annual": 0.0775,
-            "term_months": 63,
+            "term_months": 60,
             "fees_bps": 49,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "client_ideal_terms": {
             "rate_annual": 0.0595,
-            "term_months": 75,
-            "fees_bps": 30,
+            "term_months": 60,
+            "fees_bps": 35,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 2 for Santander Empresas"
         },
         {
-          "product_id": "PROD_new_debt_iss_bbva_2",
-          "issuer_id": "iss_bbva",
-          "issuer_name": "BBVA Empresas",
+          "product_id": "cat_sabadell_circulante",
+          "issuer_id": "iss_sabadell",
+          "issuer_name": "Sabadell Empresas",
           "kind": "new_debt",
-          "label": "Préstamo circulante · BBVA Empresas",
-          "description": "Oferta BBVA Empresas optimizada para ticket 400k €.",
+          "label": "Circulante Sabadell",
+          "description": "Préstamo ICO/comercial para pymes medianas.",
           "amount_min": 47243,
-          "amount_max": 1937990,
+          "amount_max": 1000000,
           "issuer_terms": {
             "rate_annual": 0.0746,
             "term_months": 19,
-            "fees_bps": 171,
+            "fees_bps": 160,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "client_ideal_terms": {
             "rate_annual": 0.052,
-            "term_months": 29,
-            "fees_bps": 103,
+            "term_months": 31,
+            "fees_bps": 80,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 3 for BBVA Empresas"
         },
         {
-          "product_id": "PROD_new_debt_iss_fintech_3",
-          "issuer_id": "iss_fintech",
-          "issuer_name": "Embat Capital Desk",
+          "product_id": "cat_march_prestamo_500k",
+          "issuer_id": "iss_march",
+          "issuer_name": "Banca March",
           "kind": "new_debt",
-          "label": "Préstamo circulante · Embat Capital Desk",
-          "description": "Oferta Embat Capital Desk optimizada para ticket 150k €.",
-          "amount_min": 29314,
+          "label": "Préstamo Banca March 500k+",
+          "description": "Préstamo a medio plazo. Importe mínimo 500.000 €; tipo entre 4 % y 12 %.",
+          "amount_min": 500000,
           "amount_max": 763844,
           "issuer_terms": {
-            "rate_annual": 0.0295,
+            "rate_annual": 0.04,
             "term_months": 47,
             "fees_bps": 115,
             "amortization": "interest_only",
             "collateral": "personal"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0201,
-            "term_months": 50,
-            "fees_bps": 60,
+            "rate_annual": 0.04,
+            "term_months": 59,
+            "fees_bps": 58,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 4 for Embat Capital Desk"
         },
         {
-          "product_id": "PROD_new_debt_iss_bbva_4",
-          "issuer_id": "iss_bbva",
-          "issuer_name": "BBVA Empresas",
+          "product_id": "cat_embat_bridge",
+          "issuer_id": "iss_fintech",
+          "issuer_name": "Embat Capital Desk",
           "kind": "new_debt",
-          "label": "Préstamo circulante · BBVA Empresas",
-          "description": "Oferta BBVA Empresas optimizada para ticket 400k €.",
+          "label": "Bridge Embat Capital",
+          "description": "Financiación puente para pymes con score medio-bajo.",
           "amount_min": 49096,
-          "amount_max": 1169770,
+          "amount_max": 500000,
           "issuer_terms": {
             "rate_annual": 0.0634,
             "term_months": 28,
-            "fees_bps": 76,
+            "fees_bps": 80,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0443,
-            "term_months": 30,
-            "fees_bps": 36,
+            "rate_annual": 0.055,
+            "term_months": 36,
+            "fees_bps": 80,
             "amortization": "constant_quote",
             "collateral": "none"
           },
@@ -608,42 +608,42 @@
       ],
       "ranking": [
         {
-          "product_id": "PROD_new_debt_iss_bbva_0",
-          "match": 0.676,
-          "client_fit": 0.681,
-          "issuer_appetite": 0.671,
+          "product_id": "cat_bbva_circulante",
+          "match": 0.85,
+          "client_fit": 0.8,
+          "issuer_appetite": 0.75,
           "rationale": "Match 68% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_fintech_3",
-          "match": 0.666,
-          "client_fit": 0.73,
-          "issuer_appetite": 0.613,
+          "product_id": "cat_santander_circulante",
+          "match": 0.73,
+          "client_fit": 0.7000000000000001,
+          "issuer_appetite": 0.65,
           "rationale": "Match 67% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_bbva_4",
-          "match": 0.654,
-          "client_fit": 0.638,
-          "issuer_appetite": 0.671,
+          "product_id": "cat_sabadell_circulante",
+          "match": 0.61,
+          "client_fit": 0.6000000000000001,
+          "issuer_appetite": 0.55,
           "rationale": "Match 65% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_santander_1",
-          "match": 0.605,
-          "client_fit": 0.475,
-          "issuer_appetite": 0.834,
+          "product_id": "cat_march_prestamo_500k",
+          "match": 0.49,
+          "client_fit": 0.5,
+          "issuer_appetite": 0.44999999999999996,
           "rationale": "Match 61% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_bbva_2",
-          "match": 0.585,
-          "client_fit": 0.519,
-          "issuer_appetite": 0.671,
+          "product_id": "cat_embat_bridge",
+          "match": 0.37,
+          "client_fit": 0.4,
+          "issuer_appetite": 0.35,
           "rationale": "Match 59% — warm cache",
           "risks": []
         }
@@ -669,14 +669,14 @@
       },
       "offers": [
         {
-          "product_id": "PROD_new_debt_iss_santander_0",
-          "issuer_id": "iss_santander",
-          "issuer_name": "Santander Empresas",
+          "product_id": "cat_bbva_circulante",
+          "issuer_id": "iss_bbva",
+          "issuer_name": "BBVA Empresas",
           "kind": "new_debt",
-          "label": "Préstamo circulante · Santander Empresas",
-          "description": "Oferta Santander Empresas optimizada para ticket 500k €.",
+          "label": "Préstamo circulante BBVA",
+          "description": "Circulante a tipo fijo para pymes. Ticket desde 50k.",
           "amount_min": 65344,
-          "amount_max": 1826519,
+          "amount_max": 1500000,
           "issuer_terms": {
             "rate_annual": 0.0359,
             "term_months": 54,
@@ -685,72 +685,72 @@
             "collateral": "none"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.024,
-            "term_months": 72,
-            "fees_bps": 50,
+            "rate_annual": 0.035,
+            "term_months": 60,
+            "fees_bps": 40,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 1 for Santander Empresas"
         },
         {
-          "product_id": "PROD_new_debt_iss_bbva_1",
-          "issuer_id": "iss_bbva",
-          "issuer_name": "BBVA Empresas",
+          "product_id": "cat_santander_circulante",
+          "issuer_id": "iss_santander",
+          "issuer_name": "Santander Empresas",
           "kind": "new_debt",
-          "label": "Préstamo circulante · BBVA Empresas",
-          "description": "Oferta BBVA Empresas optimizada para ticket 400k €.",
-          "amount_min": 51308,
+          "label": "Circulante Santander",
+          "description": "Préstamo a corto-medio plazo.",
+          "amount_min": 75000,
           "amount_max": 1430077,
           "issuer_terms": {
             "rate_annual": 0.0526,
             "term_months": 12,
-            "fees_bps": 156,
+            "fees_bps": 140,
             "amortization": "interest_only",
             "collateral": "personal"
           },
           "client_ideal_terms": {
             "rate_annual": 0.036,
-            "term_months": 25,
-            "fees_bps": 63,
+            "term_months": 24,
+            "fees_bps": 70,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 2 for BBVA Empresas"
         },
         {
-          "product_id": "PROD_new_debt_iss_bbva_2",
-          "issuer_id": "iss_bbva",
-          "issuer_name": "BBVA Empresas",
+          "product_id": "cat_sabadell_circulante",
+          "issuer_id": "iss_sabadell",
+          "issuer_name": "Sabadell Empresas",
           "kind": "new_debt",
-          "label": "Préstamo circulante · BBVA Empresas",
-          "description": "Oferta BBVA Empresas optimizada para ticket 400k €.",
+          "label": "Circulante Sabadell",
+          "description": "Préstamo ICO/comercial para pymes medianas.",
           "amount_min": 51124,
-          "amount_max": 1545189,
+          "amount_max": 1000000,
           "issuer_terms": {
             "rate_annual": 0.06814166666666666,
-            "term_months": 64,
+            "term_months": 48,
             "fees_bps": 118,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "client_ideal_terms": {
             "rate_annual": 0.0556,
-            "term_months": 69,
-            "fees_bps": 95,
+            "term_months": 48,
+            "fees_bps": 59,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 3 for BBVA Empresas"
         },
         {
-          "product_id": "PROD_new_debt_iss_santander_3",
-          "issuer_id": "iss_santander",
-          "issuer_name": "Santander Empresas",
+          "product_id": "cat_march_prestamo_500k",
+          "issuer_id": "iss_march",
+          "issuer_name": "Banca March",
           "kind": "new_debt",
-          "label": "Préstamo circulante · Santander Empresas",
-          "description": "Oferta Santander Empresas optimizada para ticket 500k €.",
-          "amount_min": 66641,
+          "label": "Préstamo Banca March 500k+",
+          "description": "Préstamo a medio plazo. Importe mínimo 500.000 €; tipo entre 4 % y 12 %.",
+          "amount_min": 500000,
           "amount_max": 2486378,
           "issuer_terms": {
             "rate_annual": 0.061316666666666665,
@@ -761,33 +761,33 @@
           },
           "client_ideal_terms": {
             "rate_annual": 0.0479,
-            "term_months": 67,
-            "fees_bps": 62,
+            "term_months": 75,
+            "fees_bps": 44,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 4 for Santander Empresas"
         },
         {
-          "product_id": "PROD_new_debt_iss_bbva_4",
-          "issuer_id": "iss_bbva",
-          "issuer_name": "BBVA Empresas",
+          "product_id": "cat_embat_bridge",
+          "issuer_id": "iss_fintech",
+          "issuer_name": "Embat Capital Desk",
           "kind": "new_debt",
-          "label": "Préstamo circulante · BBVA Empresas",
-          "description": "Oferta BBVA Empresas optimizada para ticket 400k €.",
+          "label": "Bridge Embat Capital",
+          "description": "Financiación puente para pymes con score medio-bajo.",
           "amount_min": 43745,
-          "amount_max": 1330234,
+          "amount_max": 500000,
           "issuer_terms": {
             "rate_annual": 0.0631,
-            "term_months": 71,
-            "fees_bps": 53,
+            "term_months": 36,
+            "fees_bps": 80,
             "amortization": "constant_quote",
             "collateral": "personal"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0493,
-            "term_months": 81,
-            "fees_bps": 33,
+            "rate_annual": 0.055,
+            "term_months": 36,
+            "fees_bps": 80,
             "amortization": "constant_quote",
             "collateral": "none"
           },
@@ -796,42 +796,42 @@
       ],
       "ranking": [
         {
-          "product_id": "PROD_new_debt_iss_santander_0",
-          "match": 0.695,
-          "client_fit": 0.59,
-          "issuer_appetite": 0.845,
+          "product_id": "cat_bbva_circulante",
+          "match": 0.85,
+          "client_fit": 0.8,
+          "issuer_appetite": 0.75,
           "rationale": "Match 70% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_bbva_1",
-          "match": 0.654,
-          "client_fit": 0.627,
-          "issuer_appetite": 0.685,
+          "product_id": "cat_santander_circulante",
+          "match": 0.73,
+          "client_fit": 0.7000000000000001,
+          "issuer_appetite": 0.65,
           "rationale": "Match 65% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_santander_3",
-          "match": 0.599,
-          "client_fit": 0.464,
-          "issuer_appetite": 0.845,
+          "product_id": "cat_sabadell_circulante",
+          "match": 0.61,
+          "client_fit": 0.6000000000000001,
+          "issuer_appetite": 0.55,
           "rationale": "Match 60% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_bbva_4",
-          "match": 0.59,
-          "client_fit": 0.519,
-          "issuer_appetite": 0.685,
+          "product_id": "cat_march_prestamo_500k",
+          "match": 0.49,
+          "client_fit": 0.5,
+          "issuer_appetite": 0.44999999999999996,
           "rationale": "Match 59% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_bbva_2",
-          "match": 0.55,
-          "client_fit": 0.46,
-          "issuer_appetite": 0.685,
+          "product_id": "cat_embat_bridge",
+          "match": 0.37,
+          "client_fit": 0.4,
+          "issuer_appetite": 0.35,
           "rationale": "Match 55% — warm cache",
           "risks": []
         }
@@ -857,171 +857,171 @@
       },
       "offers": [
         {
-          "product_id": "PROD_refinance_iss_fintech_0",
-          "issuer_id": "iss_fintech",
-          "issuer_name": "Embat Capital Desk",
+          "product_id": "cat_bbva_refi",
+          "issuer_id": "iss_bbva",
+          "issuer_name": "BBVA Empresas",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Embat Capital Desk",
-          "description": "Oferta Embat Capital Desk optimizada para ticket 150k €.",
-          "amount_min": 24538,
+          "label": "Refinanciación BBVA",
+          "description": "Pool de refinanciación con aval personal opcional.",
+          "amount_min": 100000,
           "amount_max": 666082,
           "issuer_terms": {
             "rate_annual": 0.0441,
-            "term_months": 18,
+            "term_months": 24,
             "fees_bps": 109,
             "amortization": "constant_quote",
             "collateral": "personal"
           },
           "client_ideal_terms": {
             "rate_annual": 0.0328,
-            "term_months": 35,
-            "fees_bps": 54,
+            "term_months": 36,
+            "fees_bps": 55,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 1 for Embat Capital Desk"
         },
         {
-          "product_id": "PROD_refinance_iss_fintech_1",
-          "issuer_id": "iss_fintech",
-          "issuer_name": "Embat Capital Desk",
+          "product_id": "cat_santander_refi",
+          "issuer_id": "iss_santander",
+          "issuer_name": "Santander Empresas",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Embat Capital Desk",
-          "description": "Oferta Embat Capital Desk optimizada para ticket 150k €.",
-          "amount_min": 32023,
+          "label": "Refinanciación Santander",
+          "description": "Refinanciación de deuda cara.",
+          "amount_min": 150000,
           "amount_max": 628775,
           "issuer_terms": {
             "rate_annual": 0.0628,
             "term_months": 29,
-            "fees_bps": 36,
+            "fees_bps": 40,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "client_ideal_terms": {
             "rate_annual": 0.0628,
-            "term_months": 29,
-            "fees_bps": 36,
+            "term_months": 41,
+            "fees_bps": 40,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 2 for Embat Capital Desk"
         },
         {
-          "product_id": "PROD_refinance_iss_march_2",
-          "issuer_id": "iss_march",
-          "issuer_name": "Banca March",
+          "product_id": "cat_sabadell_refi",
+          "issuer_id": "iss_sabadell",
+          "issuer_name": "Sabadell Empresas",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Banca March",
-          "description": "Oferta Banca March optimizada para ticket 800k €.",
+          "label": "Refinanciación Sabadell",
+          "description": "Reestructuración de préstamos existentes.",
           "amount_min": 83732,
-          "amount_max": 2817421,
+          "amount_max": 1500000,
           "issuer_terms": {
-            "rate_annual": 0.0334,
+            "rate_annual": 0.035,
             "term_months": 25,
             "fees_bps": 53,
             "amortization": "constant_quote",
             "collateral": "personal"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0228,
-            "term_months": 35,
-            "fees_bps": 22,
+            "rate_annual": 0.035,
+            "term_months": 37,
+            "fees_bps": 50,
             "amortization": "constant_quote",
-            "collateral": "none"
+            "collateral": "personal"
           },
           "issuer_rationale": "Warm cache offer 3 for Banca March"
         },
         {
-          "product_id": "PROD_refinance_iss_march_3",
+          "product_id": "cat_march_refi",
           "issuer_id": "iss_march",
           "issuer_name": "Banca March",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Banca March",
-          "description": "Oferta Banca March optimizada para ticket 800k €.",
-          "amount_min": 105928,
+          "label": "Refinanciación Banca March",
+          "description": "Refinanciación premium para clientes investment-grade.",
+          "amount_min": 200000,
           "amount_max": 2943713,
           "issuer_terms": {
             "rate_annual": 0.0388,
             "term_months": 50,
             "fees_bps": 74,
-            "amortization": "interest_only",
+            "amortization": "constant_quote",
             "collateral": "personal"
           },
           "client_ideal_terms": {
             "rate_annual": 0.03,
-            "term_months": 55,
-            "fees_bps": 49,
+            "term_months": 62,
+            "fees_bps": 37,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 4 for Banca March"
         },
         {
-          "product_id": "PROD_refinance_iss_santander_4",
-          "issuer_id": "iss_santander",
-          "issuer_name": "Santander Empresas",
+          "product_id": "cat_embat_refi",
+          "issuer_id": "iss_fintech",
+          "issuer_name": "Embat Capital Desk",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Santander Empresas",
-          "description": "Oferta Santander Empresas optimizada para ticket 500k €.",
+          "label": "Refi Embat Capital",
+          "description": "Refinanciación rápida sin bancarización larga.",
           "amount_min": 80878,
-          "amount_max": 2218398,
+          "amount_max": 600000,
           "issuer_terms": {
-            "rate_annual": 0.042,
-            "term_months": 63,
+            "rate_annual": 0.05,
+            "term_months": 48,
             "fees_bps": 103,
             "amortization": "constant_quote",
-            "collateral": "none"
+            "collateral": "personal"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.034,
-            "term_months": 75,
-            "fees_bps": 43,
+            "rate_annual": 0.05,
+            "term_months": 48,
+            "fees_bps": 70,
             "amortization": "constant_quote",
-            "collateral": "none"
+            "collateral": "personal"
           },
           "issuer_rationale": "Warm cache offer 5 for Santander Empresas"
         }
       ],
       "ranking": [
         {
-          "product_id": "PROD_refinance_iss_santander_4",
-          "match": 0.756,
-          "client_fit": 0.664,
-          "issuer_appetite": 0.878,
+          "product_id": "cat_bbva_refi",
+          "match": 0.85,
+          "client_fit": 0.8,
+          "issuer_appetite": 0.75,
           "rationale": "Match 76% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_refinance_iss_march_2",
-          "match": 0.601,
-          "client_fit": 0.628,
-          "issuer_appetite": 0.577,
+          "product_id": "cat_santander_refi",
+          "match": 0.73,
+          "client_fit": 0.7000000000000001,
+          "issuer_appetite": 0.65,
           "rationale": "Match 60% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_refinance_iss_march_3",
-          "match": 0.597,
-          "client_fit": 0.618,
-          "issuer_appetite": 0.577,
+          "product_id": "cat_sabadell_refi",
+          "match": 0.61,
+          "client_fit": 0.6000000000000001,
+          "issuer_appetite": 0.55,
           "rationale": "Match 60% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_refinance_iss_fintech_0",
-          "match": 0.575,
+          "product_id": "cat_march_refi",
+          "match": 0.49,
           "client_fit": 0.5,
-          "issuer_appetite": 0.678,
+          "issuer_appetite": 0.44999999999999996,
           "rationale": "Match 57% — warm cache",
           "risks": [
             "Cerca del techo del ticket"
           ]
         },
         {
-          "product_id": "PROD_refinance_iss_fintech_1",
-          "match": 0.493,
-          "client_fit": 0.388,
-          "issuer_appetite": 0.678,
+          "product_id": "cat_embat_refi",
+          "match": 0.37,
+          "client_fit": 0.4,
+          "issuer_appetite": 0.35,
           "rationale": "Match 49% — warm cache",
           "risks": [
             "Cerca del techo del ticket"
@@ -1049,14 +1049,14 @@
       },
       "offers": [
         {
-          "product_id": "PROD_new_debt_iss_march_0",
-          "issuer_id": "iss_march",
-          "issuer_name": "Banca March",
+          "product_id": "cat_bbva_circulante",
+          "issuer_id": "iss_bbva",
+          "issuer_name": "BBVA Empresas",
           "kind": "new_debt",
-          "label": "Préstamo circulante · Banca March",
-          "description": "Oferta Banca March optimizada para ticket 800k €.",
+          "label": "Préstamo circulante BBVA",
+          "description": "Circulante a tipo fijo para pymes. Ticket desde 50k.",
           "amount_min": 82871,
-          "amount_max": 4508234,
+          "amount_max": 1500000,
           "issuer_terms": {
             "rate_annual": 0.0587,
             "term_months": 34,
@@ -1066,21 +1066,21 @@
           },
           "client_ideal_terms": {
             "rate_annual": 0.0531,
-            "term_months": 39,
-            "fees_bps": 76,
+            "term_months": 46,
+            "fees_bps": 44,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 1 for Banca March"
         },
         {
-          "product_id": "PROD_new_debt_iss_fintech_1",
-          "issuer_id": "iss_fintech",
-          "issuer_name": "Embat Capital Desk",
+          "product_id": "cat_santander_circulante",
+          "issuer_id": "iss_santander",
+          "issuer_name": "Santander Empresas",
           "kind": "new_debt",
-          "label": "Préstamo circulante · Embat Capital Desk",
-          "description": "Oferta Embat Capital Desk optimizada para ticket 150k €.",
-          "amount_min": 32744,
+          "label": "Circulante Santander",
+          "description": "Préstamo a corto-medio plazo.",
+          "amount_min": 75000,
           "amount_max": 572038,
           "issuer_terms": {
             "rate_annual": 0.0501,
@@ -1091,58 +1091,58 @@
           },
           "client_ideal_terms": {
             "rate_annual": 0.038,
-            "term_months": 61,
-            "fees_bps": 84,
+            "term_months": 58,
+            "fees_bps": 63,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 2 for Embat Capital Desk"
         },
         {
-          "product_id": "PROD_new_debt_iss_bbva_2",
-          "issuer_id": "iss_bbva",
-          "issuer_name": "BBVA Empresas",
+          "product_id": "cat_sabadell_circulante",
+          "issuer_id": "iss_sabadell",
+          "issuer_name": "Sabadell Empresas",
           "kind": "new_debt",
-          "label": "Préstamo circulante · BBVA Empresas",
-          "description": "Oferta BBVA Empresas optimizada para ticket 400k €.",
+          "label": "Circulante Sabadell",
+          "description": "Préstamo ICO/comercial para pymes medianas.",
           "amount_min": 57469,
-          "amount_max": 1322966,
+          "amount_max": 1000000,
           "issuer_terms": {
             "rate_annual": 0.07101666666666666,
-            "term_months": 57,
+            "term_months": 48,
             "fees_bps": 66,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "client_ideal_terms": {
             "rate_annual": 0.0691,
-            "term_months": 57,
-            "fees_bps": 59,
+            "term_months": 48,
+            "fees_bps": 45,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 3 for BBVA Empresas"
         },
         {
-          "product_id": "PROD_new_debt_iss_fintech_3",
-          "issuer_id": "iss_fintech",
-          "issuer_name": "Embat Capital Desk",
+          "product_id": "cat_march_prestamo_500k",
+          "issuer_id": "iss_march",
+          "issuer_name": "Banca March",
           "kind": "new_debt",
-          "label": "Préstamo circulante · Embat Capital Desk",
-          "description": "Oferta Embat Capital Desk optimizada para ticket 150k €.",
-          "amount_min": 31643,
+          "label": "Préstamo Banca March 500k+",
+          "description": "Préstamo a medio plazo. Importe mínimo 500.000 €; tipo entre 4 % y 12 %.",
+          "amount_min": 500000,
           "amount_max": 730763,
           "issuer_terms": {
-            "rate_annual": 0.0378,
-            "term_months": 12,
+            "rate_annual": 0.04,
+            "term_months": 36,
             "fees_bps": 83,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0308,
-            "term_months": 24,
-            "fees_bps": 52,
+            "rate_annual": 0.04,
+            "term_months": 48,
+            "fees_bps": 42,
             "amortization": "constant_quote",
             "collateral": "none"
           },
@@ -1151,34 +1151,34 @@
       ],
       "ranking": [
         {
-          "product_id": "PROD_new_debt_iss_fintech_1",
-          "match": 0.712,
-          "client_fit": 0.79,
-          "issuer_appetite": 0.648,
+          "product_id": "cat_bbva_circulante",
+          "match": 0.85,
+          "client_fit": 0.8,
+          "issuer_appetite": 0.75,
           "rationale": "Match 71% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_fintech_3",
-          "match": 0.683,
-          "client_fit": 0.734,
-          "issuer_appetite": 0.638,
+          "product_id": "cat_santander_circulante",
+          "match": 0.73,
+          "client_fit": 0.7000000000000001,
+          "issuer_appetite": 0.65,
           "rationale": "Match 68% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_bbva_2",
-          "match": 0.49,
-          "client_fit": 0.46,
-          "issuer_appetite": 0.526,
+          "product_id": "cat_sabadell_circulante",
+          "match": 0.61,
+          "client_fit": 0.6000000000000001,
+          "issuer_appetite": 0.55,
           "rationale": "Match 49% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_march_0",
-          "match": 0.435,
-          "client_fit": 0.461,
-          "issuer_appetite": 0.412,
+          "product_id": "cat_march_prestamo_500k",
+          "match": 0.49,
+          "client_fit": 0.5,
+          "issuer_appetite": 0.44999999999999996,
           "rationale": "Match 44% — warm cache",
           "risks": []
         }
@@ -1204,14 +1204,14 @@
       },
       "offers": [
         {
-          "product_id": "PROD_refinance_iss_march_0",
-          "issuer_id": "iss_march",
-          "issuer_name": "Banca March",
+          "product_id": "cat_bbva_refi",
+          "issuer_id": "iss_bbva",
+          "issuer_name": "BBVA Empresas",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Banca March",
-          "description": "Oferta Banca March optimizada para ticket 800k €.",
+          "label": "Refinanciación BBVA",
+          "description": "Pool de refinanciación con aval personal opcional.",
           "amount_min": 112996,
-          "amount_max": 4898537,
+          "amount_max": 2000000,
           "issuer_terms": {
             "rate_annual": 0.0453,
             "term_months": 46,
@@ -1220,72 +1220,72 @@
             "collateral": "personal"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0298,
-            "term_months": 52,
-            "fees_bps": 43,
+            "rate_annual": 0.032,
+            "term_months": 58,
+            "fees_bps": 52,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 1 for Banca March"
         },
         {
-          "product_id": "PROD_refinance_iss_fintech_1",
-          "issuer_id": "iss_fintech",
-          "issuer_name": "Embat Capital Desk",
+          "product_id": "cat_santander_refi",
+          "issuer_id": "iss_santander",
+          "issuer_name": "Santander Empresas",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Embat Capital Desk",
-          "description": "Oferta Embat Capital Desk optimizada para ticket 150k €.",
-          "amount_min": 24630,
+          "label": "Refinanciación Santander",
+          "description": "Refinanciación de deuda cara.",
+          "amount_min": 150000,
           "amount_max": 767500,
           "issuer_terms": {
             "rate_annual": 0.0554,
             "term_months": 39,
             "fees_bps": 122,
-            "amortization": "interest_only",
+            "amortization": "constant_quote",
             "collateral": "none"
           },
           "client_ideal_terms": {
             "rate_annual": 0.0394,
-            "term_months": 54,
-            "fees_bps": 69,
+            "term_months": 51,
+            "fees_bps": 61,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 2 for Embat Capital Desk"
         },
         {
-          "product_id": "PROD_refinance_iss_santander_2",
-          "issuer_id": "iss_santander",
-          "issuer_name": "Santander Empresas",
+          "product_id": "cat_sabadell_refi",
+          "issuer_id": "iss_sabadell",
+          "issuer_name": "Sabadell Empresas",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Santander Empresas",
-          "description": "Oferta Santander Empresas optimizada para ticket 500k €.",
-          "amount_min": 74367,
-          "amount_max": 2616841,
+          "label": "Refinanciación Sabadell",
+          "description": "Reestructuración de préstamos existentes.",
+          "amount_min": 80000,
+          "amount_max": 1500000,
           "issuer_terms": {
             "rate_annual": 0.0383,
             "term_months": 40,
-            "fees_bps": 49,
+            "fees_bps": 50,
             "amortization": "constant_quote",
-            "collateral": "none"
+            "collateral": "personal"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.029,
+            "rate_annual": 0.035,
             "term_months": 52,
-            "fees_bps": 24,
+            "fees_bps": 50,
             "amortization": "constant_quote",
-            "collateral": "none"
+            "collateral": "personal"
           },
           "issuer_rationale": "Warm cache offer 3 for Santander Empresas"
         },
         {
-          "product_id": "PROD_refinance_iss_sabadell_3",
-          "issuer_id": "iss_sabadell",
-          "issuer_name": "Sabadell Empresas",
+          "product_id": "cat_march_refi",
+          "issuer_id": "iss_march",
+          "issuer_name": "Banca March",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Sabadell Empresas",
-          "description": "Oferta Sabadell Empresas optimizada para ticket 250k €.",
-          "amount_min": 36879,
+          "label": "Refinanciación Banca March",
+          "description": "Refinanciación premium para clientes investment-grade.",
+          "amount_min": 200000,
           "amount_max": 1209358,
           "issuer_terms": {
             "rate_annual": 0.0624,
@@ -1296,79 +1296,79 @@
           },
           "client_ideal_terms": {
             "rate_annual": 0.0411,
-            "term_months": 72,
-            "fees_bps": 26,
+            "term_months": 77,
+            "fees_bps": 30,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 4 for Sabadell Empresas"
         },
         {
-          "product_id": "PROD_refinance_iss_march_4",
-          "issuer_id": "iss_march",
-          "issuer_name": "Banca March",
+          "product_id": "cat_embat_refi",
+          "issuer_id": "iss_fintech",
+          "issuer_name": "Embat Capital Desk",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Banca March",
-          "description": "Oferta Banca March optimizada para ticket 800k €.",
+          "label": "Refi Embat Capital",
+          "description": "Refinanciación rápida sin bancarización larga.",
           "amount_min": 93583,
-          "amount_max": 2904297,
+          "amount_max": 600000,
           "issuer_terms": {
             "rate_annual": 0.0718,
             "term_months": 41,
             "fees_bps": 130,
             "amortization": "constant_quote",
-            "collateral": "none"
+            "collateral": "personal"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0487,
-            "term_months": 53,
-            "fees_bps": 57,
+            "rate_annual": 0.05,
+            "term_months": 48,
+            "fees_bps": 70,
             "amortization": "constant_quote",
-            "collateral": "none"
+            "collateral": "personal"
           },
           "issuer_rationale": "Warm cache offer 5 for Banca March"
         }
       ],
       "ranking": [
         {
-          "product_id": "PROD_refinance_iss_santander_2",
-          "match": 0.619,
-          "client_fit": 0.679,
-          "issuer_appetite": 0.569,
+          "product_id": "cat_bbva_refi",
+          "match": 0.85,
+          "client_fit": 0.8,
+          "issuer_appetite": 0.75,
           "rationale": "Match 62% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_refinance_iss_march_0",
-          "match": 0.603,
-          "client_fit": 0.59,
-          "issuer_appetite": 0.616,
+          "product_id": "cat_santander_refi",
+          "match": 0.73,
+          "client_fit": 0.7000000000000001,
+          "issuer_appetite": 0.65,
           "rationale": "Match 60% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_refinance_iss_march_4",
-          "match": 0.549,
-          "client_fit": 0.495,
-          "issuer_appetite": 0.616,
+          "product_id": "cat_sabadell_refi",
+          "match": 0.61,
+          "client_fit": 0.6000000000000001,
+          "issuer_appetite": 0.55,
           "rationale": "Match 55% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_refinance_iss_fintech_1",
-          "match": 0.544,
-          "client_fit": 0.454,
-          "issuer_appetite": 0.678,
+          "product_id": "cat_march_refi",
+          "match": 0.49,
+          "client_fit": 0.5,
+          "issuer_appetite": 0.44999999999999996,
           "rationale": "Match 54% — warm cache",
           "risks": [
             "Cerca del techo del ticket"
           ]
         },
         {
-          "product_id": "PROD_refinance_iss_sabadell_3",
-          "match": 0.423,
-          "client_fit": 0.598,
-          "issuer_appetite": 0.328,
+          "product_id": "cat_embat_refi",
+          "match": 0.37,
+          "client_fit": 0.4,
+          "issuer_appetite": 0.35,
           "rationale": "Match 42% — warm cache",
           "risks": []
         }
@@ -1394,14 +1394,14 @@
       },
       "offers": [
         {
-          "product_id": "PROD_new_debt_iss_march_0",
-          "issuer_id": "iss_march",
-          "issuer_name": "Banca March",
+          "product_id": "cat_bbva_circulante",
+          "issuer_id": "iss_bbva",
+          "issuer_name": "BBVA Empresas",
           "kind": "new_debt",
-          "label": "Préstamo circulante · Banca March",
-          "description": "Oferta Banca March optimizada para ticket 800k €.",
+          "label": "Préstamo circulante BBVA",
+          "description": "Circulante a tipo fijo para pymes. Ticket desde 50k.",
           "amount_min": 85323,
-          "amount_max": 4810681,
+          "amount_max": 1500000,
           "issuer_terms": {
             "rate_annual": 0.0497,
             "term_months": 19,
@@ -1410,72 +1410,72 @@
             "collateral": "none"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.032,
-            "term_months": 28,
-            "fees_bps": 94,
+            "rate_annual": 0.035,
+            "term_months": 31,
+            "fees_bps": 68,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 1 for Banca March"
         },
         {
-          "product_id": "PROD_new_debt_iss_bbva_1",
-          "issuer_id": "iss_bbva",
-          "issuer_name": "BBVA Empresas",
+          "product_id": "cat_santander_circulante",
+          "issuer_id": "iss_santander",
+          "issuer_name": "Santander Empresas",
           "kind": "new_debt",
-          "label": "Préstamo circulante · BBVA Empresas",
-          "description": "Oferta BBVA Empresas optimizada para ticket 400k €.",
-          "amount_min": 44109,
+          "label": "Circulante Santander",
+          "description": "Préstamo a corto-medio plazo.",
+          "amount_min": 75000,
           "amount_max": 1330543,
           "issuer_terms": {
-            "rate_annual": 0.0327,
+            "rate_annual": 0.033,
             "term_months": 53,
             "fees_bps": 126,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0201,
-            "term_months": 62,
-            "fees_bps": 59,
+            "rate_annual": 0.033,
+            "term_months": 60,
+            "fees_bps": 63,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 2 for BBVA Empresas"
         },
         {
-          "product_id": "PROD_new_debt_iss_sabadell_2",
+          "product_id": "cat_sabadell_circulante",
           "issuer_id": "iss_sabadell",
           "issuer_name": "Sabadell Empresas",
           "kind": "new_debt",
-          "label": "Préstamo circulante · Sabadell Empresas",
-          "description": "Oferta Sabadell Empresas optimizada para ticket 250k €.",
+          "label": "Circulante Sabadell",
+          "description": "Préstamo ICO/comercial para pymes medianas.",
           "amount_min": 46381,
           "amount_max": 784721,
           "issuer_terms": {
             "rate_annual": 0.065,
-            "term_months": 60,
+            "term_months": 48,
             "fees_bps": 90,
             "amortization": "constant_quote",
             "collateral": "personal"
           },
           "client_ideal_terms": {
             "rate_annual": 0.042,
-            "term_months": 77,
-            "fees_bps": 55,
+            "term_months": 48,
+            "fees_bps": 45,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 3 for Sabadell Empresas"
         },
         {
-          "product_id": "PROD_new_debt_iss_march_3",
+          "product_id": "cat_march_prestamo_500k",
           "issuer_id": "iss_march",
           "issuer_name": "Banca March",
           "kind": "new_debt",
-          "label": "Préstamo circulante · Banca March",
-          "description": "Oferta Banca March optimizada para ticket 800k €.",
-          "amount_min": 85869,
+          "label": "Préstamo Banca March 500k+",
+          "description": "Préstamo a medio plazo. Importe mínimo 500.000 €; tipo entre 4 % y 12 %.",
+          "amount_min": 500000,
           "amount_max": 3620406,
           "issuer_terms": {
             "rate_annual": 0.06395,
@@ -1486,8 +1486,8 @@
           },
           "client_ideal_terms": {
             "rate_annual": 0.0575,
-            "term_months": 41,
-            "fees_bps": 59,
+            "term_months": 49,
+            "fees_bps": 40,
             "amortization": "constant_quote",
             "collateral": "none"
           },
@@ -1496,34 +1496,34 @@
       ],
       "ranking": [
         {
-          "product_id": "PROD_new_debt_iss_bbva_1",
-          "match": 0.581,
-          "client_fit": 0.629,
-          "issuer_appetite": 0.539,
+          "product_id": "cat_bbva_circulante",
+          "match": 0.85,
+          "client_fit": 0.8,
+          "issuer_appetite": 0.75,
           "rationale": "Match 58% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_sabadell_2",
-          "match": 0.556,
-          "client_fit": 0.609,
-          "issuer_appetite": 0.512,
+          "product_id": "cat_santander_circulante",
+          "match": 0.73,
+          "client_fit": 0.7000000000000001,
+          "issuer_appetite": 0.65,
           "rationale": "Match 56% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_march_0",
-          "match": 0.465,
-          "client_fit": 0.525,
-          "issuer_appetite": 0.418,
+          "product_id": "cat_sabadell_circulante",
+          "match": 0.61,
+          "client_fit": 0.6000000000000001,
+          "issuer_appetite": 0.55,
           "rationale": "Match 47% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_march_3",
-          "match": 0.426,
-          "client_fit": 0.433,
-          "issuer_appetite": 0.418,
+          "product_id": "cat_march_prestamo_500k",
+          "match": 0.49,
+          "client_fit": 0.5,
+          "issuer_appetite": 0.44999999999999996,
           "rationale": "Match 43% — warm cache",
           "risks": []
         }
@@ -1549,13 +1549,13 @@
       },
       "offers": [
         {
-          "product_id": "PROD_refinance_iss_fintech_0",
-          "issuer_id": "iss_fintech",
-          "issuer_name": "Embat Capital Desk",
+          "product_id": "cat_bbva_refi",
+          "issuer_id": "iss_bbva",
+          "issuer_name": "BBVA Empresas",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Embat Capital Desk",
-          "description": "Oferta Embat Capital Desk optimizada para ticket 150k €.",
-          "amount_min": 31096,
+          "label": "Refinanciación BBVA",
+          "description": "Pool de refinanciación con aval personal opcional.",
+          "amount_min": 100000,
           "amount_max": 422060,
           "issuer_terms": {
             "rate_annual": 0.0597,
@@ -1566,156 +1566,156 @@
           },
           "client_ideal_terms": {
             "rate_annual": 0.0597,
-            "term_months": 51,
-            "fees_bps": 116,
+            "term_months": 63,
+            "fees_bps": 58,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 1 for Embat Capital Desk"
         },
         {
-          "product_id": "PROD_refinance_iss_sabadell_1",
-          "issuer_id": "iss_sabadell",
-          "issuer_name": "Sabadell Empresas",
+          "product_id": "cat_santander_refi",
+          "issuer_id": "iss_santander",
+          "issuer_name": "Santander Empresas",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Sabadell Empresas",
-          "description": "Oferta Sabadell Empresas optimizada para ticket 250k €.",
-          "amount_min": 42154,
+          "label": "Refinanciación Santander",
+          "description": "Refinanciación de deuda cara.",
+          "amount_min": 150000,
           "amount_max": 1310396,
           "issuer_terms": {
-            "rate_annual": 0.0818,
-            "term_months": 15,
+            "rate_annual": 0.08,
+            "term_months": 24,
             "fees_bps": 141,
             "amortization": "constant_quote",
             "collateral": "personal"
           },
           "client_ideal_terms": {
             "rate_annual": 0.0581,
-            "term_months": 22,
-            "fees_bps": 63,
+            "term_months": 36,
+            "fees_bps": 71,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 2 for Sabadell Empresas"
         },
         {
-          "product_id": "PROD_refinance_iss_fintech_2",
-          "issuer_id": "iss_fintech",
-          "issuer_name": "Embat Capital Desk",
+          "product_id": "cat_sabadell_refi",
+          "issuer_id": "iss_sabadell",
+          "issuer_name": "Sabadell Empresas",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Embat Capital Desk",
-          "description": "Oferta Embat Capital Desk optimizada para ticket 150k €.",
-          "amount_min": 26803,
+          "label": "Refinanciación Sabadell",
+          "description": "Reestructuración de préstamos existentes.",
+          "amount_min": 80000,
           "amount_max": 684875,
           "issuer_terms": {
             "rate_annual": 0.0632,
-            "term_months": 80,
+            "term_months": 72,
             "fees_bps": 84,
             "amortization": "constant_quote",
-            "collateral": "none"
+            "collateral": "personal"
           },
           "client_ideal_terms": {
             "rate_annual": 0.0632,
-            "term_months": 80,
-            "fees_bps": 84,
+            "term_months": 72,
+            "fees_bps": 50,
             "amortization": "constant_quote",
-            "collateral": "none"
+            "collateral": "personal"
           },
           "issuer_rationale": "Warm cache offer 3 for Embat Capital Desk"
         },
         {
-          "product_id": "PROD_refinance_iss_fintech_3",
-          "issuer_id": "iss_fintech",
-          "issuer_name": "Embat Capital Desk",
+          "product_id": "cat_march_refi",
+          "issuer_id": "iss_march",
+          "issuer_name": "Banca March",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Embat Capital Desk",
-          "description": "Oferta Embat Capital Desk optimizada para ticket 150k €.",
-          "amount_min": 25845,
+          "label": "Refinanciación Banca March",
+          "description": "Refinanciación premium para clientes investment-grade.",
+          "amount_min": 200000,
           "amount_max": 420235,
           "issuer_terms": {
             "rate_annual": 0.0297,
             "term_months": 36,
-            "fees_bps": 147,
+            "fees_bps": 120,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0219,
-            "term_months": 49,
-            "fees_bps": 82,
+            "rate_annual": 0.028,
+            "term_months": 48,
+            "fees_bps": 60,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 4 for Embat Capital Desk"
         },
         {
-          "product_id": "PROD_refinance_iss_sabadell_4",
-          "issuer_id": "iss_sabadell",
-          "issuer_name": "Sabadell Empresas",
+          "product_id": "cat_embat_refi",
+          "issuer_id": "iss_fintech",
+          "issuer_name": "Embat Capital Desk",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Sabadell Empresas",
-          "description": "Oferta Sabadell Empresas optimizada para ticket 250k €.",
-          "amount_min": 38720,
-          "amount_max": 1157607,
+          "label": "Refi Embat Capital",
+          "description": "Refinanciación rápida sin bancarización larga.",
+          "amount_min": 40000,
+          "amount_max": 600000,
           "issuer_terms": {
             "rate_annual": 0.0667,
-            "term_months": 61,
-            "fees_bps": 56,
+            "term_months": 48,
+            "fees_bps": 70,
             "amortization": "constant_quote",
             "collateral": "personal"
           },
           "client_ideal_terms": {
             "rate_annual": 0.0526,
-            "term_months": 72,
-            "fees_bps": 28,
+            "term_months": 48,
+            "fees_bps": 70,
             "amortization": "constant_quote",
-            "collateral": "none"
+            "collateral": "personal"
           },
           "issuer_rationale": "Warm cache offer 5 for Sabadell Empresas"
         }
       ],
       "ranking": [
         {
-          "product_id": "PROD_refinance_iss_fintech_2",
-          "match": 0.657,
-          "client_fit": 0.638,
-          "issuer_appetite": 0.678,
+          "product_id": "cat_bbva_refi",
+          "match": 0.85,
+          "client_fit": 0.8,
+          "issuer_appetite": 0.75,
           "rationale": "Match 66% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_refinance_iss_fintech_3",
-          "match": 0.569,
-          "client_fit": 0.5,
-          "issuer_appetite": 0.66,
+          "product_id": "cat_santander_refi",
+          "match": 0.73,
+          "client_fit": 0.7000000000000001,
+          "issuer_appetite": 0.65,
           "rationale": "Match 57% — warm cache",
           "risks": [
             "Cerca del techo del ticket"
           ]
         },
         {
-          "product_id": "PROD_refinance_iss_fintech_0",
-          "match": 0.521,
-          "client_fit": 0.424,
-          "issuer_appetite": 0.678,
+          "product_id": "cat_sabadell_refi",
+          "match": 0.61,
+          "client_fit": 0.6000000000000001,
+          "issuer_appetite": 0.55,
           "rationale": "Match 52% — warm cache",
           "risks": [
             "Cerca del techo del ticket"
           ]
         },
         {
-          "product_id": "PROD_refinance_iss_sabadell_4",
-          "match": 0.488,
-          "client_fit": 0.579,
-          "issuer_appetite": 0.421,
+          "product_id": "cat_march_refi",
+          "match": 0.49,
+          "client_fit": 0.5,
+          "issuer_appetite": 0.44999999999999996,
           "rationale": "Match 49% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_refinance_iss_sabadell_1",
-          "match": 0.433,
-          "client_fit": 0.445,
-          "issuer_appetite": 0.421,
+          "product_id": "cat_embat_refi",
+          "match": 0.37,
+          "client_fit": 0.4,
+          "issuer_appetite": 0.35,
           "rationale": "Match 43% — warm cache",
           "risks": []
         }
@@ -1741,64 +1741,64 @@
       },
       "offers": [
         {
-          "product_id": "PROD_new_debt_iss_fintech_0",
-          "issuer_id": "iss_fintech",
-          "issuer_name": "Embat Capital Desk",
+          "product_id": "cat_bbva_circulante",
+          "issuer_id": "iss_bbva",
+          "issuer_name": "BBVA Empresas",
           "kind": "new_debt",
-          "label": "Préstamo circulante · Embat Capital Desk",
-          "description": "Oferta Embat Capital Desk optimizada para ticket 150k €.",
-          "amount_min": 27966,
+          "label": "Préstamo circulante BBVA",
+          "description": "Circulante a tipo fijo para pymes. Ticket desde 50k.",
+          "amount_min": 50000,
           "amount_max": 437819,
           "issuer_terms": {
             "rate_annual": 0.0717,
-            "term_months": 70,
+            "term_months": 60,
             "fees_bps": 40,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "client_ideal_terms": {
             "rate_annual": 0.057,
-            "term_months": 78,
-            "fees_bps": 22,
+            "term_months": 60,
+            "fees_bps": 40,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 1 for Embat Capital Desk"
         },
         {
-          "product_id": "PROD_new_debt_iss_bbva_1",
-          "issuer_id": "iss_bbva",
-          "issuer_name": "BBVA Empresas",
+          "product_id": "cat_santander_circulante",
+          "issuer_id": "iss_santander",
+          "issuer_name": "Santander Empresas",
           "kind": "new_debt",
-          "label": "Préstamo circulante · BBVA Empresas",
-          "description": "Oferta BBVA Empresas optimizada para ticket 400k €.",
-          "amount_min": 41494,
+          "label": "Circulante Santander",
+          "description": "Préstamo a corto-medio plazo.",
+          "amount_min": 75000,
           "amount_max": 1971447,
           "issuer_terms": {
             "rate_annual": 0.06773333333333334,
-            "term_months": 70,
+            "term_months": 60,
             "fees_bps": 70,
             "amortization": "constant_quote",
             "collateral": "personal"
           },
           "client_ideal_terms": {
             "rate_annual": 0.0502,
-            "term_months": 77,
-            "fees_bps": 41,
+            "term_months": 60,
+            "fees_bps": 35,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 2 for BBVA Empresas"
         },
         {
-          "product_id": "PROD_new_debt_iss_bbva_2",
-          "issuer_id": "iss_bbva",
-          "issuer_name": "BBVA Empresas",
+          "product_id": "cat_sabadell_circulante",
+          "issuer_id": "iss_sabadell",
+          "issuer_name": "Sabadell Empresas",
           "kind": "new_debt",
-          "label": "Préstamo circulante · BBVA Empresas",
-          "description": "Oferta BBVA Empresas optimizada para ticket 400k €.",
+          "label": "Circulante Sabadell",
+          "description": "Préstamo ICO/comercial para pymes medianas.",
           "amount_min": 58631,
-          "amount_max": 1081097,
+          "amount_max": 1000000,
           "issuer_terms": {
             "rate_annual": 0.0619,
             "term_months": 25,
@@ -1808,33 +1808,33 @@
           },
           "client_ideal_terms": {
             "rate_annual": 0.0418,
-            "term_months": 30,
-            "fees_bps": 60,
+            "term_months": 37,
+            "fees_bps": 72,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 3 for BBVA Empresas"
         },
         {
-          "product_id": "PROD_new_debt_iss_fintech_3",
-          "issuer_id": "iss_fintech",
-          "issuer_name": "Embat Capital Desk",
+          "product_id": "cat_march_prestamo_500k",
+          "issuer_id": "iss_march",
+          "issuer_name": "Banca March",
           "kind": "new_debt",
-          "label": "Préstamo circulante · Embat Capital Desk",
-          "description": "Oferta Embat Capital Desk optimizada para ticket 150k €.",
-          "amount_min": 28587,
+          "label": "Préstamo Banca March 500k+",
+          "description": "Préstamo a medio plazo. Importe mínimo 500.000 €; tipo entre 4 % y 12 %.",
+          "amount_min": 500000,
           "amount_max": 583179,
           "issuer_terms": {
-            "rate_annual": 0.0322,
+            "rate_annual": 0.04,
             "term_months": 75,
             "fees_bps": 87,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0232,
-            "term_months": 88,
-            "fees_bps": 49,
+            "rate_annual": 0.04,
+            "term_months": 87,
+            "fees_bps": 44,
             "amortization": "constant_quote",
             "collateral": "none"
           },
@@ -1843,34 +1843,34 @@
       ],
       "ranking": [
         {
-          "product_id": "PROD_new_debt_iss_fintech_3",
-          "match": 0.69,
-          "client_fit": 0.79,
-          "issuer_appetite": 0.612,
+          "product_id": "cat_bbva_circulante",
+          "match": 0.85,
+          "client_fit": 0.8,
+          "issuer_appetite": 0.75,
           "rationale": "Match 69% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_bbva_2",
-          "match": 0.611,
-          "client_fit": 0.558,
-          "issuer_appetite": 0.674,
+          "product_id": "cat_santander_circulante",
+          "match": 0.73,
+          "client_fit": 0.7000000000000001,
+          "issuer_appetite": 0.65,
           "rationale": "Match 61% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_fintech_0",
-          "match": 0.575,
-          "client_fit": 0.518,
-          "issuer_appetite": 0.648,
+          "product_id": "cat_sabadell_circulante",
+          "match": 0.61,
+          "client_fit": 0.6000000000000001,
+          "issuer_appetite": 0.55,
           "rationale": "Match 57% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_bbva_1",
-          "match": 0.54,
-          "client_fit": 0.451,
-          "issuer_appetite": 0.674,
+          "product_id": "cat_march_prestamo_500k",
+          "match": 0.49,
+          "client_fit": 0.5,
+          "issuer_appetite": 0.44999999999999996,
           "rationale": "Match 54% — warm cache",
           "risks": []
         }
@@ -1896,169 +1896,169 @@
       },
       "offers": [
         {
-          "product_id": "PROD_factoring_iss_santander_0",
-          "issuer_id": "iss_santander",
-          "issuer_name": "Santander Empresas",
+          "product_id": "cat_bbva_factoring",
+          "issuer_id": "iss_bbva",
+          "issuer_name": "BBVA Empresas",
           "kind": "factoring",
-          "label": "Factoring con recurso · Santander Empresas",
-          "description": "Oferta Santander Empresas optimizada para ticket 500k €.",
+          "label": "Factoring BBVA",
+          "description": "Factoring con recurso sobre facturas emitidas.",
           "amount_min": 66442,
-          "amount_max": 1560176,
+          "amount_max": 1000000,
           "issuer_terms": {
             "rate_annual": 0.0621,
-            "term_months": 66,
+            "term_months": 12,
             "fees_bps": 131,
-            "amortization": "constant_quote",
-            "collateral": "none"
+            "amortization": "bullet",
+            "collateral": "receivables"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.043,
-            "term_months": 68,
-            "fees_bps": 56,
-            "amortization": "constant_quote",
-            "collateral": "none"
+            "rate_annual": 0.045,
+            "term_months": 12,
+            "fees_bps": 66,
+            "amortization": "bullet",
+            "collateral": "receivables"
           },
           "issuer_rationale": "Warm cache offer 1 for Santander Empresas"
         },
         {
-          "product_id": "PROD_factoring_iss_fintech_1",
-          "issuer_id": "iss_fintech",
-          "issuer_name": "Embat Capital Desk",
+          "product_id": "cat_sabadell_factoring",
+          "issuer_id": "iss_sabadell",
+          "issuer_name": "Sabadell Empresas",
           "kind": "factoring",
-          "label": "Factoring con recurso · Embat Capital Desk",
-          "description": "Oferta Embat Capital Desk optimizada para ticket 150k €.",
-          "amount_min": 24934,
+          "label": "Factoring Sabadell",
+          "description": "Anticipo de facturas con recurso.",
+          "amount_min": 25000,
           "amount_max": 752579,
           "issuer_terms": {
             "rate_annual": 0.08446666666666668,
-            "term_months": 74,
+            "term_months": 12,
             "fees_bps": 107,
-            "amortization": "constant_quote",
-            "collateral": "personal"
+            "amortization": "bullet",
+            "collateral": "receivables"
           },
           "client_ideal_terms": {
             "rate_annual": 0.0603,
-            "term_months": 82,
-            "fees_bps": 56,
-            "amortization": "constant_quote",
-            "collateral": "none"
+            "term_months": 12,
+            "fees_bps": 70,
+            "amortization": "bullet",
+            "collateral": "receivables"
           },
           "issuer_rationale": "Warm cache offer 2 for Embat Capital Desk"
         },
         {
-          "product_id": "PROD_factoring_iss_fintech_2",
+          "product_id": "cat_embat_factoring",
           "issuer_id": "iss_fintech",
           "issuer_name": "Embat Capital Desk",
           "kind": "factoring",
-          "label": "Factoring con recurso · Embat Capital Desk",
-          "description": "Oferta Embat Capital Desk optimizada para ticket 150k €.",
+          "label": "Factoring Embat",
+          "description": "Anticipo de facturas digital.",
           "amount_min": 29756,
-          "amount_max": 536942,
+          "amount_max": 400000,
           "issuer_terms": {
             "rate_annual": 0.086,
-            "term_months": 17,
+            "term_months": 6,
             "fees_bps": 157,
-            "amortization": "interest_only",
-            "collateral": "none"
+            "amortization": "bullet",
+            "collateral": "receivables"
           },
           "client_ideal_terms": {
             "rate_annual": 0.0613,
-            "term_months": 29,
-            "fees_bps": 102,
-            "amortization": "constant_quote",
-            "collateral": "none"
+            "term_months": 6,
+            "fees_bps": 90,
+            "amortization": "bullet",
+            "collateral": "receivables"
           },
           "issuer_rationale": "Warm cache offer 3 for Embat Capital Desk"
         },
         {
-          "product_id": "PROD_factoring_iss_santander_3",
-          "issuer_id": "iss_santander",
-          "issuer_name": "Santander Empresas",
+          "product_id": "cat_bbva_factoring",
+          "issuer_id": "iss_bbva",
+          "issuer_name": "BBVA Empresas",
           "kind": "factoring",
-          "label": "Factoring con recurso · Santander Empresas",
-          "description": "Oferta Santander Empresas optimizada para ticket 500k €.",
+          "label": "Factoring BBVA",
+          "description": "Factoring con recurso sobre facturas emitidas.",
           "amount_min": 70226,
-          "amount_max": 1754424,
+          "amount_max": 1000000,
           "issuer_terms": {
             "rate_annual": 0.0678,
-            "term_months": 60,
+            "term_months": 12,
             "fees_bps": 166,
-            "amortization": "constant_quote",
-            "collateral": "personal"
+            "amortization": "bullet",
+            "collateral": "receivables"
           },
           "client_ideal_terms": {
             "rate_annual": 0.046,
-            "term_months": 66,
-            "fees_bps": 101,
-            "amortization": "constant_quote",
-            "collateral": "none"
+            "term_months": 12,
+            "fees_bps": 83,
+            "amortization": "bullet",
+            "collateral": "receivables"
           },
           "issuer_rationale": "Warm cache offer 4 for Santander Empresas"
         },
         {
-          "product_id": "PROD_factoring_iss_fintech_4",
-          "issuer_id": "iss_fintech",
-          "issuer_name": "Embat Capital Desk",
+          "product_id": "cat_sabadell_factoring",
+          "issuer_id": "iss_sabadell",
+          "issuer_name": "Sabadell Empresas",
           "kind": "factoring",
-          "label": "Factoring con recurso · Embat Capital Desk",
-          "description": "Oferta Embat Capital Desk optimizada para ticket 150k €.",
+          "label": "Factoring Sabadell",
+          "description": "Anticipo de facturas con recurso.",
           "amount_min": 31426,
           "amount_max": 478178,
           "issuer_terms": {
-            "rate_annual": 0.0446,
-            "term_months": 66,
+            "rate_annual": 0.05,
+            "term_months": 12,
             "fees_bps": 81,
-            "amortization": "constant_quote",
-            "collateral": "none"
+            "amortization": "bullet",
+            "collateral": "receivables"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0319,
-            "term_months": 87,
-            "fees_bps": 42,
-            "amortization": "constant_quote",
-            "collateral": "none"
+            "rate_annual": 0.05,
+            "term_months": 12,
+            "fees_bps": 70,
+            "amortization": "bullet",
+            "collateral": "receivables"
           },
           "issuer_rationale": "Warm cache offer 5 for Embat Capital Desk"
         }
       ],
       "ranking": [
         {
-          "product_id": "PROD_factoring_iss_fintech_4",
-          "match": 0.707,
-          "client_fit": 0.752,
-          "issuer_appetite": 0.666,
+          "product_id": "cat_bbva_factoring",
+          "match": 0.85,
+          "client_fit": 0.8,
+          "issuer_appetite": 0.75,
           "rationale": "Match 71% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_factoring_iss_santander_0",
-          "match": 0.619,
-          "client_fit": 0.496,
-          "issuer_appetite": 0.822,
+          "product_id": "cat_sabadell_factoring",
+          "match": 0.73,
+          "client_fit": 0.7000000000000001,
+          "issuer_appetite": 0.65,
           "rationale": "Match 62% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_factoring_iss_fintech_2",
-          "match": 0.597,
-          "client_fit": 0.541,
-          "issuer_appetite": 0.666,
+          "product_id": "cat_embat_factoring",
+          "match": 0.61,
+          "client_fit": 0.6000000000000001,
+          "issuer_appetite": 0.55,
           "rationale": "Match 60% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_factoring_iss_santander_3",
-          "match": 0.577,
-          "client_fit": 0.444,
-          "issuer_appetite": 0.822,
+          "product_id": "cat_bbva_factoring",
+          "match": 0.49,
+          "client_fit": 0.5,
+          "issuer_appetite": 0.44999999999999996,
           "rationale": "Match 58% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_factoring_iss_fintech_1",
-          "match": 0.548,
-          "client_fit": 0.466,
-          "issuer_appetite": 0.666,
+          "product_id": "cat_sabadell_factoring",
+          "match": 0.37,
+          "client_fit": 0.4,
+          "issuer_appetite": 0.35,
           "rationale": "Match 55% — warm cache",
           "risks": []
         }
@@ -2084,12 +2084,12 @@
       },
       "offers": [
         {
-          "product_id": "PROD_new_debt_iss_bbva_0",
+          "product_id": "cat_bbva_circulante",
           "issuer_id": "iss_bbva",
           "issuer_name": "BBVA Empresas",
           "kind": "new_debt",
-          "label": "Préstamo circulante · BBVA Empresas",
-          "description": "Oferta BBVA Empresas optimizada para ticket 400k €.",
+          "label": "Préstamo circulante BBVA",
+          "description": "Circulante a tipo fijo para pymes. Ticket desde 50k.",
           "amount_min": 55944,
           "amount_max": 1426976,
           "issuer_terms": {
@@ -2101,21 +2101,21 @@
           },
           "client_ideal_terms": {
             "rate_annual": 0.0508,
-            "term_months": 51,
-            "fees_bps": 68,
+            "term_months": 53,
+            "fees_bps": 49,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 1 for BBVA Empresas"
         },
         {
-          "product_id": "PROD_new_debt_iss_fintech_1",
-          "issuer_id": "iss_fintech",
-          "issuer_name": "Embat Capital Desk",
+          "product_id": "cat_santander_circulante",
+          "issuer_id": "iss_santander",
+          "issuer_name": "Santander Empresas",
           "kind": "new_debt",
-          "label": "Préstamo circulante · Embat Capital Desk",
-          "description": "Oferta Embat Capital Desk optimizada para ticket 150k €.",
-          "amount_min": 34635,
+          "label": "Circulante Santander",
+          "description": "Préstamo a corto-medio plazo.",
+          "amount_min": 75000,
           "amount_max": 656707,
           "issuer_terms": {
             "rate_annual": 0.0713,
@@ -2126,46 +2126,46 @@
           },
           "client_ideal_terms": {
             "rate_annual": 0.0477,
-            "term_months": 21,
-            "fees_bps": 46,
+            "term_months": 25,
+            "fees_bps": 48,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 2 for Embat Capital Desk"
         },
         {
-          "product_id": "PROD_new_debt_iss_bbva_2",
-          "issuer_id": "iss_bbva",
-          "issuer_name": "BBVA Empresas",
+          "product_id": "cat_sabadell_circulante",
+          "issuer_id": "iss_sabadell",
+          "issuer_name": "Sabadell Empresas",
           "kind": "new_debt",
-          "label": "Préstamo circulante · BBVA Empresas",
-          "description": "Oferta BBVA Empresas optimizada para ticket 400k €.",
+          "label": "Circulante Sabadell",
+          "description": "Préstamo ICO/comercial para pymes medianas.",
           "amount_min": 47986,
-          "amount_max": 1504383,
+          "amount_max": 1000000,
           "issuer_terms": {
             "rate_annual": 0.0591,
-            "term_months": 72,
+            "term_months": 48,
             "fees_bps": 87,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "client_ideal_terms": {
             "rate_annual": 0.0393,
-            "term_months": 90,
-            "fees_bps": 48,
+            "term_months": 48,
+            "fees_bps": 45,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 3 for BBVA Empresas"
         },
         {
-          "product_id": "PROD_new_debt_iss_santander_3",
-          "issuer_id": "iss_santander",
-          "issuer_name": "Santander Empresas",
+          "product_id": "cat_march_prestamo_500k",
+          "issuer_id": "iss_march",
+          "issuer_name": "Banca March",
           "kind": "new_debt",
-          "label": "Préstamo circulante · Santander Empresas",
-          "description": "Oferta Santander Empresas optimizada para ticket 500k €.",
-          "amount_min": 65258,
+          "label": "Préstamo Banca March 500k+",
+          "description": "Préstamo a medio plazo. Importe mínimo 500.000 €; tipo entre 4 % y 12 %.",
+          "amount_min": 500000,
           "amount_max": 2403235,
           "issuer_terms": {
             "rate_annual": 0.06273333333333334,
@@ -2176,8 +2176,8 @@
           },
           "client_ideal_terms": {
             "rate_annual": 0.0582,
-            "term_months": 58,
-            "fees_bps": 49,
+            "term_months": 66,
+            "fees_bps": 40,
             "amortization": "constant_quote",
             "collateral": "none"
           },
@@ -2186,34 +2186,34 @@
       ],
       "ranking": [
         {
-          "product_id": "PROD_new_debt_iss_fintech_1",
-          "match": 0.684,
-          "client_fit": 0.724,
-          "issuer_appetite": 0.648,
+          "product_id": "cat_bbva_circulante",
+          "match": 0.85,
+          "client_fit": 0.8,
+          "issuer_appetite": 0.75,
           "rationale": "Match 68% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_bbva_2",
-          "match": 0.607,
-          "client_fit": 0.544,
-          "issuer_appetite": 0.685,
+          "product_id": "cat_santander_circulante",
+          "match": 0.73,
+          "client_fit": 0.7000000000000001,
+          "issuer_appetite": 0.65,
           "rationale": "Match 61% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_santander_3",
-          "match": 0.604,
-          "client_fit": 0.47,
-          "issuer_appetite": 0.846,
+          "product_id": "cat_sabadell_circulante",
+          "match": 0.61,
+          "client_fit": 0.6000000000000001,
+          "issuer_appetite": 0.55,
           "rationale": "Match 60% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_new_debt_iss_bbva_0",
-          "match": 0.553,
-          "client_fit": 0.464,
-          "issuer_appetite": 0.685,
+          "product_id": "cat_march_prestamo_500k",
+          "match": 0.49,
+          "client_fit": 0.5,
+          "issuer_appetite": 0.44999999999999996,
           "rationale": "Match 55% — warm cache",
           "risks": []
         }
@@ -2239,14 +2239,14 @@
       },
       "offers": [
         {
-          "product_id": "PROD_refinance_iss_march_0",
-          "issuer_id": "iss_march",
-          "issuer_name": "Banca March",
+          "product_id": "cat_bbva_refi",
+          "issuer_id": "iss_bbva",
+          "issuer_name": "BBVA Empresas",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Banca March",
-          "description": "Oferta Banca March optimizada para ticket 800k €.",
-          "amount_min": 85782,
-          "amount_max": 4331114,
+          "label": "Refinanciación BBVA",
+          "description": "Pool de refinanciación con aval personal opcional.",
+          "amount_min": 100000,
+          "amount_max": 2000000,
           "issuer_terms": {
             "rate_annual": 0.06783333333333333,
             "term_months": 49,
@@ -2256,21 +2256,21 @@
           },
           "client_ideal_terms": {
             "rate_annual": 0.059,
-            "term_months": 57,
-            "fees_bps": 56,
+            "term_months": 61,
+            "fees_bps": 50,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 1 for Banca March"
         },
         {
-          "product_id": "PROD_refinance_iss_bbva_1",
-          "issuer_id": "iss_bbva",
-          "issuer_name": "BBVA Empresas",
+          "product_id": "cat_santander_refi",
+          "issuer_id": "iss_santander",
+          "issuer_name": "Santander Empresas",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · BBVA Empresas",
-          "description": "Oferta BBVA Empresas optimizada para ticket 400k €.",
-          "amount_min": 43061,
+          "label": "Refinanciación Santander",
+          "description": "Refinanciación de deuda cara.",
+          "amount_min": 150000,
           "amount_max": 1417128,
           "issuer_terms": {
             "rate_annual": 0.0602,
@@ -2281,46 +2281,46 @@
           },
           "client_ideal_terms": {
             "rate_annual": 0.0418,
-            "term_months": 85,
-            "fees_bps": 49,
+            "term_months": 83,
+            "fees_bps": 40,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 2 for BBVA Empresas"
         },
         {
-          "product_id": "PROD_refinance_iss_santander_2",
-          "issuer_id": "iss_santander",
-          "issuer_name": "Santander Empresas",
+          "product_id": "cat_sabadell_refi",
+          "issuer_id": "iss_sabadell",
+          "issuer_name": "Sabadell Empresas",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Santander Empresas",
-          "description": "Oferta Santander Empresas optimizada para ticket 500k €.",
+          "label": "Refinanciación Sabadell",
+          "description": "Reestructuración de préstamos existentes.",
           "amount_min": 85489,
-          "amount_max": 2734564,
+          "amount_max": 1500000,
           "issuer_terms": {
             "rate_annual": 0.0756,
-            "term_months": 22,
+            "term_months": 24,
             "fees_bps": 76,
             "amortization": "constant_quote",
             "collateral": "personal"
           },
           "client_ideal_terms": {
             "rate_annual": 0.0582,
-            "term_months": 28,
-            "fees_bps": 42,
+            "term_months": 36,
+            "fees_bps": 50,
             "amortization": "constant_quote",
-            "collateral": "none"
+            "collateral": "personal"
           },
           "issuer_rationale": "Warm cache offer 3 for Santander Empresas"
         },
         {
-          "product_id": "PROD_refinance_iss_march_3",
+          "product_id": "cat_march_refi",
           "issuer_id": "iss_march",
           "issuer_name": "Banca March",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Banca March",
-          "description": "Oferta Banca March optimizada para ticket 800k €.",
-          "amount_min": 118941,
+          "label": "Refinanciación Banca March",
+          "description": "Refinanciación premium para clientes investment-grade.",
+          "amount_min": 200000,
           "amount_max": 3444229,
           "issuer_terms": {
             "rate_annual": 0.0429,
@@ -2331,8 +2331,8 @@
           },
           "client_ideal_terms": {
             "rate_annual": 0.0319,
-            "term_months": 72,
-            "fees_bps": 68,
+            "term_months": 77,
+            "fees_bps": 52,
             "amortization": "constant_quote",
             "collateral": "none"
           },
@@ -2341,34 +2341,34 @@
       ],
       "ranking": [
         {
-          "product_id": "PROD_refinance_iss_bbva_1",
-          "match": 0.606,
-          "client_fit": 0.717,
-          "issuer_appetite": 0.526,
+          "product_id": "cat_bbva_refi",
+          "match": 0.85,
+          "client_fit": 0.8,
+          "issuer_appetite": 0.75,
           "rationale": "Match 61% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_refinance_iss_march_3",
-          "match": 0.604,
-          "client_fit": 0.609,
-          "issuer_appetite": 0.598,
+          "product_id": "cat_santander_refi",
+          "match": 0.73,
+          "client_fit": 0.7000000000000001,
+          "issuer_appetite": 0.65,
           "rationale": "Match 60% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_refinance_iss_santander_2",
-          "match": 0.591,
-          "client_fit": 0.454,
-          "issuer_appetite": 0.844,
+          "product_id": "cat_sabadell_refi",
+          "match": 0.61,
+          "client_fit": 0.6000000000000001,
+          "issuer_appetite": 0.55,
           "rationale": "Match 59% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_refinance_iss_march_0",
-          "match": 0.517,
-          "client_fit": 0.455,
-          "issuer_appetite": 0.598,
+          "product_id": "cat_march_refi",
+          "match": 0.49,
+          "client_fit": 0.5,
+          "issuer_appetite": 0.44999999999999996,
           "rationale": "Match 52% — warm cache",
           "risks": []
         }
@@ -2394,16 +2394,16 @@
       },
       "offers": [
         {
-          "product_id": "PROD_refinance_iss_sabadell_0",
-          "issuer_id": "iss_sabadell",
-          "issuer_name": "Sabadell Empresas",
+          "product_id": "cat_bbva_refi",
+          "issuer_id": "iss_bbva",
+          "issuer_name": "BBVA Empresas",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Sabadell Empresas",
-          "description": "Oferta Sabadell Empresas optimizada para ticket 250k €.",
-          "amount_min": 33871,
+          "label": "Refinanciación BBVA",
+          "description": "Pool de refinanciación con aval personal opcional.",
+          "amount_min": 100000,
           "amount_max": 1453235,
           "issuer_terms": {
-            "rate_annual": 0.0852,
+            "rate_annual": 0.085,
             "term_months": 70,
             "fees_bps": 151,
             "amortization": "constant_quote",
@@ -2411,83 +2411,83 @@
           },
           "client_ideal_terms": {
             "rate_annual": 0.0587,
-            "term_months": 79,
-            "fees_bps": 87,
+            "term_months": 82,
+            "fees_bps": 76,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 1 for Sabadell Empresas"
         },
         {
-          "product_id": "PROD_refinance_iss_march_1",
-          "issuer_id": "iss_march",
-          "issuer_name": "Banca March",
+          "product_id": "cat_santander_refi",
+          "issuer_id": "iss_santander",
+          "issuer_name": "Santander Empresas",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Banca March",
-          "description": "Oferta Banca March optimizada para ticket 800k €.",
-          "amount_min": 84638,
-          "amount_max": 3964228,
+          "label": "Refinanciación Santander",
+          "description": "Refinanciación de deuda cara.",
+          "amount_min": 150000,
+          "amount_max": 3000000,
           "issuer_terms": {
             "rate_annual": 0.0681,
             "term_months": 88,
-            "fees_bps": 29,
+            "fees_bps": 40,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "client_ideal_terms": {
             "rate_annual": 0.0681,
-            "term_months": 88,
-            "fees_bps": 29,
+            "term_months": 96,
+            "fees_bps": 40,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 2 for Banca March"
         },
         {
-          "product_id": "PROD_refinance_iss_santander_2",
-          "issuer_id": "iss_santander",
-          "issuer_name": "Santander Empresas",
+          "product_id": "cat_sabadell_refi",
+          "issuer_id": "iss_sabadell",
+          "issuer_name": "Sabadell Empresas",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Santander Empresas",
-          "description": "Oferta Santander Empresas optimizada para ticket 500k €.",
-          "amount_min": 62801,
-          "amount_max": 2036154,
+          "label": "Refinanciación Sabadell",
+          "description": "Reestructuración de préstamos existentes.",
+          "amount_min": 80000,
+          "amount_max": 1500000,
           "issuer_terms": {
             "rate_annual": 0.0559,
             "term_months": 63,
             "fees_bps": 98,
             "amortization": "constant_quote",
-            "collateral": "none"
+            "collateral": "personal"
           },
           "client_ideal_terms": {
             "rate_annual": 0.0413,
-            "term_months": 79,
-            "fees_bps": 68,
+            "term_months": 72,
+            "fees_bps": 50,
             "amortization": "constant_quote",
-            "collateral": "none"
+            "collateral": "personal"
           },
           "issuer_rationale": "Warm cache offer 3 for Santander Empresas"
         },
         {
-          "product_id": "PROD_refinance_iss_sabadell_3",
-          "issuer_id": "iss_sabadell",
-          "issuer_name": "Sabadell Empresas",
+          "product_id": "cat_march_refi",
+          "issuer_id": "iss_march",
+          "issuer_name": "Banca March",
           "kind": "refinance",
-          "label": "Préstamo refinanciación · Sabadell Empresas",
-          "description": "Oferta Sabadell Empresas optimizada para ticket 250k €.",
-          "amount_min": 45474,
+          "label": "Refinanciación Banca March",
+          "description": "Refinanciación premium para clientes investment-grade.",
+          "amount_min": 200000,
           "amount_max": 1482917,
           "issuer_terms": {
-            "rate_annual": 0.076,
-            "term_months": 35,
-            "fees_bps": 122,
+            "rate_annual": 0.075,
+            "term_months": 36,
+            "fees_bps": 120,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "client_ideal_terms": {
             "rate_annual": 0.0537,
             "term_months": 48,
-            "fees_bps": 67,
+            "fees_bps": 60,
             "amortization": "constant_quote",
             "collateral": "none"
           },
@@ -2496,34 +2496,34 @@
       ],
       "ranking": [
         {
-          "product_id": "PROD_refinance_iss_santander_2",
-          "match": 0.736,
-          "client_fit": 0.636,
-          "issuer_appetite": 0.874,
+          "product_id": "cat_bbva_refi",
+          "match": 0.85,
+          "client_fit": 0.8,
+          "issuer_appetite": 0.75,
           "rationale": "Match 74% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_refinance_iss_sabadell_3",
-          "match": 0.618,
-          "client_fit": 0.569,
-          "issuer_appetite": 0.678,
+          "product_id": "cat_santander_refi",
+          "match": 0.73,
+          "client_fit": 0.7000000000000001,
+          "issuer_appetite": 0.65,
           "rationale": "Match 62% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_refinance_iss_sabadell_0",
-          "match": 0.583,
-          "client_fit": 0.511,
-          "issuer_appetite": 0.678,
+          "product_id": "cat_sabadell_refi",
+          "match": 0.61,
+          "client_fit": 0.6000000000000001,
+          "issuer_appetite": 0.55,
           "rationale": "Match 58% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_refinance_iss_march_1",
-          "match": 0.557,
-          "client_fit": 0.455,
-          "issuer_appetite": 0.72,
+          "product_id": "cat_march_refi",
+          "match": 0.49,
+          "client_fit": 0.5,
+          "issuer_appetite": 0.44999999999999996,
           "rationale": "Match 56% — warm cache",
           "risks": []
         }
@@ -2549,13 +2549,13 @@
       },
       "offers": [
         {
-          "product_id": "PROD_amortize_iss_sabadell_0",
-          "issuer_id": "iss_sabadell",
-          "issuer_name": "Sabadell Empresas",
-          "kind": "amortize",
-          "label": "Cancelación anticipada · Sabadell Empresas",
-          "description": "Oferta Sabadell Empresas optimizada para ticket 250k €.",
-          "amount_min": 47057,
+          "product_id": "cat_bbva_circulante",
+          "issuer_id": "iss_bbva",
+          "issuer_name": "BBVA Empresas",
+          "kind": "new_debt",
+          "label": "Préstamo circulante BBVA",
+          "description": "Circulante a tipo fijo para pymes. Ticket desde 50k.",
+          "amount_min": 50000,
           "amount_max": 1089563,
           "issuer_terms": {
             "rate_annual": 0.0437,
@@ -2565,22 +2565,22 @@
             "collateral": "none"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0264,
-            "term_months": 72,
-            "fees_bps": 48,
+            "rate_annual": 0.035,
+            "term_months": 60,
+            "fees_bps": 40,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 1 for Sabadell Empresas"
         },
         {
-          "product_id": "PROD_amortize_iss_sabadell_1",
-          "issuer_id": "iss_sabadell",
-          "issuer_name": "Sabadell Empresas",
-          "kind": "amortize",
-          "label": "Cancelación anticipada · Sabadell Empresas",
-          "description": "Oferta Sabadell Empresas optimizada para ticket 250k €.",
-          "amount_min": 41125,
+          "product_id": "cat_bbva_refi",
+          "issuer_id": "iss_bbva",
+          "issuer_name": "BBVA Empresas",
+          "kind": "refinance",
+          "label": "Refinanciación BBVA",
+          "description": "Pool de refinanciación con aval personal opcional.",
+          "amount_min": 100000,
           "amount_max": 1426373,
           "issuer_terms": {
             "rate_annual": 0.06396666666666667,
@@ -2591,83 +2591,83 @@
           },
           "client_ideal_terms": {
             "rate_annual": 0.0423,
-            "term_months": 80,
-            "fees_bps": 76,
+            "term_months": 82,
+            "fees_bps": 71,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 2 for Sabadell Empresas"
         },
         {
-          "product_id": "PROD_amortize_iss_santander_2",
-          "issuer_id": "iss_santander",
-          "issuer_name": "Santander Empresas",
-          "kind": "amortize",
-          "label": "Cancelación anticipada · Santander Empresas",
-          "description": "Oferta Santander Empresas optimizada para ticket 500k €.",
+          "product_id": "cat_bbva_linea",
+          "issuer_id": "iss_bbva",
+          "issuer_name": "BBVA Empresas",
+          "kind": "extend_line",
+          "label": "Línea de crédito BBVA",
+          "description": "Ampliación de línea revolving.",
           "amount_min": 74005,
-          "amount_max": 2312452,
+          "amount_max": 800000,
           "issuer_terms": {
             "rate_annual": 0.0477,
-            "term_months": 49,
-            "fees_bps": 151,
-            "amortization": "constant_quote",
-            "collateral": "personal"
+            "term_months": 36,
+            "fees_bps": 120,
+            "amortization": "interest_only",
+            "collateral": "none"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0353,
-            "term_months": 65,
-            "fees_bps": 86,
-            "amortization": "constant_quote",
+            "rate_annual": 0.04,
+            "term_months": 36,
+            "fees_bps": 60,
+            "amortization": "interest_only",
             "collateral": "none"
           },
           "issuer_rationale": "Warm cache offer 3 for Santander Empresas"
         },
         {
-          "product_id": "PROD_amortize_iss_fintech_3",
-          "issuer_id": "iss_fintech",
-          "issuer_name": "Embat Capital Desk",
-          "kind": "amortize",
-          "label": "Cancelación anticipada · Embat Capital Desk",
-          "description": "Oferta Embat Capital Desk optimizada para ticket 150k €.",
-          "amount_min": 28947,
+          "product_id": "cat_bbva_factoring",
+          "issuer_id": "iss_bbva",
+          "issuer_name": "BBVA Empresas",
+          "kind": "factoring",
+          "label": "Factoring BBVA",
+          "description": "Factoring con recurso sobre facturas emitidas.",
+          "amount_min": 30000,
           "amount_max": 462659,
           "issuer_terms": {
-            "rate_annual": 0.031,
-            "term_months": 43,
+            "rate_annual": 0.045,
+            "term_months": 12,
             "fees_bps": 114,
-            "amortization": "constant_quote",
-            "collateral": "personal"
+            "amortization": "bullet",
+            "collateral": "receivables"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0214,
-            "term_months": 49,
-            "fees_bps": 55,
-            "amortization": "constant_quote",
-            "collateral": "none"
+            "rate_annual": 0.045,
+            "term_months": 12,
+            "fees_bps": 60,
+            "amortization": "bullet",
+            "collateral": "receivables"
           },
           "issuer_rationale": "Warm cache offer 4 for Embat Capital Desk"
         },
         {
-          "product_id": "PROD_amortize_iss_fintech_4",
-          "issuer_id": "iss_fintech",
-          "issuer_name": "Embat Capital Desk",
-          "kind": "amortize",
-          "label": "Cancelación anticipada · Embat Capital Desk",
-          "description": "Oferta Embat Capital Desk optimizada para ticket 150k €.",
-          "amount_min": 27275,
+          "product_id": "cat_santander_circulante",
+          "issuer_id": "iss_santander",
+          "issuer_name": "Santander Empresas",
+          "kind": "new_debt",
+          "label": "Circulante Santander",
+          "description": "Préstamo a corto-medio plazo.",
+          "amount_min": 75000,
           "amount_max": 643744,
           "issuer_terms": {
             "rate_annual": 0.0344,
             "term_months": 58,
-            "fees_bps": 157,
+            "fees_bps": 140,
             "amortization": "constant_quote",
             "collateral": "none"
           },
           "client_ideal_terms": {
-            "rate_annual": 0.0265,
-            "term_months": 71,
-            "fees_bps": 86,
+            "rate_annual": 0.033,
+            "term_months": 60,
+            "fees_bps": 70,
             "amortization": "constant_quote",
             "collateral": "none"
           },
@@ -2676,42 +2676,42 @@
       ],
       "ranking": [
         {
-          "product_id": "PROD_amortize_iss_fintech_3",
-          "match": 0.775,
-          "client_fit": 0.741,
-          "issuer_appetite": 0.813,
+          "product_id": "cat_bbva_circulante",
+          "match": 0.85,
+          "client_fit": 0.8,
+          "issuer_appetite": 0.75,
           "rationale": "Match 78% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_amortize_iss_fintech_4",
-          "match": 0.747,
-          "client_fit": 0.671,
-          "issuer_appetite": 0.841,
+          "product_id": "cat_bbva_refi",
+          "match": 0.73,
+          "client_fit": 0.7000000000000001,
+          "issuer_appetite": 0.65,
           "rationale": "Match 75% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_amortize_iss_sabadell_0",
-          "match": 0.71,
-          "client_fit": 0.59,
-          "issuer_appetite": 0.892,
+          "product_id": "cat_bbva_linea",
+          "match": 0.61,
+          "client_fit": 0.6000000000000001,
+          "issuer_appetite": 0.55,
           "rationale": "Match 71% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_amortize_iss_santander_2",
-          "match": 0.631,
-          "client_fit": 0.535,
-          "issuer_appetite": 0.77,
+          "product_id": "cat_bbva_factoring",
+          "match": 0.49,
+          "client_fit": 0.5,
+          "issuer_appetite": 0.44999999999999996,
           "rationale": "Match 63% — warm cache",
           "risks": []
         },
         {
-          "product_id": "PROD_amortize_iss_sabadell_1",
-          "match": 0.61,
-          "client_fit": 0.463,
-          "issuer_appetite": 0.892,
+          "product_id": "cat_santander_circulante",
+          "match": 0.37,
+          "client_fit": 0.4,
+          "issuer_appetite": 0.35,
           "rationale": "Match 61% — warm cache",
           "risks": []
         }

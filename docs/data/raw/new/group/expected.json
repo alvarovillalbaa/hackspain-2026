@@ -1,0 +1,45 @@
+{
+  "case": "group",
+  "company_ids": [
+    "COMP_0001",
+    "COMP_0793",
+    "COMP_0878"
+  ],
+  "files": [
+    "companies.csv",
+    "groups.csv",
+    "banking_products.csv",
+    "debt_products.csv",
+    "debt_schedule_config.csv",
+    "transactions.csv",
+    "invoices.csv",
+    "balances.csv"
+  ],
+  "expected": {
+    "COMP_0001": {
+      "company_id": "COMP_0001",
+      "month": "2026-08",
+      "score": 59.9,
+      "outlook": "stable",
+      "trend": "flat",
+      "confidence": "medium"
+    },
+    "COMP_0793": {
+      "company_id": "COMP_0793",
+      "month": "2026-08",
+      "score": 50.8,
+      "outlook": "stable",
+      "trend": "flat",
+      "confidence": "medium"
+    },
+    "COMP_0878": {
+      "company_id": "COMP_0878",
+      "month": "2026-08",
+      "score": 52.3,
+      "outlook": "stable",
+      "trend": "flat",
+      "confidence": "medium"
+    }
+  },
+  "group_id": "GROUP_0147"
+}

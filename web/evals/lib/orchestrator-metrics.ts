@@ -6,6 +6,7 @@ import {
   defaultFitContext,
   solveIdealAmount,
 } from "../../lib/xray/match";
+import { getProduct, toProductOffer } from "../../lib/xray/catalog";
 import type { ProductOffer } from "../../lib/xray/types";
 import {
   cvWithin,
@@ -93,26 +94,15 @@ export function parseDecision(
 
 function offerToProduct(
   offer: RecommendationDecision["offers"][number]
-): ProductOffer {
-  return {
-    product_id: offer.product_id,
-    issuer: {
-      id: offer.issuer_id,
-      name: offer.issuer_name,
-      risk_appetite: ["AAA", "AA", "A", "BBB", "BB", "B"],
-      ticket_min: offer.amount_min,
-      ticket_max: offer.amount_max,
-      ticket_sweet_spot: (offer.amount_min + offer.amount_max) / 2,
-      margin_target_bps: 200,
-    },
-    kind: offer.kind,
-    label: offer.label,
-    description: offer.description,
-    issuer_terms: offer.issuer_terms,
-    client_ideal_terms: offer.client_ideal_terms,
+): ProductOffer | null {
+  const catalogProduct = getProduct(offer.product_id);
+  if (!catalogProduct) return null;
+  return toProductOffer(catalogProduct, {
     amount_min: offer.amount_min,
     amount_max: offer.amount_max,
-  };
+    issuer_terms: offer.issuer_terms,
+    client_ideal_terms: offer.client_ideal_terms,
+  });
 }
 
 export interface OrchestratorMetrics {
@@ -203,22 +193,24 @@ export function collectOrchestratorMetrics(
 
     if (offer) {
       const product = offerToProduct(offer);
-      const ctx = defaultFitContext(snapshot);
-      const amt = Math.max(
-        product.amount_min,
-        Math.min(product.amount_max, d.quantity.ideal_amount)
-      );
-      const breakdown = computeMatch(
-        product,
-        amt,
-        snapshot.band,
-        offer.issuer_terms,
-        ctx
-      );
-      metrics.maxMatchFidelityErr = Math.max(
-        metrics.maxMatchFidelityErr,
-        relErr(winner.match, breakdown.match)
-      );
+      if (product) {
+        const ctx = defaultFitContext(snapshot);
+        const amt = Math.max(
+          product.amount_min,
+          Math.min(product.amount_max, d.quantity.ideal_amount)
+        );
+        const breakdown = computeMatch(
+          product,
+          amt,
+          snapshot.band,
+          offer.issuer_terms,
+          ctx
+        );
+        metrics.maxMatchFidelityErr = Math.max(
+          metrics.maxMatchFidelityErr,
+          relErr(winner.match, breakdown.match)
+        );
+      }
     }
 
     // Amount fidelity vs the quantity subagent's solver shell (same as

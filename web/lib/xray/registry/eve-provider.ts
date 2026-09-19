@@ -8,6 +8,7 @@ import type {
   NegotiationLever,
   ProductMatch,
   ScoreSnapshot,
+  TermContext,
 } from "../types";
 import { leversFromMatch } from "../negotiation";
 
@@ -30,7 +31,10 @@ async function apiGet<T>(path: string): Promise<T> {
  */
 export const eveProvider = {
   async listCompanies(): Promise<CompanyRef[]> {
-    return apiGet<CompanyRef[]>("/api/xray/companies");
+    const json = await apiGet<
+      CompanyRef[] | { group_id: string; companies: CompanyRef[] }
+    >("/api/xray/companies");
+    return Array.isArray(json) ? json : (json.companies ?? []);
   },
 
   async getScore(companyId: string): Promise<ScoreSnapshot> {
@@ -74,6 +78,12 @@ export const eveProvider = {
     );
   },
 
+  async getTermContext(companyId: string): Promise<TermContext> {
+    return apiGet<TermContext>(
+      `/api/xray/term-context/${encodeURIComponent(companyId)}`
+    );
+  },
+
   async getNegotiation(
     productId: string,
     ctx: NegotiationContext
@@ -92,7 +102,7 @@ export const eveProvider = {
     const hasFiles = req.datasets.every((d) => d.file);
     if (!hasFiles) {
       throw new Error(
-        "Importación requiere ficheros CSV. Usa un slice de docs/data/raw/tests/."
+        "Importación requiere ficheros CSV. Usa un pack de docs/data/raw/new/ (group o update)."
       );
     }
 

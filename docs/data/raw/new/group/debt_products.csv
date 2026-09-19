@@ -1,0 +1,8 @@
+product_id,company_id,label,type,bank_name,service,currency,created_at,granted,outstanding,liquidity
+PRODUCT_01355,COMP_0793,LINEOFCREDIT_01,lineofcredit,iberCaja,ibercaja,EUR,2026-06-26 17:19:53,-120000.0,-119000.6,999.4
+PRODUCT_03862,COMP_0793,LINEOFCREDIT_02,lineofcredit,Banco Santander Empresas,santander_emp,EUR,2026-05-14 08:31:47,-200000.0,-196324.88,3675.12
+PRODUCT_04933,COMP_0793,LOAN_01,loan,Caixabank Empresas,caixa_emp,EUR,2026-06-03 09:49:30,-196976.09,-187845.2,
+PRODUCT_05936,COMP_0793,LINEOFCREDIT_03,lineofcredit,Banco Santander Empresas,santander_emp,EUR,2026-03-16 15:13:46,-200000.0,0.0,200000.0
+PRODUCT_06599,COMP_0793,LINEOFCREDIT_04,lineofcredit,RuralVia Empresas,ruralvia_emp,EUR,2026-03-12 09:40:01,-150000.0,639693.52,789693.52
+PRODUCT_06753,COMP_0793,LOAN_02,loan,RuralVia Empresas,ruralvia_emp,EUR,2026-06-03 09:57:39,-200000.0,-187652.62,
+PRODUCT_07304,COMP_0793,LOAN_03,loan,Bankinter Empresas,bankinter_emp,EUR,2026-06-26 17:21:45,-196666.67,-190000.01,

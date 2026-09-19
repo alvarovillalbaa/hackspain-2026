@@ -1,0 +1,3 @@
+product_id,company_id,date,balance,available,granted,liquidity,countable
+PRODUCT_03496,COMP_0001,2026-10-01,-116704.70999999999,,,,
+PRODUCT_04955,COMP_0001,2026-10-01,681.97,,,,

@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
+import {
+  marketplaceProgressKey,
+  subscribeMarketplaceProgress,
+} from "@/lib/xray/marketplace-progress";
 
 export const runtime = "nodejs";
 
 /**
- * Lightweight SSE progress channel for the marketplace skeleton.
- * Emits phase events; the full agent stream lives on /eve/v1/*.
- *
- * Phases: queued → quantity → offering → match → done | fallback
+ * SSE progress for quantity → offering → match.
+ * POST /api/xray/recommend is the worker; this channel follows its phase bus.
  */
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -19,31 +21,40 @@ export async function GET(req: Request) {
     );
   }
 
+  const key = marketplaceProgressKey(companyId, actionId);
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     start(controller) {
-      const send = (phase: string, detail?: string) => {
-        controller.enqueue(
-          encoder.encode(
-            `data: ${JSON.stringify({ phase, detail, company_id: companyId, action_id: actionId })}\n\n`
-          )
-        );
+      let closed = false;
+      const send = (payload: unknown) => {
+        if (closed) return;
+        try {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify(payload)}\n\n`)
+          );
+        } catch {
+          closed = true;
+        }
       };
-      send("queued");
-      // Soft timeline approximating the three subagents when the UI polls
-      // without attaching to the eve child streams.
-      const t1 = setTimeout(() => send("quantity", "Ideal amount"), 400);
-      const t2 = setTimeout(() => send("offering", "Issuer offers"), 1200);
-      const t3 = setTimeout(() => send("match", "Match ranking"), 2200);
-      const t4 = setTimeout(() => {
-        send("done");
-        controller.close();
-      }, 2800);
+      const unsubscribe = subscribeMarketplaceProgress(key, (event) => {
+        send({
+          ...event,
+          company_id: companyId,
+          action_id: actionId,
+        });
+        if (event.phase === "done" || event.phase === "fallback") {
+          unsubscribe();
+          closed = true;
+          try {
+            controller.close();
+          } catch {
+            /* already closed */
+          }
+        }
+      });
       req.signal.addEventListener("abort", () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
-        clearTimeout(t3);
-        clearTimeout(t4);
+        unsubscribe();
+        closed = true;
         try {
           controller.close();
         } catch {

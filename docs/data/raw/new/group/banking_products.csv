@@ -1,0 +1,18 @@
+product_id,company_id,label,type,bank_name,service,currency,created_at
+PRODUCT_00573,COMP_0878,CHECKING_01,checking,iberCaja,ibercaja,EUR,2026-03-12 09:31:53
+PRODUCT_01385,COMP_0793,CHECKING_01,checking,iberCaja,ibercaja,EUR,2026-03-12 09:31:53
+PRODUCT_01845,COMP_0793,CHECKING_02,checking,Caixabank Empresas,caixa_emp,EUR,2026-03-16 15:02:52
+PRODUCT_02457,COMP_0793,CHECKING_03,checking,Caixabank Empresas,caixa_emp,EUR,2026-03-16 15:02:52
+PRODUCT_03496,COMP_0001,CHECKING_01,checking,iberCaja,ibercaja,EUR,2026-03-12 09:31:53
+PRODUCT_04522,COMP_0793,CHECKING_04,checking,RuralVia Empresas,ruralvia_emp,EUR,2026-03-12 09:40:01
+PRODUCT_04657,COMP_0793,CHECKING_05,checking,Banco Santander Empresas,santander_emp,EUR,2026-03-16 15:13:46
+PRODUCT_04892,COMP_0878,CHECKING_02,checking,Caixabank Empresas,caixa_emp,EUR,2026-03-16 15:10:04
+PRODUCT_04955,COMP_0001,CHECKING_02,checking,Banco Santander Empresas,santander_emp,EUR,2026-03-16 15:13:46
+PRODUCT_04980,COMP_0793,CHECKING_06,checking,Kutxabank Empresas,kutxabank_emp,EUR,2026-03-16 15:18:54
+PRODUCT_05045,COMP_0793,CHECKING_07,checking,Bankinter Empresas,bankinter_emp,EUR,2026-03-16 15:17:27
+PRODUCT_05822,COMP_0793,CHECKING_08,checking,Banco Sabadell Empresas,sabadell_emp,EUR,2026-03-16 15:11:45
+PRODUCT_05895,COMP_0793,CHECKING_09,checking,RuralVia Empresas,ruralvia_emp,EUR,2026-03-12 09:40:01
+PRODUCT_05995,COMP_0793,CHECKING_10,checking,Caixabank Empresas,caixa_emp,EUR,2026-03-16 15:02:52
+PRODUCT_06026,COMP_0793,CHECKING_11,checking,RuralVia Empresas,ruralvia_emp,EUR,2026-03-12 09:40:01
+PRODUCT_06140,COMP_0793,CHECKING_12,checking,Caixabank Empresas,caixa_emp,EUR,2026-03-16 15:02:52
+PRODUCT_07382,COMP_0878,CHECKING_03,checking,Banco Sabadell Empresas,sabadell_emp,EUR,2026-03-16 15:11:45

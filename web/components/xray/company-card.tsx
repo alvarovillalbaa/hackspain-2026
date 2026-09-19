@@ -28,6 +28,16 @@ export function CompanyCard({ company }: { company: CompanyRef }) {
         </ItemDescription>
       </ItemContent>
       <div className="flex items-center gap-2">
+        {company.score != null ? (
+          <span className="font-mono text-sm tabular-nums">
+            {company.score.toFixed(1)}
+          </span>
+        ) : null}
+        {company.band ? (
+          <Badge variant="outline" className="font-mono text-[10px]">
+            {company.band}
+          </Badge>
+        ) : null}
         {company.imported ? (
           <Badge variant="secondary" className="text-[10px]">
             Importada

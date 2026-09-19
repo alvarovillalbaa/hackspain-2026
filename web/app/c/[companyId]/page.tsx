@@ -1,58 +1,91 @@
 "use client";
 
-import { use, useMemo, useState } from "react";
-import Link from "next/link";
+import { Suspense, use, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { UploadIcon } from "lucide-react";
 import { AppShell } from "@/components/xray/app-shell";
 import { ScoreGauge } from "@/components/xray/score-gauge";
 import { ScoreBandBadge, OutlookBadge } from "@/components/xray/score-band-badge";
-import { DimensionRadar } from "@/components/xray/dimension-radar";
 import { ScoreTrajectory } from "@/components/xray/score-trajectory";
 import { DriverList } from "@/components/xray/driver-list";
 import { ActionCard } from "@/components/xray/action-card";
-import { OriginChip } from "@/components/xray/origin-chip";
 import { ScoreUplift } from "@/components/xray/score-uplift";
+import { ReasoningHint } from "@/components/xray/reasoning-hint";
 import { ImportDialog } from "@/components/xray/import/import-dialog";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Progress, ProgressLabel, ProgressValue } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCompanyScore } from "@/hooks/xray/use-company-score";
 import { useActions } from "@/hooks/xray/use-actions";
 import { useCompanies } from "@/hooks/xray/use-companies";
-import { useSelection } from "@/hooks/xray/use-selection";
-import { publishedProjectionMany } from "@/lib/xray/scoring";
 import { watchMeta } from "@/lib/xray/bands";
-import { formatMonth } from "@/lib/xray/format";
+import { formatCurrency, formatMonth } from "@/lib/xray/format";
+import { clearDealsForCompanies, fetchDeal } from "@/lib/xray/deals";
+import { onDataImported } from "@/lib/xray/import-events";
+import type { AcceptedDeal, DimensionKey, Dimensions } from "@/lib/xray/types";
+import { cn } from "@/lib/utils";
 
-export default function ScorePage({
-  params,
-}: {
-  params: Promise<{ companyId: string }>;
-}) {
-  const { companyId } = use(params);
+const DIM_LABELS: Record<DimensionKey, string> = {
+  liquidity: "Liquidez",
+  collections: "Cobros",
+  payments: "Pagos",
+  debt: "Deuda",
+  activity: "Actividad",
+};
+
+const DIM_REASON: Record<DimensionKey, string> = {
+  liquidity:
+    "Liquidez: capacidad de cubrir salidas con caja (cash buffer days y rangos de saldo).",
+  collections:
+    "Cobros: calidad del circulante emitido (overdue / aging de facturas emitidas).",
+  payments:
+    "Pagos: disciplina con proveedores (overdue / pending de facturas recibidas).",
+  debt: "Deuda: servicio de la deuda y apalancamiento (DSCR y carga financiera).",
+  activity:
+    "Actividad: ritmo operativo (ratio de flujos netos y nivel de movimiento).",
+};
+
+const DIM_KEYS = Object.keys(DIM_LABELS) as DimensionKey[];
+
+function ScorePageInner({ companyId }: { companyId: string }) {
+  const searchParams = useSearchParams();
   const { data: score, loading } = useCompanyScore(companyId);
   const { data: actions, loading: actionsLoading } = useActions(companyId);
   const { data: companies, addImported } = useCompanies();
   const company = companies.find((c) => c.company_id === companyId);
-  const selection = useSelection<string>();
-  const selectedIds = selection.values;
   const [importOpen, setImportOpen] = useState(false);
+  const [deal, setDeal] = useState<AcceptedDeal | null>(null);
+  const [gaugeView, setGaugeView] = useState<"health" | "dimensions">("health");
 
-  const combined = useMemo(() => {
-    if (!score) return null;
-    const selected = actions.filter((a) => selectedIds.includes(a.id));
-    if (selected.length === 0) return null;
-    return publishedProjectionMany(score, selected);
-  }, [score, actions, selectedIds]);
+  useEffect(() => {
+    let cancelled = false;
+    void fetchDeal(companyId).then((d) => {
+      if (!cancelled) setDeal(d);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [companyId, searchParams]);
 
+  useEffect(() => {
+    return onDataImported((ids) => {
+      void clearDealsForCompanies(ids.length ? ids : [companyId]).then(() => {
+        if (ids.length === 0 || ids.includes(companyId)) {
+          void fetchDeal(companyId).then(setDeal);
+        }
+      });
+    });
+  }, [companyId]);
+
+  const closed = Boolean(deal) || searchParams.get("closed") === "1";
   const watch = watchMeta(score?.watch ?? null);
 
   return (
@@ -76,92 +109,185 @@ export default function ScorePage({
           <Skeleton className="h-48 w-full rounded-2xl" />
         </div>
       ) : (
-        <div className="space-y-10">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <div className="mb-2 flex items-center gap-2">
-                <OriginChip origin={score.origin} />
-                <span className="font-mono text-xs text-muted-foreground">
-                  {score.company_id} · {formatMonth(score.month)}
+        <div className="space-y-8">
+          <div className="flex flex-wrap items-center gap-2 font-mono text-xs text-muted-foreground">
+            <span>
+              {score.company_id} · {formatMonth(score.month)}
+            </span>
+            <span>·</span>
+            <span>
+              confianza {score.confidence} · peer p{score.peer_percentile}
+            </span>
+          </div>
+
+          {deal ? (
+            <Alert>
+              <AlertTitle>Oferta aceptada</AlertTitle>
+              <AlertDescription>
+                <span className="block">
+                  {deal.label} · {deal.issuer_name} ·{" "}
+                  {formatCurrency(deal.amount, company?.currency ?? "EUR")}
                 </span>
-              </div>
-              <h1 className="font-heading text-3xl font-semibold tracking-tight">
-                {company?.name ?? companyId}
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Financial Health Score · confianza {score.confidence} · peer p
-                {score.peer_percentile}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <ScoreBandBadge band={score.band} />
-              <OutlookBadge outlook={score.outlook} />
-              {watch.active ? (
-                <Badge variant="destructive">Watch</Badge>
-              ) : null}
-            </div>
+                <span className="mt-2 flex flex-wrap items-center gap-3">
+                  <span className="text-sm text-muted-foreground">
+                    Impacto what-if (no recalcula el Health Score oficial):
+                  </span>
+                  <ScoreUplift
+                    uplift={deal.uplift}
+                    toBand={deal.projected_band}
+                  />
+                </span>
+              </AlertDescription>
+            </Alert>
+          ) : closed ? (
+            <Alert>
+              <AlertTitle>Oferta cerrada</AlertTitle>
+              <AlertDescription>
+                La solicitud se aprobó. No hay más acciones recomendadas en esta
+                ficha.
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant={gaugeView === "health" ? "default" : "outline"}
+              onClick={() => setGaugeView("health")}
+            >
+              Health Score
+            </Button>
+            <Button
+              size="sm"
+              variant={gaugeView === "dimensions" ? "default" : "outline"}
+              onClick={() => setGaugeView("dimensions")}
+            >
+              Dimensiones
+            </Button>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
-            <ScoreGauge score={score.score} band={score.band} />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Card size="sm">
-                <CardHeader>
-                  <CardTitle>Sub-scores</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 font-mono tabular-nums">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Bankability</span>
-                    <span>{score.sub_scores.bankability}</span>
+          <div className="grid gap-6 lg:grid-cols-[minmax(14rem,1fr)_1fr_1fr]">
+            <div className="flex flex-col items-center gap-3">
+              {gaugeView === "health" ? (
+                <>
+                  <ScoreGauge
+                    score={score.score}
+                    band={score.band}
+                    reasoning={score.explanation}
+                  />
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <ScoreBandBadge band={score.band} />
+                    <OutlookBadge outlook={score.outlook} />
+                    {watch.active ? (
+                      <Badge variant="destructive">Watch</Badge>
+                    ) : null}
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Business</span>
-                    <span>{score.sub_scores.business_profile}</span>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card size="sm">
-                <CardHeader>
-                  <CardTitle>Proyección 6m</CardTitle>
-                  <CardDescription>p10 / p50 / p90</CardDescription>
-                </CardHeader>
-                <CardContent className="font-mono text-sm tabular-nums">
-                  {score.projection_6m.p10.toFixed(1)} ·{" "}
-                  {score.projection_6m.p50.toFixed(1)} ·{" "}
-                  {score.projection_6m.p90.toFixed(1)}
-                </CardContent>
-              </Card>
-              {watch.active ? (
-                <Alert className="sm:col-span-2">
-                  <AlertTitle>Watch activo</AlertTitle>
-                  <AlertDescription>{watch.description}</AlertDescription>
-                </Alert>
-              ) : null}
-              {score.alerts.map((a) => (
-                <Alert key={a.id} className="sm:col-span-2" variant="destructive">
-                  <AlertTitle>{a.severity}</AlertTitle>
-                  <AlertDescription>{a.message}</AlertDescription>
-                </Alert>
-              ))}
+                </>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {DIM_KEYS.map((key) => (
+                    <ScoreGauge
+                      key={key}
+                      score={(score.dimensions as Dimensions)[key] * 100}
+                      label={DIM_LABELS[key]}
+                      reasoning={`${DIM_REASON[key]} Valor: ${((score.dimensions as Dimensions)[key] * 100).toFixed(0)}/100.`}
+                      size="sm"
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card>
+            <Card size="sm">
               <CardHeader>
-                <CardTitle>Dimensiones</CardTitle>
-                <CardDescription>
-                  Liquidez · Cobros · Pagos · Deuda · Actividad
-                </CardDescription>
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle>Sub-scores</CardTitle>
+                  <ReasoningHint
+                    text={`Bankability = 40% liquidez + 35% deuda + 25% pagos. Business = 45% cobros + 55% actividad. Derivados de las dimensiones, no del mapa isotónico.`}
+                  />
+                </div>
               </CardHeader>
-              <CardContent>
-                <DimensionRadar dimensions={score.dimensions} />
+              <CardContent className="space-y-4">
+                <Progress value={score.sub_scores.bankability}>
+                  <ProgressLabel className="text-xs">Bankability</ProgressLabel>
+                  <ProgressValue />
+                </Progress>
+                <Progress value={score.sub_scores.business_profile}>
+                  <ProgressLabel className="text-xs">Business</ProgressLabel>
+                  <ProgressValue />
+                </Progress>
               </CardContent>
             </Card>
+
+            <Card size="sm">
+              <CardHeader>
+                <CardTitle>Drivers</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <DriverList drivers={score.drivers} />
+              </CardContent>
+            </Card>
+          </div>
+
+          {watch.active ? (
+            <Alert>
+              <AlertTitle>Watch activo</AlertTitle>
+              <AlertDescription>{watch.description}</AlertDescription>
+            </Alert>
+          ) : null}
+          {score.alerts.map((a) => (
+            <Alert key={a.id} variant="destructive">
+              <AlertTitle>{a.severity}</AlertTitle>
+              <AlertDescription>{a.message}</AlertDescription>
+            </Alert>
+          ))}
+
+          <div
+            className={cn(
+              "grid gap-6",
+              closed
+                ? "lg:grid-cols-1"
+                : "lg:grid-cols-[minmax(16rem,22rem)_1fr]"
+            )}
+          >
+            {!closed ? (
+              <section className="space-y-3">
+                <h2 className="font-heading text-sm font-medium">
+                  Acciones recomendadas
+                </h2>
+                <div className="flex flex-col gap-3">
+                  {actionsLoading ? (
+                    <>
+                      <Skeleton className="h-28 rounded-2xl" />
+                      <Skeleton className="h-28 rounded-2xl" />
+                    </>
+                  ) : actions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      Ninguna acción recomendada para esta empresa.
+                    </p>
+                  ) : (
+                    actions.map((a) => (
+                      <ActionCard
+                        key={a.id}
+                        action={a}
+                        snapshot={score}
+                        currency={company?.currency ?? "EUR"}
+                        href={`/c/${companyId}/a/${a.id}`}
+                      />
+                    ))
+                  )}
+                </div>
+              </section>
+            ) : null}
+
             <Card>
               <CardHeader>
-                <CardTitle>Trayectoria</CardTitle>
-                <CardDescription>Histórico + abanico a 6 meses</CardDescription>
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle>Trayectoria</CardTitle>
+                  <ReasoningHint
+                    text="Histórico mensual del Health Score más abanico a 6 meses (p10 / p50 / p90). El abanico es el mismo forecast que antes ocupaba la tarjeta Proyección 6m."
+                  />
+                </div>
               </CardHeader>
               <CardContent>
                 <ScoreTrajectory
@@ -171,76 +297,6 @@ export default function ScorePage({
               </CardContent>
             </Card>
           </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Drivers</CardTitle>
-              <CardDescription>Señales que mueven el score</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <DriverList drivers={score.drivers} />
-            </CardContent>
-          </Card>
-
-          <section className="space-y-4">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <h2 className="font-heading text-xl font-semibold">
-                  Acciones recomendadas
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {actionsLoading
-                    ? "El agente está calculando las acciones…"
-                    : "Selecciona una o varias; el score se recálcula con las mismas reglas."}
-                </p>
-              </div>
-              {combined ? (
-                <ScoreUplift
-                  from={combined.before}
-                  to={combined.after}
-                  uplift={combined.uplift}
-                  toBand={combined.toBand}
-                />
-              ) : null}
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              {actionsLoading ? (
-                <>
-                  <Skeleton className="h-40 rounded-2xl" />
-                  <Skeleton className="h-40 rounded-2xl" />
-                </>
-              ) : actions.length === 0 ? (
-                <p className="text-sm text-muted-foreground md:col-span-2">
-                  Ninguna acción recomendada para esta empresa.
-                </p>
-              ) : (
-                actions.map((a) => (
-                  <ActionCard
-                    key={a.id}
-                    action={a}
-                    snapshot={score}
-                    currency={company?.currency ?? "EUR"}
-                    selected={selection.isSelected(a.id)}
-                    onToggle={() => selection.toggle(a.id)}
-                    href={`/c/${companyId}/a/${a.id}`}
-                  />
-                ))
-              )}
-            </div>
-            {selection.count === 1 ? (
-              <p className="text-sm">
-                <Link
-                  href={`/c/${companyId}/a/${selection.values[0]}`}
-                  className="font-medium underline-offset-4 hover:underline"
-                >
-                  {actions.find((a) => a.id === selection.values[0])?.kind ===
-                  "amortize"
-                    ? "Abrir impacto de la acción seleccionada →"
-                    : "Abrir marketplace de la acción seleccionada →"}
-                </Link>
-              </p>
-            ) : null}
-          </section>
         </div>
       )}
       <ImportDialog
@@ -248,11 +304,27 @@ export default function ScorePage({
         onOpenChange={setImportOpen}
         onImported={(imported) => {
           addImported(imported);
-          selection.clear();
         }}
         targetCompanyId={companyId}
         companies={companies}
       />
     </AppShell>
+  );
+}
+
+export default function ScorePage({
+  params,
+}: {
+  params: Promise<{ companyId: string }>;
+}) {
+  const { companyId } = use(params);
+  return (
+    <Suspense
+      fallback={
+        <div className="p-8 text-sm text-muted-foreground">Cargando…</div>
+      }
+    >
+      <ScorePageInner companyId={companyId} />
+    </Suspense>
   );
 }

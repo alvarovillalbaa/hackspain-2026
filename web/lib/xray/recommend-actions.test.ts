@@ -72,21 +72,30 @@ describe("recommendActions", () => {
     expect(a.origin).toBe("deterministic");
   });
 
-  it("lets the agent write the title without touching amounts or rationale", () => {
+  it("lets the agent write the title and reasoning without touching amounts or grounded rationale", () => {
     const facts: CompanyFacts = {
       ...emptyFacts,
       invoice_aging: { ...emptyFacts.invoice_aging, issued_overdue: 80_000 },
     };
     const ground = recommendActions({ snapshot: snapshot(), facts, exported: null });
     const [a] = applyAgentCopy(ground, [
-      { kind: "factoring", title: "Cobrar ya lo vencido", rationale: "dump de campos" },
+      {
+        kind: "factoring",
+        title: "Cobrar ya lo vencido",
+        rationale: "Hay vencido emitido que frena cobros.",
+      },
       { kind: "new_debt", title: "Inventada", rationale: "esta kind no estaba en ground" },
     ]);
     expect(a.title).toBe("Cobrar ya lo vencido");
     expect(a.rationale).toBe(ground[0]!.rationale);
+    expect(a.reasoning).toBe("Hay vencido emitido que frena cobros.");
     expect(a.recommended_amount).toBe(80_000);
     expect(a.origin).toBe("eve");
-    expect(applyAgentCopy(ground, [{ kind: "new_debt", title: "x", rationale: "no existe aquí" }])).toEqual([]);
+    expect(
+      applyAgentCopy(ground, [
+        { kind: "new_debt", title: "x", rationale: "no existe aquí" },
+      ])
+    ).toEqual([]);
   });
 
   it("proposes amortizing idle cash at the implied rate", () => {

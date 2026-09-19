@@ -31,7 +31,7 @@ export function AppShell({
   return (
     <div className="flex min-h-full flex-col bg-background">
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4 sm:px-6">
+        <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-3 sm:px-4">
           <Link
             href="/"
             className="font-heading text-sm font-semibold tracking-tight text-foreground"
@@ -45,7 +45,9 @@ export function AppShell({
                 {pathname === "/" ? (
                   <BreadcrumbPage>Portfolio</BreadcrumbPage>
                 ) : (
-                  <BreadcrumbLink render={<Link href="/" />}>Portfolio</BreadcrumbLink>
+                  <BreadcrumbLink render={<Link href="/" />}>
+                    Portfolio
+                  </BreadcrumbLink>
                 )}
               </BreadcrumbItem>
               {crumbs.map((c, i) => (
@@ -65,15 +67,9 @@ export function AppShell({
             </BreadcrumbList>
           </Breadcrumb>
           {trailing}
-          <Link
-            href="/chat"
-            className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Eve
-          </Link>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-3 py-6 sm:px-4">
         {children}
       </main>
     </div>

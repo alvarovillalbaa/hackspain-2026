@@ -1,128 +1,31 @@
-import type {
-  ActionKind,
-  Band,
-  IssuerProfile,
-  ProductOffer,
-  ProductTerms,
-} from "../types";
-import { createRng, hashString, pick, range } from "./seed";
+import type { ActionKind, Band, ProductOffer } from "../types";
+import {
+  fairRateForBand,
+  listProducts,
+  priceWithinCatalog,
+  toProductOffer,
+} from "../catalog";
+import { createRng, hashString } from "./seed";
 
-const ISSUERS: IssuerProfile[] = [
-  {
-    id: "iss_bbva",
-    name: "BBVA Empresas",
-    risk_appetite: ["AAA", "AA", "A", "BBB", "BB"],
-    ticket_min: 50_000,
-    ticket_max: 2_000_000,
-    ticket_sweet_spot: 400_000,
-    margin_target_bps: 180,
-  },
-  {
-    id: "iss_santander",
-    name: "Santander Empresas",
-    risk_appetite: ["AAA", "AA", "A", "BBB", "BB", "B"],
-    ticket_min: 75_000,
-    ticket_max: 3_000_000,
-    ticket_sweet_spot: 500_000,
-    margin_target_bps: 160,
-  },
-  {
-    id: "iss_sabadell",
-    name: "Sabadell Empresas",
-    risk_appetite: ["AAA", "AA", "A", "BBB", "BB"],
-    ticket_min: 40_000,
-    ticket_max: 1_500_000,
-    ticket_sweet_spot: 250_000,
-    margin_target_bps: 200,
-  },
-  {
-    id: "iss_march",
-    name: "Banca March",
-    risk_appetite: ["AAA", "AA", "A", "BBB"],
-    ticket_min: 100_000,
-    ticket_max: 5_000_000,
-    ticket_sweet_spot: 800_000,
-    margin_target_bps: 140,
-  },
-  {
-    id: "iss_fintech",
-    name: "Embat Capital Desk",
-    risk_appetite: ["BBB", "BB", "B", "CCC"],
-    ticket_min: 30_000,
-    ticket_max: 800_000,
-    ticket_sweet_spot: 150_000,
-    margin_target_bps: 280,
-  },
-];
-
-function terms(
-  rate: number,
-  months: number,
-  fees: number,
-  amort: ProductTerms["amortization"] = "constant_quote",
-  collateral: ProductTerms["collateral"] = "none"
-): ProductTerms {
-  return {
-    rate_annual: Math.round(rate * 10_000) / 10_000,
-    term_months: months,
-    fees_bps: fees,
-    amortization: amort,
-    collateral,
-  };
-}
-
-const KIND_LABELS: Record<ActionKind, string> = {
-  refinance: "Préstamo refinanciación",
-  new_debt: "Préstamo circulante",
-  amortize: "Cancelación anticipada",
-  extend_line: "Ampliación de línea",
-  factoring: "Factoring con recurso",
-  confirming: "Confirming proveedores",
-};
-
-/** Build a catalog of products for an action kind. */
+/** Catalog products for an action kind (static registry — no RNG SKUs). */
 export function productsForKind(kind: ActionKind, seedKey: string): ProductOffer[] {
   const rng = createRng(hashString(`products:${kind}:${seedKey}`));
-  const count = 4 + Math.floor(rng() * 3);
-  const out: ProductOffer[] = [];
+  const fair = 0.04 + rng() * 0.02;
+  const products = listProducts({ kind });
+  // Deterministic shuffle via seed so mockProvider stays stable per company.
+  const order = products
+    .map((p, i) => ({ p, k: rng() + i * 1e-9 }))
+    .sort((a, b) => a.k - b.k)
+    .map((x) => x.p)
+    .slice(0, Math.min(6, products.length));
 
-  for (let i = 0; i < count; i++) {
-    const issuer = pick(rng, ISSUERS);
-    const baseRate = 0.025 + rng() * 0.055;
-    const clientRate = baseRate * (0.75 + rng() * 0.15);
-    const issuerRate = baseRate * (1.05 + rng() * 0.25);
-    const term = Math.round(range(rng, 12, 84));
-    const feesIssuer = Math.round(range(rng, 40, 180));
-    const feesClient = Math.round(feesIssuer * (0.4 + rng() * 0.3));
-
-    const min = Math.round(issuer.ticket_min * (0.8 + rng() * 0.4));
-    const max = Math.round(issuer.ticket_max * (0.5 + rng() * 0.5));
-
-    out.push({
-      product_id: `PROD_${kind}_${issuer.id}_${i}`,
-      issuer,
-      kind,
-      label: `${KIND_LABELS[kind]} · ${issuer.name}`,
-      description: `Oferta ${issuer.name} optimizada para ticket ${Math.round(issuer.ticket_sweet_spot / 1000)}k €.`,
-      issuer_terms: terms(
-        issuerRate,
-        Math.max(12, term - Math.round(rng() * 12)),
-        feesIssuer,
-        rng() > 0.7 ? "interest_only" : "constant_quote",
-        rng() > 0.6 ? "personal" : "none"
-      ),
-      client_ideal_terms: terms(
-        clientRate,
-        term + Math.round(rng() * 12),
-        feesClient,
-        "constant_quote",
-        "none"
-      ),
-      amount_min: Math.min(min, max),
-      amount_max: Math.max(min, max, min + 50_000),
+  return order.flatMap((p) => {
+    const priced = priceWithinCatalog(p, fairRateForBand("BB") ?? fair, {
+      targetAmount: (p.amount_min + p.amount_max) / 2,
     });
-  }
-  return out;
+    const offer = toProductOffer(p, priced);
+    return offer ? [offer] : [];
+  });
 }
 
 export function bandInAppetite(band: Band, appetite: Band[]): boolean {

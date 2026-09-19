@@ -50,6 +50,17 @@ describe("deterministicMarketplace", () => {
     );
   });
 
+  it("uses catalog product_ids (not ENG_*)", () => {
+    const matches = deterministicMarketplace(snapshot, action);
+    expect(matches.length).toBeGreaterThan(0);
+    expect(matches.every((m) => m.product.product_id.startsWith("cat_"))).toBe(
+      true
+    );
+    expect(matches.every((m) => !m.product.product_id.startsWith("ENG_"))).toBe(
+      true
+    );
+  });
+
   it("respects custom amount", () => {
     const matches = deterministicMarketplace(snapshot, action, 150_000);
     expect(matches.every((m) => m.amount === 150_000 || m.amount >= m.product.amount_min)).toBe(

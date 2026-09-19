@@ -1,0 +1,32 @@
+{
+  "case": "update",
+  "company_ids": [
+    "COMP_0001"
+  ],
+  "files": [
+    "companies.csv",
+    "groups.csv",
+    "banking_products.csv",
+    "debt_products.csv",
+    "debt_schedule_config.csv",
+    "transactions.csv",
+    "invoices.csv",
+    "balances.csv"
+  ],
+  "expected": {
+    "COMP_0001": {
+      "company_id": "COMP_0001",
+      "month": "2026-09",
+      "score": 55.1,
+      "outlook": "stable",
+      "trend": "flat",
+      "confidence": "medium"
+    }
+  },
+  "group_id": "GROUP_0147",
+  "baseline": {
+    "month": "2026-08",
+    "score": 59.9
+  },
+  "note": "Full COMP_0001 history + stressed 2026-09; balances photo 2026-10-01. Import with target_company_id=COMP_0001 to recalculate Health Score."
+}

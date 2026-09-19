@@ -127,6 +127,8 @@ SCORE_t    = 0–100 continuo = E[NIVEL_{t+6}]   ← leaderboard
 
 **Marketplace multi-agente Eve (19 sep, tarde):** `POST /api/xray/recommend` orquesta quantity → offering → match. El JSON de decisión solo lleva ids, importes, términos y textos (`RecommendationDecisionSchema` en `web/agent/lib/schemas.ts`); el servidor **recomputa** match, uplift y banda con `lib/xray/match.ts` / `scoring.ts`. El LLM no inventa cifras. Fact pack offline en `web/lib/xray/dataset/` (derivado de `docs/data/raw`, no en git el CSV). Fallback determinista si falta clave, timeout o Zod.
 
+**Catálogo de productos (19 sep, noche):** los *product offerings* son un registro estático de entidades financieras × SKUs con **rangos** (`web/lib/xray/dataset/product_catalog.json`). El subagente `offering` no crea productos: selecciona del catálogo y cotiza términos puntuales dentro de esos rangos; `reassemble` / `deterministicMarketplace` descartan ids desconocidos y clampan tipos/plazos.
+
 Front y back arrancan el viernes sobre stubs con datos ficticios. `score.py` produce el CSV del leaderboard sin tocar la web.
 
 ## 7. Reparto y calendario

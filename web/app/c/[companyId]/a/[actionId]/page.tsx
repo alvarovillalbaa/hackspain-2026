@@ -1,13 +1,13 @@
 "use client";
 
-import { Suspense, use, useMemo, useState } from "react";
-import { LayoutGroup } from "motion/react";
+import { Suspense, use, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AmortizeDashboard } from "@/components/xray/amortize-dashboard";
 import { AppShell } from "@/components/xray/app-shell";
 import { ProductMatchCard } from "@/components/xray/product-match-card";
-import { ProductDetail } from "@/components/xray/product-detail";
 import { AmountSolver } from "@/components/xray/amount-solver";
-import { OriginChip } from "@/components/xray/origin-chip";
+import { MarketplacePipeline } from "@/components/xray/marketplace-pipeline";
+import { ReasoningHint } from "@/components/xray/reasoning-hint";
 import {
   Card,
   CardContent,
@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProductMatches } from "@/hooks/xray/use-product-matches";
-import { useExpandable, useNegotiation } from "@/hooks/xray/use-expandable";
 import { useActions } from "@/hooks/xray/use-actions";
 import { useCompanies } from "@/hooks/xray/use-companies";
 import { useCompanyScore } from "@/hooks/xray/use-company-score";
@@ -88,6 +87,8 @@ function MarketplaceBody({
   actionId: string;
   crumbs: { label: string; href?: string }[];
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: companies } = useCompanies();
   const company = companies.find((c) => c.company_id === companyId);
   const { data: actions } = useActions(companyId);
@@ -95,32 +96,38 @@ function MarketplaceBody({
   const { data: score } = useCompanyScore(companyId);
 
   const [amount, setAmount] = useState<number | undefined>(undefined);
-  const effectiveAmount = amount ?? action?.recommended_amount;
+  const {
+    data: matches,
+    loading,
+    phase,
+    detail,
+    headline,
+    source,
+    fallbackReason,
+    quantity,
+  } = useProductMatches(companyId, actionId, amount);
 
-  const { data: matches, loading } = useProductMatches(
-    companyId,
-    actionId,
-    effectiveAmount
-  );
-  const { expandedId, expand, collapse } = useExpandable("p");
+  const effectiveAmount =
+    amount ?? matches[0]?.amount ?? action?.recommended_amount;
 
-  const expanded = matches.find((m) => m.product.product_id === expandedId) ?? null;
-  const { data: levers } = useNegotiation(
-    expanded?.product.product_id ?? null,
-    companyId,
-    actionId,
-    expanded?.amount ?? effectiveAmount ?? 0
-  );
+  // Compat: old ?p=PRODUCT_ID overlay → dedicated product page
+  useEffect(() => {
+    const p = searchParams.get("p");
+    if (p) {
+      router.replace(`/c/${companyId}/a/${actionId}/p/${p}`);
+    }
+  }, [searchParams, companyId, actionId, router]);
 
   const amountBounds = useMemo(() => {
+    const rec = action?.recommended_amount ?? 50_000;
     if (matches.length === 0) {
-      return { min: 50_000, max: 1_000_000 };
+      return { min: Math.min(50_000, rec), max: Math.max(1_000_000, rec) };
     }
     return {
-      min: Math.min(...matches.map((m) => m.product.amount_min)),
-      max: Math.max(...matches.map((m) => m.product.amount_max)),
+      min: Math.min(rec, ...matches.map((m) => m.product.amount_min)),
+      max: Math.max(rec, ...matches.map((m) => m.product.amount_max)),
     };
-  }, [matches]);
+  }, [matches, action]);
 
   const liveUplift = useMemo(() => {
     if (!score || !action || effectiveAmount == null) return null;
@@ -133,81 +140,81 @@ function MarketplaceBody({
     };
   }, [score, action, effectiveAmount]);
 
+  const amountReasoning = quantity
+    ? [quantity.rationale, quantity.ceiling_reason]
+        .filter(Boolean)
+        .join("\n\n")
+    : headline;
+
   return (
     <AppShell crumbs={crumbs}>
-      <div className="mb-8 space-y-2">
-        <div className="flex items-center gap-2">
-          {action ? <OriginChip origin={action.origin} /> : null}
-          {action ? (
-            <span className="text-xs text-muted-foreground">
-              {actionKindLabel(action.kind)}
-            </span>
-          ) : null}
-        </div>
-        <h1 className="font-heading text-3xl font-semibold tracking-tight">
-          {action?.title ?? "Marketplace"}
-        </h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Productos ordenados por match bilateral (media armónica de clientFit ×
-          issuerAppetite). El importe ideal maximiza el uplift bajo DSCR ≥ 1,2×;
-          los términos de la tarjeta están optimizados para el emisor.
-        </p>
+      <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        {action ? <span>{actionKindLabel(action.kind)}</span> : null}
+        {source === "engine" || fallbackReason ? (
+          <span>· motor determinista</span>
+        ) : null}
+        {headline ? <ReasoningHint text={headline} /> : null}
       </div>
 
-      {action && liveUplift ? (
-        <Card className="mb-8" size="sm">
-          <CardHeader>
-            <CardTitle>Importe</CardTitle>
-            <CardDescription>
-              Recomendado{" "}
-              {formatCurrency(
-                action.recommended_amount,
-                company?.currency ?? "EUR"
-              )}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AmountSolver
-              value={effectiveAmount ?? action.recommended_amount}
-              min={amountBounds.min}
-              max={amountBounds.max}
-              uplift={liveUplift.uplift}
-              from={liveUplift.from}
-              to={liveUplift.to}
-              toBand={liveUplift.band}
-              currency={company?.currency ?? "EUR"}
-              onChange={setAmount}
-            />
-          </CardContent>
-        </Card>
-      ) : null}
+      <MarketplacePipeline
+        phase={loading || phase === "fallback" ? phase : "done"}
+        detail={fallbackReason ?? detail}
+      />
 
-      <LayoutGroup>
-        {loading ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            <Skeleton className="h-40 rounded-2xl" />
-            <Skeleton className="h-40 rounded-2xl" />
-          </div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {matches.map((m) => (
-              <ProductMatchCard
-                key={m.product.product_id}
-                match={m}
-                onOpen={() => expand(m.product.product_id)}
-              />
-            ))}
-          </div>
-        )}
+      <div className="grid gap-6 lg:grid-cols-[1fr_minmax(16rem,20rem)]">
+        <div>
+          {loading ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              <Skeleton className="h-40 rounded-2xl" />
+              <Skeleton className="h-40 rounded-2xl" />
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {matches.map((m) => (
+                <ProductMatchCard
+                  key={m.product.product_id}
+                  match={m}
+                  currentScore={score?.score ?? 0}
+                  href={`/c/${companyId}/a/${actionId}/p/${m.product.product_id}`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
 
-        {expanded ? (
-          <ProductDetail
-            match={expanded}
-            levers={levers}
-            onClose={collapse}
-          />
-        ) : null}
-      </LayoutGroup>
+        <div className="lg:sticky lg:top-20 lg:self-start">
+          {!loading && matches.length > 0 && action && liveUplift ? (
+            <Card size="sm">
+              <CardHeader>
+                <CardTitle>Importe</CardTitle>
+                <CardDescription>
+                  Recomendado{" "}
+                  {formatCurrency(
+                    action.recommended_amount,
+                    company?.currency ?? "EUR"
+                  )}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AmountSolver
+                  value={effectiveAmount ?? action.recommended_amount}
+                  min={amountBounds.min}
+                  max={amountBounds.max}
+                  uplift={liveUplift.uplift}
+                  from={liveUplift.from}
+                  to={liveUplift.to}
+                  toBand={liveUplift.band}
+                  currency={company?.currency ?? "EUR"}
+                  reasoning={amountReasoning}
+                  onChange={setAmount}
+                />
+              </CardContent>
+            </Card>
+          ) : loading ? (
+            <Skeleton className="h-40 rounded-2xl" />
+          ) : null}
+        </div>
+      </div>
     </AppShell>
   );
 }
@@ -219,7 +226,11 @@ export default function MarketplacePage({
 }) {
   const { companyId, actionId } = use(params);
   return (
-    <Suspense fallback={<div className="p-8 text-sm text-muted-foreground">Cargando…</div>}>
+    <Suspense
+      fallback={
+        <div className="p-8 text-sm text-muted-foreground">Cargando…</div>
+      }
+    >
       <MarketplaceInner companyId={companyId} actionId={actionId} />
     </Suspense>
   );

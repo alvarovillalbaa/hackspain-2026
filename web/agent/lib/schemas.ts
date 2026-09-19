@@ -32,13 +32,19 @@ export const QuantityDecisionSchema = z.object({
 
 export type QuantityDecision = z.infer<typeof QuantityDecisionSchema>;
 
+/**
+ * Offering agent output: a quote against a catalog product_id.
+ * label/description/kind/issuer are filled from the catalog at reassemble time;
+ * optional fields kept for backward compatibility with warm JSON.
+ */
 export const OfferDecisionSchema = z.object({
   product_id: z.string(),
-  issuer_id: z.string(),
-  issuer_name: z.string(),
-  kind: ActionKindSchema,
-  label: z.string(),
-  description: z.string(),
+  /** Optional — server fills from catalog when missing. */
+  issuer_id: z.string().optional(),
+  issuer_name: z.string().optional(),
+  kind: ActionKindSchema.optional(),
+  label: z.string().optional(),
+  description: z.string().optional(),
   amount_min: z.number().nonnegative(),
   amount_max: z.number().positive(),
   issuer_terms: ProductTermsSchema,
@@ -98,7 +104,8 @@ export type RecommendationDecision = z.infer<
 export const FichaActionPickSchema = z.object({
   kind: ActionKindSchema,
   title: z.string().min(4),
-  rationale: z.string().min(8).optional(),
+  /** Why this action for THIS company — no invented amounts. */
+  rationale: z.string().min(8),
 });
 
 export const FichaActionsDecisionSchema = z.object({

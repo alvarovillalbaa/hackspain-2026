@@ -181,10 +181,11 @@ export function listCompanyActions(
   facts: CompanyFacts | null,
   exported: ExportedScore | null,
   currency: string | undefined,
-  fallback: (s: ScoreSnapshot) => ActionRecommendation[]
+  fallback?: (s: ScoreSnapshot) => ActionRecommendation[]
 ): ActionRecommendation[] {
   const fromFacts = recommendActions({ snapshot, facts, exported, currency });
-  return fromFacts.length ? fromFacts : fallback(snapshot);
+  if (fromFacts.length) return fromFacts;
+  return fallback ? fallback(snapshot) : [];
 }
 
 export function actionKindLabel(kind: ActionKind): string {
@@ -206,7 +207,7 @@ export function findRecommended(
   return actions.find((a) => a.id === actionId);
 }
 
-/** Eve writes the title; amounts, rationale and score stay grounded. */
+/** Eve writes the title and optional reasoning; amounts and grounded rationale stay. */
 export function applyAgentCopy(
   ground: ActionRecommendation[],
   picks: { kind: ActionKind; title: string; rationale?: string }[]
@@ -220,9 +221,12 @@ export function applyAgentCopy(
     if (!g) continue;
     seen.add(p.kind);
     const title = p.title.trim();
+    const reasoning = p.rationale?.trim();
     out.push({
       ...g,
       title: title.length >= 4 ? title : g.title,
+      reasoning:
+        reasoning && reasoning.length >= 8 ? reasoning : undefined,
       origin: "eve",
     });
   }

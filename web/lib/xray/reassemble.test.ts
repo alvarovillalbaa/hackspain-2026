@@ -61,11 +61,11 @@ const fixtureDecision = {
   },
   offers: [
     {
-      product_id: "PROD_refinance_iss_bbva",
+      product_id: "cat_bbva_refi",
       issuer_id: "iss_bbva",
       issuer_name: "BBVA Empresas",
       kind: "refinance" as const,
-      label: "Refinanciación · BBVA Empresas",
+      label: "Refinanciación BBVA",
       description: "Pool fijo",
       amount_min: 100_000,
       amount_max: 800_000,
@@ -86,11 +86,11 @@ const fixtureDecision = {
       issuer_rationale: "Incumbent relationship and BB band appetite",
     },
     {
-      product_id: "PROD_refinance_iss_fintech",
+      product_id: "cat_embat_refi",
       issuer_id: "iss_fintech",
       issuer_name: "Embat Capital Desk",
       kind: "refinance" as const,
-      label: "Refinanciación · Embat Capital Desk",
+      label: "Refi Embat Capital",
       description: "Desk fintech",
       amount_min: 50_000,
       amount_max: 600_000,
@@ -98,22 +98,22 @@ const fixtureDecision = {
         rate_annual: 0.062,
         term_months: 36,
         fees_bps: 140,
-        amortization: "interest_only" as const,
+        amortization: "constant_quote" as const,
         collateral: "personal" as const,
       },
       client_ideal_terms: {
-        rate_annual: 0.04,
+        rate_annual: 0.05,
         term_months: 48,
-        fees_bps: 60,
+        fees_bps: 80,
         amortization: "constant_quote" as const,
-        collateral: "none" as const,
+        collateral: "personal" as const,
       },
       issuer_rationale: "Higher margin for BB risk",
     },
   ],
   ranking: [
     {
-      product_id: "PROD_refinance_iss_bbva",
+      product_id: "cat_bbva_refi",
       match: 0.72,
       client_fit: 0.8,
       issuer_appetite: 0.65,
@@ -121,7 +121,7 @@ const fixtureDecision = {
       risks: [],
     },
     {
-      product_id: "PROD_refinance_iss_fintech",
+      product_id: "cat_embat_refi",
       match: 0.41,
       client_fit: 0.5,
       issuer_appetite: 0.35,
@@ -168,5 +168,59 @@ describe("reassembleMatches", () => {
     // Figures are recomputed — not copied from ranking.match
     expect(typeof matches[0]!.breakdown.match).toBe("number");
     expect(matches[0]!.rationale).toBeTruthy();
+    // Labels come from catalog, not agent prose
+    expect(matches.some((m) => m.product.product_id.startsWith("cat_"))).toBe(
+      true
+    );
+  });
+
+  it("drops unknown product_ids", () => {
+    const action = {
+      dimension_deltas: { debt: 0.1 },
+      recommended_amount: 350_000,
+    };
+    const bad = {
+      ...fixtureDecision,
+      offers: [
+        ...fixtureDecision.offers,
+        {
+          product_id: "PROD_invented_nowhere",
+          amount_min: 100_000,
+          amount_max: 500_000,
+          issuer_terms: fixtureDecision.offers[0]!.issuer_terms,
+          client_ideal_terms: fixtureDecision.offers[0]!.client_ideal_terms,
+          issuer_rationale: "Should be dropped — not in catalog",
+        },
+      ],
+    };
+    const matches = reassembleMatches(bad, snapshot, action);
+    expect(matches.every((m) => m.product.product_id !== "PROD_invented_nowhere")).toBe(
+      true
+    );
+    expect(matches.length).toBe(2);
+  });
+
+  it("clamps agent rates outside catalog ranges", () => {
+    const action = {
+      dimension_deltas: { debt: 0.1 },
+      recommended_amount: 350_000,
+    };
+    const hot = {
+      ...fixtureDecision,
+      offers: [
+        {
+          ...fixtureDecision.offers[0]!,
+          product_id: "cat_bbva_refi",
+          issuer_terms: {
+            ...fixtureDecision.offers[0]!.issuer_terms,
+            rate_annual: 0.25, // above cat_bbva_refi rate_max 0.085
+          },
+        },
+      ],
+      ranking: [fixtureDecision.ranking[0]!],
+    };
+    const matches = reassembleMatches(hot, snapshot, action);
+    expect(matches).toHaveLength(1);
+    expect(matches[0]!.product.issuer_terms.rate_annual).toBeLessThanOrEqual(0.085);
   });
 });

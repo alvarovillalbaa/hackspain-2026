@@ -64,7 +64,7 @@ Dos *seams* mantienen las piezas desacopladas: la tabla `features(company_id, mo
 | Servido | Local durante el hackathon (`uv run xray-api` / `uvicorn api.main:app`); túnel (ngrok/cloudflared) para que el deploy de Vercel alcance `XRAY_API_URL` | Desplegar Python en Vercel es posible pero añade riesgo; decisión 19 sep: local + túnel |
 | Ingest | `POST /ingest` (multipart CSVs + mappings) unifica por empresa, puntúa con `rules_model.json` + `rank_against=profile`, devuelve el mismo shape que `scores.json` | Wizard de importación en `web/`; persistencia en Vercel Blob (`xray/imports/`) |
 
-La API **importa** `xray`; nunca al revés. `score.py` no importa `api`. Arranque: `uv run xray-score` una vez para generar `artifacts/scores/rules_model.json`, luego `uv run xray-api`. Datasets de QA: `uv run xray-testsets` → `docs/data/raw/tests/`.
+La API **importa** `xray`; nunca al revés. `score.py` no importa `api`. Arranque: `uv run xray-score` una vez para generar `artifacts/scores/rules_model.json`, luego `uv run xray-api`. Datasets de QA: `uv run xray-testsets` → `docs/data/raw/qa/`. Packs de demo: `uv run xray-demopacks` → `docs/data/raw/new/`.
 
 ### 5.3 Web — `web/` (slices #9, #10)
 
@@ -76,7 +76,8 @@ Plantilla `ai-app-jumpstart` movida intacta a `web/`. Versiones instaladas:
 | **React** | 19.2 | — |
 | **Eve** (`eve/next`, `eve/react`) | 0.54.5 | Agente de explicación y recomendación, montado en `/eve/v1/*` por `withEve()`; mismo deploy que la web |
 | **Vercel AI SDK** (`ai`) | 7.0.99 | Streaming y tipos de mensaje en la UI de chat |
-| **Supabase** (`supabase-js`, `ssr`) | 2.116 / 0.12.7 | Sesiones del asesor, estado de la cartera, histórico de alertas y de explicaciones generadas |
+| **Supabase** (`supabase-js`, `ssr`) | 2.116 / 0.12.7 | **Deps de plantilla; 0 uso en producto** (19 sep). Persistencia demo = Vercel Blob JSON |
+| **Vercel Blob** (`@vercel/blob`) | — | Session/grupo, imports, recommendations Eve, actions ficha, deals, alerts |
 | **Tailwind 4 + shadcn (base-ui)** | — | Componentes; `components/ai-elements` trae chat, citas, planes |
 | **Recharts** | 3.8 | Trayectoria 24 m, descomposición por dimensión, intervalos de la proyección |
 | **@xyflow/react** | 12 | Disponible para un grafo de contrapartes si sobra tiempo; no es P0 |
@@ -84,9 +85,9 @@ Plantilla `ai-app-jumpstart` movida intacta a `web/`. Versiones instaladas:
 | **TypeScript** | 5 | `npm run typecheck` |
 | Despliegue | **Vercel**, *Root Directory* = `web` | Un `git push` = demo actualizada |
 
-**Papel del agente Eve.** Recibe la pregunta del asesor, llama a FastAPI como herramientas (`get_score`, `get_debt`, `run_whatif`) y redacta **solo** sobre el JSON devuelto. Guardia: ninguna cifra en la respuesta que no exista en el input; si la validación falla, se devuelve la explicación por plantilla generada en Python. Modelo y clave: ver preguntas abiertas.
+**Papel del agente Eve.** Recibe la pregunta del asesor, llama a tools sobre el fact pack / Blob y redacta **solo** sobre el JSON devuelto. Guardia: ninguna cifra en la respuesta que no exista en el input.
 
-**Papel de Supabase.** Persistir lo que el asesor hace (empresas vistas, alertas reconocidas, explicaciones guardadas) para que la demo no empiece de cero al recargar. Esquema mínimo: `sessions`, `watchlist`, `explanations`. No se usa como caché del score: el score se recalcula en Python.
+**Papel de Blob (19 sep).** Sustituye Postgres/Supabase para la demo live: un `xray/session.json` compartido fija el grupo del portfolio (`/start`); imports, deals, títulos Eve y recomendaciones sobreviven reload. El fact pack scored sigue en git.
 
 ### 5.4 Experimentación — `notebooks/` y repos personales
 

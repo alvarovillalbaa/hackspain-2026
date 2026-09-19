@@ -1,0 +1,3 @@
+product_id,company_id,label,type,bank_name,service,currency,created_at
+PRODUCT_03496,COMP_0001,CHECKING_01,checking,iberCaja,ibercaja,EUR,2026-03-12 09:31:53
+PRODUCT_04955,COMP_0001,CHECKING_02,checking,Banco Santander Empresas,santander_emp,EUR,2026-03-16 15:13:46

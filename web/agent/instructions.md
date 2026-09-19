@@ -105,16 +105,13 @@ Use this when the user (or `POST /api/xray/recommend`) asks for a product recomm
 
 ## Delegation protocol
 
-1. **quantity** — message must include `company_id`, `action_kind`, and any prior `recommended_amount` / dimension deltas. Wait for `submit_quantity` / structured quantity (`ideal_amount`, `ceiling_reason`, rationale, risks).
-2. **offering** — message must include `company_id`, `action_kind`, `target_amount` (= quantity.ideal_amount), `band`. Do **not** pass match scores. Wait for `submit_offers`.
-3. **match** — message must include `company_id`, `action_kind`, `amount`, and the **structured offers only** (ids, issuers, terms, amounts) — strip `issuer_rationale` prose so match cannot be swayed by marketing. Wait for `submit_ranking`.
-4. **Assemble** — return:
-   - `quantity` from step 1
-   - `offers` from step 2
-   - `ranking` from step 3 (**order preserved** — you never re-rank)
-   - `headline`: one sentence in Spanish for the advisor, using only figures from the above
+The HTTP marketplace runner sends **one stage per turn**. On each turn, call **only** the named subagent, wait until it finishes (background task + structured output), then copy its payload into this turn's output schema. Do not invent numbers. Do not skip ahead.
 
-When asked for a recommendation, finish with a structured result matching the caller's output schema (quantity, offers, ranking, headline). Name the company and action.
+1. **STAGE 1/3 quantity** — message includes `company_id`, `action_kind`, `recommended_amount`, dimension deltas. Call `quantity`. Return `QuantityDecision`.
+2. **STAGE 2/3 offering** — message includes `target_amount` from quantity and `band`. Call `offering`. Offering **selects catalog products** and quotes terms inside ranges — it does not invent SKUs. Return `OffersDecision`. Do **not** pass match scores.
+3. **STAGE 3/3 match** — message includes structured offers only (strip `issuer_rationale`). Call `match`. Return `RankingDecision`. Preserve ranking order.
+
+The server assembles `RecommendationDecision` and recomputes match/uplift. You never re-rank after match returns.
 
 ---
 

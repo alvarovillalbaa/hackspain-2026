@@ -14,11 +14,11 @@ Score de financiabilidad a 6 meses para pymes a partir de tesorería, y encima u
 | Ruta | Qué es | Lenguaje |
 |---|---|---|
 | `xray/` | El motor: `data` (carga + caché), `features` (contrato y `build()`), `profile`, `labels`, `rules`, `explain`, `evals`, `score`; pendientes `bands`, `projection`, `rates` | Python 3.12, uv |
-| `api/` | FastAPI fina que expone el contrato `/score`; importa `xray` | Python |
-| `web/` | Next.js + agente Eve + Supabase. **Tiene su propio `AGENTS.md`: léelo antes de tocar nada ahí** | TypeScript |
+| `api/` | FastAPI de ingest (`GET /health`, `POST /ingest`); importa `xray`. El score de la demo es el fact pack, no `/score` | Python |
+| `web/` | Next.js + agente Eve (fact pack + Blob). **Tiene su propio `AGENTS.md`: léelo antes de tocar nada ahí** | TypeScript |
 | `notebooks/` | Experimentos compartidos; importan `xray`, sin outputs en git | — |
 | `tests/` | pytest con fixtures de 3 filas; no necesita el dataset | Python |
-| `docs/data/raw/`, `artifacts/` | Dataset crudo (645 MB, gitignored) y caché parquet. Fact pack derivado en `web/lib/xray/dataset/*.json` (sí en git) | — |
+| `docs/data/raw/`, `artifacts/` | Dataset crudo (645 MB, gitignored) y caché parquet. Fact pack en `web/lib/xray/dataset/*.json`. Packs demo importables en `docs/data/raw/new/` (sí en git). Catálogo marketplace: `product_catalog.json` | — |
 
 ## Comandos
 
@@ -29,6 +29,7 @@ uv run xray-features        # tabla features(company_id, month) → artifacts/fe
 uv run xray-evals           # métricas del score → artifacts/evals/metrics.json
 uv run xray-score           # scores de todas las empresas → artifacts/scores/scores.parquet
 uv run pytest               # verde antes de cada commit en xray/ api/ tests/
+uv run xray-demopacks       # packs demo → docs/data/raw/new/ (group + update)
 cd web && npm run typecheck # limpio desde el 19 sep; no añadas ningún error
 cd web && npm test          # vitest sobre la lógica pura de lib/xray, hooks/xray y evals/lib
 cd web && npm run calibrate # calibración agéntica Eve (N reps, CV/fidelidad ≤2 %; docs/calibration.md)
@@ -41,8 +42,8 @@ en código nuestro.
 
 ## Los dos seams — no los rompas sin avisar
 
-1. **`features(company_id, month)`**: tabla plana mensual que leen `labels`, `model`, `projection` y `score`. Añadir columnas es libre; renombrar o cambiar el grano no.
-2. **JSON de `GET /score/{company_id}`** (`docs/plan.md` §6): si cambias un campo, en el mismo commit cambias el modelo pydantic en `api/`, el esquema zod en `web/` y los stubs.
+1. **`features(company_id, month)`**: tabla plana mensual que leen `labels`, `rules`, `explain`, `evals` y `score`. Añadir columnas es libre; renombrar o cambiar el grano no.
+2. **JSON de ficha (`ScoreSnapshot`)** (`web/lib/xray/schemas.ts`): el GET vive en Next (`/api/xray/score/{id}`), desde `scores.json` (`xray-export-web`) o ingest. Si cambias un campo, en el mismo commit: `records_from_scored`, `snapshotFromExported` y Zod. `docs/plan.md` §6 es el diseño del viernes, no el runtime.
 
 ## Hechos del dataset que ningún fichero confiesa
 
@@ -60,8 +61,8 @@ en código nuestro.
 
 ## Límites
 
-- **El LLM nunca calcula.** Score, features y proyección son deterministas en Python; el agente Eve redacta y recomienda solo sobre el JSON que recibe de la API, y toda cifra que emita debe existir en ese JSON.
-- **`xray/score.py` no importa `api/` ni nada de Node.** Embat no tiene script de scoring (19 sep): `xray-score` produce la tabla de scores que leen la API y el monitor, y tiene que correr solo.
+- **El LLM nunca calcula.** Score y features son deterministas en Python; Eve redacta sobre el JSON del fact pack / tools / ingest. Toda cifra que emita debe existir ahí. El uplift del marketplace es otro 0–100 en TypeScript (`scoring.ts`), no el mapa isotónico. El subagente `offering` **cotiza términos** sobre `product_catalog.json`; no inventa productos.
+- **`xray/score.py` no importa `api/` ni nada de Node.** Embat no tiene script de scoring (19 sep): `xray-score` produce la tabla; `xray-export-web` el `scores.json` de la demo; `POST /ingest` puntúa CSVs contra el `RulesModel` congelado.
 - **Los notebooks importan `xray`.** Una función que se reutiliza se mueve a `xray/` y se importa; el notebook no es la fuente de verdad.
 - **Datos públicos web (slice #1) producen campos de perfil, jamás un score.**
 - Secretos en `.env*` (ignorado) y variables de entorno; nunca en código ni en notebooks.
@@ -78,10 +79,12 @@ en código nuestro.
 ## Cuándo leer qué
 
 - Vas a tocar el score, el evento o las bandas → `docs/rules_spec.md` (la especificación viva; §11 las decisiones del 19 sep), `docs/plan.md` §2 y la evidencia en `docs/investigacion_score.md` §7–§8.
+- Vas a *mejorar* el score (no solo tocarlo) → `docs/auditoria_health_score.md`: cómo se calcula de punta a punta, los seis defectos medidos (sesgo por ERP, bandas colapsadas, el índice rinde peor que su mejor señal sola) y el plan priorizado. Incluye tres callejones sin salida ya descartados con datos: no los repitas.
 - Vas a tocar la tabla de features → `docs/features_seam.md` (contrato y decisiones del builder).
 - Necesitas saber qué asume el modelo, cómo se calibra o qué significa el número → `docs/model_card.md` (ficha del modelo: supuestos con su chequeo y cifras).
 - Tienes que explicarlo sin tecnicismos → `docs/MODEL_toni.md` y `docs/sistema_en_cinco_figuras.html`.
 - Vas a elegir una librería o desplegar algo → `docs/tech_stack.md` §5 y §9 (riesgos) antes de añadir dependencias.
 - Vas a tocar `web/` → `web/AGENTS.md` y los docs de Eve que indica.
 - Vas a medir varianza / fidelidad del agente Eve (no el AUC del score) → `docs/calibration.md` y `web/evals/calibration/`.
+- Cómo está cableado hoy (ingest, fact pack, Eve, dos scores) → `docs/auditoria_plataforma.md`.
 - No sabes qué hacer → el slice abierto de tu área en GitHub; si no hay, pregunta antes de abrir uno nuevo.

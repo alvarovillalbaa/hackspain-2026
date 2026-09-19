@@ -11,9 +11,12 @@ import {
   applyAgentCopy,
   listCompanyActions,
 } from "@/lib/xray/recommend-actions";
-import { actionsForSnapshot } from "@/lib/xray/registry/actions";
 import { resolveLiveSnapshot } from "@/lib/xray/live-snapshot";
-import { readImportedPack } from "@/lib/xray/store";
+import {
+  readActions,
+  readImportedPack,
+  writeActions,
+} from "@/lib/xray/store";
 import type { ActionRecommendation, ScoreSnapshot } from "@/lib/xray/types";
 import type { CompanyFacts, ExportedScore } from "@/lib/xray/dataset/types";
 
@@ -22,9 +25,7 @@ export const maxDuration = 60;
 
 type Ctx = { params: Promise<{ companyId: string }> };
 
-const cache = new Map<string, ActionRecommendation[]>();
 const inflight = new Map<string, Promise<ActionRecommendation[]>>();
-const CACHE_VER = "v5";
 
 function eveHost(): string {
   if (process.env.EVE_HOST) return process.env.EVE_HOST;
@@ -65,15 +66,10 @@ async function resolveFacts(
   };
 }
 
+/** Grounded screens only — no TEMPLATES fallback on the live path. */
 async function groundActions(companyId: string, snapshot: ScoreSnapshot) {
   const { facts, exported, currency } = await resolveFacts(companyId);
-  return listCompanyActions(
-    snapshot,
-    facts,
-    exported,
-    currency,
-    actionsForSnapshot
-  );
+  return listCompanyActions(snapshot, facts, exported, currency);
 }
 
 async function runEveFicha(
@@ -81,7 +77,9 @@ async function runEveFicha(
   snapshot: ScoreSnapshot,
   facts: CompanyFacts | null,
   currency?: string
-): Promise<{ kind: ActionRecommendation["kind"]; title: string }[]> {
+): Promise<
+  { kind: ActionRecommendation["kind"]; title: string; rationale: string }[]
+> {
   const aging = facts?.invoice_aging;
   const invoices = aging
     ? aging.issued_pending +
@@ -97,7 +95,7 @@ async function runEveFicha(
     : 0;
   const client = await createEveClient();
   const message = [
-    `Ficha de ${companyId}. Elige las acciones y ESCRIBE el título de cada una.`,
+    `Ficha de ${companyId}. Elige las acciones y ESCRIBE título + rationale de cada una.`,
     JSON.stringify({
       company_id: snapshot.company_id,
       month: snapshot.month,
@@ -114,11 +112,11 @@ async function runEveFicha(
         has_debt: debt > 0,
       },
     }),
-    "Llama a get_recommended_actions. Responde con company_id y actions[{kind,title}].",
-    "kind debe existir en el tool. Tú redacts title: una frase corta en español, fiel a ESTE caso.",
+    "Llama a get_recommended_actions. Responde con company_id y actions[{kind,title,rationale}].",
+    "kind debe existir en el tool. Tú redactas title (frase corta) y rationale (por qué esta acción para ESTA empresa).",
+    "No inventes importes ni el score. Cita señales/hechos del JSON o del tool.",
     "Si has_invoices es false, no digas circulante. Si has_debt es false, no digas refinanciar.",
-    "No copies un título genérico. No inventes importes ni el score.",
-    "Máximo 4. Si el tool está vacío, actions: []. No invoques quantity, offering ni match.",
+    "No copies un título genérico. Máximo 4. Si el tool está vacío, actions: []. No invoques quantity, offering ni match.",
   ].join("\n");
 
   const controller = new AbortController();
@@ -153,26 +151,27 @@ async function compute(companyId: string, snapshot: ScoreSnapshot) {
   try {
     const picks = await runEveFicha(companyId, snapshot, facts, currency);
     const merged = applyAgentCopy(ground, picks);
-    if (merged.length) return merged;
+    if (merged.length) {
+      await writeActions(companyId, merged);
+      return merged;
+    }
   } catch (err) {
     console.error("[actions] eve failed, using grounded screens:", err);
   }
+  if (ground.length) await writeActions(companyId, ground);
   return ground;
 }
 
-function resolve(companyId: string, snapshot: ScoreSnapshot) {
-  const key = `${CACHE_VER}:${companyId}`;
-  const hit = cache.get(key);
-  if (hit) return Promise.resolve(hit);
-  const pending = inflight.get(key);
+async function resolve(companyId: string, snapshot: ScoreSnapshot) {
+  const cached = await readActions(companyId);
+  if (cached?.length) return cached;
+
+  const pending = inflight.get(companyId);
   if (pending) return pending;
-  const p = compute(companyId, snapshot)
-    .then((actions) => {
-      cache.set(key, actions);
-      return actions;
-    })
-    .finally(() => inflight.delete(key));
-  inflight.set(key, p);
+  const p = compute(companyId, snapshot).finally(() =>
+    inflight.delete(companyId)
+  );
+  inflight.set(companyId, p);
   return p;
 }
 

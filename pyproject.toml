@@ -42,6 +42,7 @@ xray-score = "xray.score:main"
 xray-features = "xray.features:main"
 xray-export-web = "xray.export_web:main"
 xray-testsets = "xray.testsets:main"
+xray-demopacks = "xray.demopacks:main"
 xray-api = "api.main:main"
 
 [build-system]

@@ -6,6 +6,36 @@ import { scoreToBand } from "./bands";
 import type { ScoreSnapshot, Trend } from "./types";
 import type { ExportedScore } from "./dataset/types";
 
+/** Deterministic narrative for the Health Score (i) tooltip. */
+export function buildScoreExplanation(row: ExportedScore): string {
+  const band = scoreToBand(row.score);
+  const parts: string[] = [
+    `Health Score ${row.score.toFixed(1)} (banda ${band}, outlook ${row.outlook}).`,
+  ];
+  if (row.drivers.length > 0) {
+    const top = row.drivers
+      .slice(0, 3)
+      .map((d) => {
+        const sign = d.delta >= 0 ? "+" : "";
+        return `${d.signal} (${sign}${d.delta.toFixed(1)} pts desde ${d.since})`;
+      })
+      .join("; ");
+    parts.push(`Drivers: ${top}.`);
+  }
+  const dscr = row.signals.dscr_6m;
+  if (dscr != null && dscr > 0) {
+    parts.push(
+      dscr < 1.2
+        ? `DSCR 6m = ${dscr.toFixed(2)} por debajo del suelo 1,2.`
+        : `DSCR 6m = ${dscr.toFixed(2)}.`
+    );
+  }
+  if (row.watch) {
+    parts.push(`Watch: ${row.watch}.`);
+  }
+  return parts.join(" ");
+}
+
 export function snapshotFromExported(row: ExportedScore): ScoreSnapshot {
   const companyId = row.company_id;
   const score = row.score;
@@ -56,7 +86,7 @@ export function snapshotFromExported(row: ExportedScore): ScoreSnapshot {
     history: row.history,
     drivers: row.drivers,
     alerts,
-    explanation: null,
+    explanation: buildScoreExplanation(row),
     origin: row.origin ?? "ml",
   };
 }

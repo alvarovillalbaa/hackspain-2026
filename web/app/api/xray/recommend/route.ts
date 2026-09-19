@@ -10,24 +10,35 @@ import {
   getExportedScore,
 } from "@/lib/xray/dataset";
 import {
-  actionsForSnapshot,
   resolveAction,
 } from "@/lib/xray/registry/actions";
 import { findRecommended, listCompanyActions } from "@/lib/xray/recommend-actions";
 import { resolveLiveSnapshot } from "@/lib/xray/live-snapshot";
 import { readImportedPack, readDecision, writeDecision } from "@/lib/xray/store";
 import {
+  getCachedDecision,
   getRecommendCache,
+  quantityFromDecision,
   recommendCacheKey,
   setRecommendCache,
   type RecommendCacheEntry,
 } from "@/lib/xray/recommend-cache";
 import { deterministicMarketplace } from "@/lib/xray/deterministic-marketplace";
+import { runMarketplacePipeline } from "@/lib/xray/marketplace-orchestrator";
+import {
+  beginMarketplaceProgress,
+  emitMarketplaceProgress,
+  marketplaceProgressKey,
+} from "@/lib/xray/marketplace-progress";
+import {
+  decisionWithAmount,
+  phaseFromEvent,
+} from "@/lib/xray/marketplace-pipeline";
 import type { ScoreSnapshot } from "@/lib/xray/types";
 import type { CompanyFacts, ExportedScore } from "@/lib/xray/dataset/types";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const RequestSchema = z.object({
   company_id: z.string(),
@@ -59,13 +70,8 @@ async function resolveFacts(companyId: string): Promise<{
 
 async function actionsFor(snapshot: ScoreSnapshot) {
   const { facts, exported, currency } = await resolveFacts(snapshot.company_id);
-  return listCompanyActions(
-    snapshot,
-    facts,
-    exported,
-    currency,
-    actionsForSnapshot
-  );
+  // Live path: facts-backed only (no TEMPLATES).
+  return listCompanyActions(snapshot, facts, exported, currency);
 }
 
 async function actionFor(
@@ -87,42 +93,20 @@ async function entryFromDecision(
   snapshot: ScoreSnapshot,
   decisionRaw: unknown,
   headline: string | undefined,
-  source: CacheEntry["source"]
+  source: CacheEntry["source"],
+  amount?: number
 ): Promise<CacheEntry | null> {
   const action = await actionFor(companyId, actionId, snapshot);
   if (!action) return null;
-  const decision = RecommendationDecisionSchema.parse(decisionRaw);
+  const parsed = RecommendationDecisionSchema.parse(decisionRaw);
+  const decision =
+    amount != null ? decisionWithAmount(parsed, amount) : parsed;
   return {
-    matches: reassembleMatches(decision, snapshot, action),
+    matches: reassembleMatches(decision, snapshot, action, "eve"),
     headline: headline ?? decision.headline,
     source,
+    decision: parsed,
   };
-}
-
-async function loadWarm(
-  companyId: string,
-  actionId: string,
-  snapshot: ScoreSnapshot
-): Promise<CacheEntry | null> {
-  try {
-    const warm = await import("@/lib/xray/dataset/recommendations.json");
-    const data = (warm.default ?? warm) as Record<
-      string,
-      { decision: z.infer<typeof RecommendationDecisionSchema>; headline?: string }
-    >;
-    const hit = data[`${companyId}:${actionId}`];
-    if (!hit) return null;
-    return entryFromDecision(
-      companyId,
-      actionId,
-      snapshot,
-      hit.decision,
-      hit.headline,
-      "warm"
-    );
-  } catch {
-    return null;
-  }
 }
 
 async function loadBlob(
@@ -173,6 +157,7 @@ async function runEveRecommendation(input: {
   action_id: string;
   amount?: number;
   snapshot: ScoreSnapshot;
+  progressKey: string;
 }): Promise<
   CacheEntry & { decision: z.infer<typeof RecommendationDecisionSchema> }
 > {
@@ -185,46 +170,35 @@ async function runEveRecommendation(input: {
   }
 
   const client = await createEveClient();
-  const message = [
-    "Recommend the best financing product for this company and action.",
-    `company_id: ${input.company_id}`,
-    `action_id: ${input.action_id}`,
-    `action_kind: ${action.kind}`,
-    `recommended_amount: ${input.amount ?? action.recommended_amount}`,
-    `dimension_deltas: ${JSON.stringify(action.dimension_deltas)}`,
-    `band: ${input.snapshot.band}`,
-    `score: ${input.snapshot.score}`,
-    "Delegate quantity → offering → match. Return structured RecommendationDecision.",
-  ].join("\n");
-
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 45_000);
+  const timer = setTimeout(() => controller.abort(), 240_000);
 
   try {
-    const { response } = await client.sessions.create({
-      message,
-      outputSchema: RecommendationDecisionSchema,
-      signal: controller.signal,
-    });
-
-    const result = await response.result();
-    const raw = result.data;
-    if (!raw) {
-      throw new Error("Eve returned no structured data");
-    }
-    const decision = RecommendationDecisionSchema.parse({
-      ...raw,
+    const decision = await runMarketplacePipeline({
+      client,
+      snapshot: input.snapshot,
       company_id: input.company_id,
       action_id: input.action_id,
       action_kind: action.kind,
+      recommended_amount: action.recommended_amount,
+      dimension_deltas: action.dimension_deltas,
+      amount: input.amount,
+      signal: controller.signal,
+      onPhase: (phase, detail) =>
+        emitMarketplaceProgress(input.progressKey, { phase, detail }),
+      onEvent: (event) => {
+        const phase = phaseFromEvent(event);
+        if (phase) {
+          emitMarketplaceProgress(input.progressKey, {
+            phase,
+            detail: event.type,
+          });
+        }
+      },
     });
 
-    if (input.amount != null) {
-      decision.quantity.ideal_amount = input.amount;
-    }
-
     return {
-      matches: reassembleMatches(decision, input.snapshot, action),
+      matches: reassembleMatches(decision, input.snapshot, action, "eve"),
       headline: decision.headline,
       source: "eve",
       decision,
@@ -252,6 +226,7 @@ export async function POST(req: Request) {
       matches: cached.matches,
       headline: cached.headline,
       source: cached.source,
+      quantity: quantityFromDecision(cached.decision),
       cached: true,
     });
   }
@@ -264,31 +239,76 @@ export async function POST(req: Request) {
     );
   }
 
+  const progressKey = marketplaceProgressKey(body.company_id, body.action_id);
   const imported = await readImportedPack(body.company_id);
-  // Imported/re-scored companies must not reuse the committed warm seed.
-  if (body.amount == null && !imported) {
+
+  if (body.amount != null) {
+    const fromMem = getCachedDecision(body.company_id, body.action_id);
+    if (fromMem) {
+      const reused = await entryFromDecision(
+        body.company_id,
+        body.action_id,
+        snapshot,
+        fromMem,
+        fromMem.headline,
+        "eve",
+        body.amount
+      );
+      if (reused) {
+        setRecommendCache(key, reused);
+        return NextResponse.json({
+          matches: reused.matches,
+          headline: reused.headline,
+          source: reused.source,
+          quantity: quantityFromDecision(reused.decision),
+          cached: true,
+        });
+      }
+    }
+    const fromBlob = imported
+      ? null
+      : await loadBlob(body.company_id, body.action_id, snapshot);
+    if (fromBlob?.decision) {
+      const reused = await entryFromDecision(
+        body.company_id,
+        body.action_id,
+        snapshot,
+        fromBlob.decision,
+        fromBlob.headline,
+        "eve",
+        body.amount
+      );
+      if (reused) {
+        setRecommendCache(key, reused);
+        return NextResponse.json({
+          matches: reused.matches,
+          headline: reused.headline,
+          source: reused.source,
+          quantity: quantityFromDecision(reused.decision),
+          cached: true,
+        });
+      }
+    }
+  } else if (!imported) {
     const fromBlob = await loadBlob(body.company_id, body.action_id, snapshot);
     if (fromBlob) {
       setRecommendCache(key, fromBlob);
+      emitMarketplaceProgress(progressKey, { phase: "done" });
       return NextResponse.json({
         matches: fromBlob.matches,
         headline: fromBlob.headline,
         source: fromBlob.source,
-        cached: false,
-      });
-    }
-
-    const warm = await loadWarm(body.company_id, body.action_id, snapshot);
-    if (warm) {
-      setRecommendCache(key, warm);
-      return NextResponse.json({
-        matches: warm.matches,
-        headline: warm.headline,
-        source: warm.source,
+        quantity: quantityFromDecision(fromBlob.decision),
         cached: false,
       });
     }
   }
+
+  beginMarketplaceProgress(progressKey);
+  emitMarketplaceProgress(progressKey, {
+    phase: "queued",
+    detail: "Pipeline de recomendaciones",
+  });
 
   try {
     const entry = await runEveRecommendation({
@@ -296,8 +316,13 @@ export async function POST(req: Request) {
       action_id: body.action_id,
       amount: body.amount,
       snapshot,
+      progressKey,
     });
     setRecommendCache(key, entry);
+    emitMarketplaceProgress(progressKey, {
+      phase: "done",
+      detail: entry.headline,
+    });
     if (body.amount == null) {
       void writeDecision(`${body.company_id}:${body.action_id}`, {
         decision: entry.decision,
@@ -308,6 +333,7 @@ export async function POST(req: Request) {
       matches: entry.matches,
       headline: entry.headline,
       source: entry.source,
+      quantity: quantityFromDecision(entry.decision),
       cached: false,
     });
   } catch (err) {
@@ -318,6 +344,10 @@ export async function POST(req: Request) {
       snapshot
     );
     if (!action) {
+      emitMarketplaceProgress(progressKey, {
+        phase: "fallback",
+        detail: err instanceof Error ? err.message : String(err),
+      });
       return NextResponse.json(
         {
           error: "No action available for marketplace",
@@ -332,7 +362,11 @@ export async function POST(req: Request) {
       headline: "Marketplace determinista (motor de match)",
       source: "engine",
     };
-    setRecommendCache(key, entry);
+    // Do not cache engine fallback — a later Eve retry (key present) must run.
+    emitMarketplaceProgress(progressKey, {
+      phase: "fallback",
+      detail: err instanceof Error ? err.message : String(err),
+    });
     return NextResponse.json({
       matches: entry.matches,
       headline: entry.headline,

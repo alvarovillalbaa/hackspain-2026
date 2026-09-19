@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -10,28 +10,36 @@ import {
 } from "@/components/ui/card";
 import { formatCurrency, formatPercent } from "@/lib/xray/format";
 import type { ProductMatch } from "@/lib/xray/types";
-import { OriginChip } from "./origin-chip";
-import { ScoreUplift } from "./score-uplift";
+import { ReasoningHint } from "./reasoning-hint";
+import { ScoreDeltaBar } from "./score-delta-bar";
 import { cn } from "@/lib/utils";
 
 export function ProductMatchCard({
   match,
-  onOpen,
+  href,
+  currentScore,
   className,
 }: {
   match: ProductMatch;
-  onOpen: () => void;
+  href: string;
+  currentScore: number;
   className?: string;
 }) {
+  const reasoning = [
+    match.rationale,
+    match.risks?.length ? `Riesgos: ${match.risks.join("; ")}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
   return (
-    <motion.div layoutId={`product-${match.product.product_id}`}>
+    <Link href={href} className="block">
       <Card
         size="sm"
         className={cn(
-          "cursor-pointer transition-colors hover:bg-muted/30",
+          "transition-colors hover:bg-muted/30",
           className
         )}
-        onClick={onOpen}
       >
         <CardHeader>
           <div className="flex items-start justify-between gap-3">
@@ -41,23 +49,29 @@ export function ProductMatchCard({
                 {match.product.issuer.name} · {formatCurrency(match.amount)}
               </CardDescription>
             </div>
-            <OriginChip origin={match.origin} />
+            <ReasoningHint text={reasoning || null} />
           </div>
         </CardHeader>
-        <CardContent className="flex items-end justify-between gap-3">
-          <div>
-            <div className="text-[11px] text-muted-foreground">Match</div>
-            <div className="font-heading text-2xl font-semibold tabular-nums">
-              {formatPercent(match.breakdown.match)}
-            </div>
-            <div className="mt-1 text-[11px] text-muted-foreground">
-              C {formatPercent(match.breakdown.client_fit)} · E{" "}
-              {formatPercent(match.breakdown.issuer_appetite)}
+        <CardContent className="space-y-3">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <div className="text-[11px] text-muted-foreground">Match</div>
+              <div className="font-heading text-2xl font-semibold tabular-nums">
+                {formatPercent(match.breakdown.match)}
+              </div>
+              <div className="mt-1 text-[11px] text-muted-foreground">
+                C {formatPercent(match.breakdown.client_fit)} · E{" "}
+                {formatPercent(match.breakdown.issuer_appetite)}
+              </div>
             </div>
           </div>
-          <ScoreUplift uplift={match.uplift} toBand={match.projected_band} />
+          <ScoreDeltaBar
+            current={currentScore}
+            uplift={match.uplift}
+            toBand={match.projected_band}
+          />
         </CardContent>
       </Card>
-    </motion.div>
+    </Link>
   );
 }

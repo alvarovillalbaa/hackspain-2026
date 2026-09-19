@@ -17,21 +17,6 @@ const DATA_DIR = resolve(
   process.env.XRAY_DATA_DIR ?? join(__dirname, "../../docs/data/raw")
 );
 
-const CURATED_NAMES: Record<string, string> = {
-  COMP_0001: "Norte Distribución S.L.",
-  COMP_0047: "Alba Manufacturas",
-  COMP_0203: "Costa Retail Group",
-  COMP_0556: "Nordic Events AB",
-  COMP_0742: "Iberia Logistics Holding",
-  COMP_0915: "Mediterránea Services",
-  COMP_1008: "Capital Fintech Ops",
-  COMP_1068: "Sabadell Comercio",
-  COMP_0218: "Grupo 113 — Filial A",
-  COMP_0600: "Grupo 113 — Filial B",
-  COMP_1198: "Santander Empresas Demo",
-  COMP_0194: "Pymes Servicios Unidos",
-};
-
 const NAME_PREFIXES = [
   "Iberia",
   "Norte",
@@ -196,7 +181,7 @@ async function main() {
     companies.push({
       company_id: id,
       group_id: row.group_id!,
-      name: CURATED_NAMES[id] ?? generatedName(id),
+      name: generatedName(id),
       country: row.country || null,
       currency: row.currency || "EUR",
       n_companies_in_group: groupSize.get(row.group_id!) ?? 1,

@@ -88,6 +88,9 @@ export interface CompanyRef {
   currency: string;
   n_companies_in_group: number;
   imported?: boolean;
+  /** Joined from scores export / imported pack for portfolio filters. */
+  score?: number;
+  band?: Band;
 }
 
 export type ActionKind =
@@ -110,7 +113,10 @@ export interface ActionRecommendation {
   id: string;
   kind: ActionKind;
   title: string;
+  /** Grounded deterministic "why" (amounts, screens). */
   rationale: string;
+  /** Eve-authored reasoning for tooltips; falls back to rationale in UI. */
+  reasoning?: string;
   /** Base score uplift at the recommended amount (points). */
   uplift: number;
   recommended_amount: number;
@@ -150,6 +156,49 @@ export interface IssuerProfile {
   ticket_max: number;
   ticket_sweet_spot: number;
   margin_target_bps: number;
+}
+
+/** Static register entry: a financial entity (lender). */
+export interface CatalogEntity {
+  id: string;
+  name: string;
+  risk_appetite: Band[];
+  ticket_min: number;
+  ticket_max: number;
+  ticket_sweet_spot: number;
+  margin_target_bps: number;
+}
+
+/**
+ * Static financing product SKU with allowable **ranges**.
+ * Agents quote point terms inside these ranges — they do not invent SKUs.
+ */
+export interface CatalogProduct {
+  product_id: string;
+  entity_id: string;
+  kind: Exclude<ActionKind, "amortize">;
+  label: string;
+  description: string;
+  amount_min: number;
+  amount_max: number;
+  rate_min: number;
+  rate_max: number;
+  term_months_min: number;
+  term_months_max: number;
+  fees_bps_min: number;
+  fees_bps_max: number;
+  amortization_options: ProductTerms["amortization"][];
+  collateral_options: ProductTerms["collateral"][];
+}
+
+/** Agent output: a quote against a catalog product_id (FK). */
+export interface OfferingTerms {
+  product_id: string;
+  amount_min: number;
+  amount_max: number;
+  issuer_terms: ProductTerms;
+  client_ideal_terms: ProductTerms;
+  issuer_rationale: string;
 }
 
 export interface ProductOffer {
@@ -207,6 +256,57 @@ export interface NegotiationContext {
   company_id: string;
   action_id: string;
   amount: number;
+}
+
+/** Slim facts for company-side term-improvement tips (no Eve). */
+export interface TermContext {
+  company_id: string;
+  cash_balance: number;
+  monthly_inflow_avg_3m: number;
+  monthly_outflow_avg_3m: number;
+  invoice_aging: {
+    issued_pending: number;
+    received_pending: number;
+    issued_overdue: number;
+    received_overdue: number;
+    overdue_flow_rate_3m: number;
+  };
+  implied_debt_rate: number | null;
+  cash_buffer_days: number | null;
+  dscr_6m: number | null;
+  overdue_flow_rate_3m: number | null;
+}
+
+export type TermMove =
+  | "rate_annual"
+  | "collateral"
+  | "fees_bps"
+  | "term_months"
+  | "ticket";
+
+/** Deterministic tip: how the company can improve posted terms. */
+export interface TermImprovement {
+  id: string;
+  title: string;
+  rationale: string;
+  moves: TermMove[];
+  /** Relative impact for sort (higher first). */
+  weight: number;
+  origin: DataOrigin;
+}
+
+/** Accepted marketplace offer (client-persisted). */
+export interface AcceptedDeal {
+  company_id: string;
+  action_id: string;
+  product_id: string;
+  label: string;
+  issuer_name: string;
+  amount: number;
+  projected_score: number;
+  projected_band: Band;
+  uplift: number;
+  accepted_at: string;
 }
 
 export type DatasetKind =

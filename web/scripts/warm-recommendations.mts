@@ -1,15 +1,15 @@
 /**
- * Pre-generate recommendation decisions for demo companies (no LLM).
- * Uses Python-exported scores.json as the Health Scorer source.
+ * Pre-generate recommendation decisions for default demo group (no LLM).
+ * Uses Python-exported scores.json only — no mock SCORE_BY_ID fallback.
  * Usage: npm run warm:recommendations
  */
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { scoreToBand } from "../lib/xray/bands";
+import { DEFAULT_GROUP_COMPANIES } from "../lib/xray/demo";
 import { actionsForSnapshot } from "../lib/xray/registry/actions";
 import { productsForKind } from "../lib/xray/registry/products";
-import { SCORE_BY_ID } from "../lib/xray/registry/scores";
 import {
   computeMatch,
   defaultFitContext,
@@ -22,17 +22,6 @@ import type { ExportedScore } from "../lib/xray/dataset/types";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATASET = join(__dirname, "../lib/xray/dataset");
 const OUT = join(DATASET, "recommendations.json");
-
-const DEMO_IDS = [
-  "COMP_0001",
-  "COMP_0047",
-  "COMP_0203",
-  "COMP_0556",
-  "COMP_0742",
-  "COMP_0915",
-  "COMP_1008",
-  "COMP_1068",
-];
 
 function snapshotFromExport(row: ExportedScore): ScoreSnapshot {
   const score = row.score;
@@ -66,22 +55,34 @@ function snapshotFromExport(row: ExportedScore): ScoreSnapshot {
   };
 }
 
-function snapshotFor(id: string): ScoreSnapshot | null {
-  const scoresPath = join(DATASET, "scores.json");
-  if (existsSync(scoresPath)) {
-    const scores = JSON.parse(readFileSync(scoresPath, "utf8")) as ExportedScore[];
-    const row = scores.find((d) => d.company_id === id);
-    if (row) return snapshotFromExport(row);
-  }
-  return SCORE_BY_ID[id] ?? null;
+function snapshotFor(
+  id: string,
+  scores: ExportedScore[]
+): ScoreSnapshot | null {
+  const row = scores.find((d) => d.company_id === id);
+  return row ? snapshotFromExport(row) : null;
 }
 
 function main() {
+  const scoresPath = join(DATASET, "scores.json");
+  if (!existsSync(scoresPath)) {
+    console.error(
+      "Missing scores.json — run `uv run xray-export-web` first."
+    );
+    process.exit(1);
+  }
+  const scores = JSON.parse(
+    readFileSync(scoresPath, "utf8")
+  ) as ExportedScore[];
+
   const out: Record<string, unknown> = {};
 
-  for (const companyId of DEMO_IDS) {
-    const snapshot = snapshotFor(companyId);
-    if (!snapshot) continue;
+  for (const companyId of DEFAULT_GROUP_COMPANIES) {
+    const snapshot = snapshotFor(companyId, scores);
+    if (!snapshot) {
+      console.warn(`skip ${companyId}: not in scores.json`);
+      continue;
+    }
     const actions = actionsForSnapshot(snapshot);
     for (const action of actions.slice(0, 2)) {
       const catalog = productsForKind(action.kind, companyId);
@@ -157,7 +158,9 @@ function main() {
   }
 
   writeFileSync(OUT, JSON.stringify(out, null, 2));
-  console.log(`Wrote ${Object.keys(out).length} warm recommendations → ${OUT}`);
+  console.log(
+    `Wrote ${Object.keys(out).length} warm recommendations (GROUP_0147) → ${OUT}`
+  );
 }
 
 main();

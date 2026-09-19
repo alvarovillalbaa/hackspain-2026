@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { UploadIcon, XIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,7 @@ import { useSelection } from "@/hooks/xray/use-selection";
 import { DATASET_SPECS, getDatasetSpec, missingRequired } from "@/lib/xray/mapping";
 import { parseCsvText } from "@/lib/xray/facts-builder";
 import { provider } from "@/lib/xray/provider";
+import { shouldKeepImportDialogOpen } from "@/lib/xray/import-dialog-dismiss";
 import type { CompanyRef, ColumnMapping, DatasetKind, ImportRequest } from "@/lib/xray/types";
 
 type Step = "drop" | "map" | "pick" | "confirm";
@@ -89,6 +91,18 @@ export function ImportDialog({
     targetCompanyId ? "update" : "create"
   );
   const [pickedTarget, setPickedTarget] = useState<string>(targetCompanyId ?? "");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const pickingFiles = useRef(false);
+
+  useEffect(() => {
+    const onFocus = () => {
+      window.setTimeout(() => {
+        pickingFiles.current = false;
+      }, 400);
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
 
   const lockedTarget = Boolean(targetCompanyId);
   const isUpdate = lockedTarget || mode === "update";
@@ -161,7 +175,16 @@ export function ImportDialog({
     setPickedTarget(targetCompanyId ?? "");
   }, [open, targetCompanyId]);
 
-  const handleOpenChange = (o: boolean) => {
+  const handleOpenChange = (
+    o: boolean,
+    details?: { reason?: string; cancel?: () => void }
+  ) => {
+    if (
+      shouldKeepImportDialogOpen(o, details?.reason, pickingFiles.current)
+    ) {
+      details?.cancel?.();
+      return;
+    }
     if (!o) {
       setStep("drop");
       clear();
@@ -173,6 +196,12 @@ export function ImportDialog({
       setPickedTarget(targetCompanyId ?? "");
     }
     onOpenChange(o);
+  };
+
+  const onFilesPicked = (list: FileList | null) => {
+    pickingFiles.current = false;
+    if (list && list.length > 0) void addFiles(list);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const onDrop = useCallback(
@@ -193,7 +222,7 @@ export function ImportDialog({
     try {
       if (overLimit) {
         throw new Error(
-          `Los ficheros suman ${formatKb(totalBytes)} (límite 4,5 MB). Usa un slice más pequeño (p. ej. docs/data/raw/tests/single_company).`
+          `Los ficheros suman ${formatKb(totalBytes)} (límite 4,5 MB). Usa un pack más pequeño (p. ej. docs/data/raw/new/update).`
         );
       }
       const req: ImportRequest = {
@@ -220,7 +249,7 @@ export function ImportDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange} disablePointerDismissal>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
@@ -250,17 +279,25 @@ export function ImportDialog({
               <p className="text-sm text-muted-foreground">
                 Suelta uno o varios CSV · se sube el fichero entero (máx. 4,5 MB)
               </p>
-              <label className="inline-flex cursor-pointer">
+              <label
+                className={cn(
+                  buttonVariants({ variant: "secondary" }),
+                  "relative cursor-pointer overflow-hidden"
+                )}
+                onPointerDown={() => {
+                  pickingFiles.current = true;
+                }}
+              >
+                Elegir ficheros
                 <input
+                  ref={fileInputRef}
                   type="file"
                   accept=".csv,text/csv"
                   multiple
-                  className="hidden"
-                  onChange={(e) => e.target.files && void addFiles(e.target.files)}
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                  onChange={(e) => onFilesPicked(e.target.files)}
+                  onClick={(e) => e.stopPropagation()}
                 />
-                <span className="inline-flex h-9 items-center rounded-4xl bg-secondary px-3 text-sm font-medium text-secondary-foreground">
-                  Elegir ficheros
-                </span>
               </label>
             </div>
             <ul className="space-y-2">

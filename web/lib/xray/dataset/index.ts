@@ -34,6 +34,43 @@ export function listDatasetCompanies(): CompanyRef[] {
   }));
 }
 
+export type DatasetGroup = {
+  group_id: string;
+  n_companies: number;
+  company_ids: string[];
+  /** Min/max Health Score among scored members (null if none scored). */
+  score_min: number | null;
+  score_max: number | null;
+};
+
+/** Unique groups from the fact pack, with optional score range for /start. */
+export function listDatasetGroups(): DatasetGroup[] {
+  const byGroup = new Map<string, string[]>();
+  for (const c of companies) {
+    const list = byGroup.get(c.group_id) ?? [];
+    list.push(c.company_id);
+    byGroup.set(c.group_id, list);
+  }
+  return [...byGroup.entries()]
+    .map(([group_id, company_ids]) => {
+      const scores = company_ids
+        .map((id) => scoresById.get(id)?.score)
+        .filter((s): s is number => typeof s === "number" && Number.isFinite(s));
+      return {
+        group_id,
+        n_companies: company_ids.length,
+        company_ids: [...company_ids].sort(),
+        score_min: scores.length ? Math.min(...scores) : null,
+        score_max: scores.length ? Math.max(...scores) : null,
+      };
+    })
+    .sort((a, b) => a.group_id.localeCompare(b.group_id));
+}
+
+export function groupExists(groupId: string): boolean {
+  return companies.some((c) => c.group_id === groupId);
+}
+
 export function getDatasetCompany(companyId: string): CompanyRef | null {
   const c = companies.find((x) => x.company_id === companyId);
   if (!c) return null;

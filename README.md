@@ -22,41 +22,32 @@ flowchart LR
 
     subgraph DATOS["Datos"]
         CSV[("9 CSV de tesorería<br/>transacciones · facturas · deuda · saldos")]:::store
-        PUB["Extractor de perfil público<br/><i>sector, tamaño, señales · sin score</i>"]:::ext
     end
 
-    subgraph MOTOR["Motor"]
-        FEAT[("features(company, month)<br/>liquidez · cobro · pago · deuda · actividad")]:::store
-        IDX["Índice de estado + evento<br/>≥2 de 4 señales, ≥2 meses"]:::node
-        MODEL["Reglas calibradas → score 0–100<br/>E[nivel t+6] · drivers exactos"]:::focal
-        BAND["Banda + outlook + trend + watch<br/>persistencia · momentum 3 m · evento &lt;90 d"]:::node
-        MC["Proyección de caja Monte Carlo<br/>capacidad de deuda · prob. estrés"]:::node
-        RATE["Curva banda → tipo justo<br/>BdE/ECAF + 87 contratos"]:::node
+    subgraph MOTOR["Motor Python"]
+        FEAT[("features(company, month)")]:::store
+        MODEL["Reglas + mapa isotónico<br/>score 0–100 · E[nivel t+6]"]:::focal
+        EXPORT["xray-export-web"]:::node
     end
 
     subgraph PRODUCTO["Producto"]
-        API["FastAPI<br/>/score · /debt · /whatif · /explain"]:::node
-        LLM["Agente Eve (web/) + Supabase<br/><i>LLM solo redacta sobre el JSON</i>"]:::ext
-        FRONT["React · asesor de Embat<br/>monitor → ficha → refinanciación → what-if"]:::focal
+        PACK[("fact pack JSON en git<br/>scores · facts · companies")]:::store
+        INGEST["FastAPI ingest<br/>GET /health · POST /ingest"]:::node
+        FRONT["Next.js · asesor<br/>/ · /c/:id · marketplace"]:::focal
+        EVE["Eve · LLM solo redacta<br/>quantity → offering → match"]:::ext
     end
 
-    LB["xray-score → tabla de scores<br/>todas las empresas; las nuevas, contra la referencia"]:::node
-
-    CSV --> FEAT
-    PUB -.-> FEAT
-    FEAT --> IDX --> MODEL
-    FEAT --> MC
-    MODEL --> BAND
-    BAND --> RATE
-    MODEL --> LB
-    BAND --> API
-    MC --> API
-    RATE --> API
-    API --> LLM --> API
-    API --> FRONT
+    CSV --> FEAT --> MODEL --> EXPORT --> PACK --> FRONT
+    MODEL --> INGEST
+    CSV -.-> INGEST
+    INGEST -->|CSVs subidos| FRONT
+    PACK --> EVE
+    FRONT --> EVE
 ```
 
-Dos *seams* fijan el trabajo en paralelo: la tabla `features(company, month)` (todo lo que hay debajo de la API la lee) y el contrato JSON de `GET /score/{company_id}` (front y back arrancan sobre stubs desde el primer día).
+El Health Score lo calcula Python (`xray-score` / `xray-export-web`). FastAPI **no** sirve `GET /score`: solo puntúa CSVs subidos contra el `RulesModel` congelado. La ficha lee `web/lib/xray/dataset/` vía `GET /api/xray/score/{id}` (Next). Mapa del runtime: [`docs/auditoria_plataforma.md`](docs/auditoria_plataforma.md).
+
+Dos *seams*: la tabla `features(company, month)` y el `ScoreSnapshot` Zod (`web/lib/xray/schemas.ts`), adaptado desde el export con `snapshotFromExported`. El uplift del marketplace es **otro** 0–100 en TypeScript (`scoring.ts`), no el mapa isotónico.
 
 ## Definición del score
 
@@ -88,21 +79,22 @@ Todo sale de `uv run xray-evals` (`artifacts/evals/metrics.json`), sobre la tabl
 ## Estructura del repositorio
 
 ```
-xray/                         Paquete Python — el motor: data, features (contrato y build), profile, labels, rules, explain, evals, score
-api/                          FastAPI, fina: importa xray y sirve el contrato /score (slice #8, pendiente)
-web/                          Next.js + agente Eve (explicación LLM y chat) + Supabase; front del asesor (slices #9, #10)
+xray/                         Paquete Python — el motor: data, features, profile, labels, rules, explain, evals, score
+api/                          FastAPI de ingest: GET /health, POST /ingest (no hay GET /score)
+web/                          Next.js + agente Eve; fact pack en lib/xray/dataset/; front del asesor
 notebooks/                    Experimentos compartidos; importan xray, sin outputs en git
 tests/                        pytest con fixtures mínimas (no necesita el dataset)
-docs/rules_spec.md            Especificación viva del score por reglas; §11 las decisiones del 19 sep con sus números
-docs/model_card.md            Ficha del modelo: qué significa el número, supuestos con su chequeo, calibración y evaluación con cifras
+docs/auditoria_plataforma.md  Cómo está cableado hoy (runtime vs plan)
+docs/rules_spec.md            Especificación viva del score por reglas; §11 las decisiones del 19 sep
+docs/model_card.md            Ficha del modelo: qué significa el número, supuestos, cifras
 docs/features_seam.md         Contrato de features(company_id, month) y decisiones del builder
-docs/plan.md                  Decisiones cerradas: score, evento, componentes, API, reparto, pitch, plan B
-docs/tech_stack.md            PRD técnico: stack por capa, por qué, contratos de integración, variables, riesgos
-docs/MODEL_toni.md            El sistema explicado sin tecnicismos; docs/sistema_en_cinco_figuras.html, lo mismo en cinco figuras
-docs/investigacion_score.md   Evidencia (BIS, BdE, ECB, FinRegLab, agencias de rating) — 111 referencias
+docs/plan.md                  Decisiones de producto (el contrato API §6 es el diseño del viernes, no el runtime)
+docs/tech_stack.md            PRD técnico: stack por capa, por qué, contratos, variables, riesgos
+docs/MODEL_toni.md            El sistema explicado sin tecnicismos; docs/sistema_en_cinco_figuras.html
+docs/investigacion_score.md   Evidencia (BIS, BdE, ECB, FinRegLab, agencias de rating)
 docs/ideas_equipo.md          Brainstorming original y análisis por caso de uso
 CONTEXTO_RETO.md              Enunciado del reto
-input_data/                   Dataset (9 CSV + data_dictionary.md) — fuera de git
+input_data/                   Dataset (9 CSV + data_dictionary.md) — fuera de git; también docs/data/raw/
 artifacts/                    Caché parquet, modelos, figuras — fuera de git
 ```
 
@@ -116,11 +108,12 @@ uv run xray-cache               # convierte los 9 CSV de input_data/ a parquet (
 uv run xray-features            # tabla features(company_id, month) → artifacts/features.parquet (8 s)
 uv run xray-evals               # métricas del score → artifacts/evals/metrics.json
 uv run xray-score               # scores de todas las empresas → artifacts/scores/scores.parquet
-uv run pytest                   # 105 tests, sin dataset (el humo sobre datos reales se salta si no hay caché)
+uv run xray-export-web          # → web/lib/xray/dataset/scores.json (ficha + Eve)
+uv run pytest                   # sin dataset (el humo sobre datos reales se salta si no hay caché)
 uv run jupyter lab              # notebooks: from xray.data import load
 ```
 
-Si el dataset está en otra carpeta: `export XRAY_DATA_DIR=/ruta/a/los/csv`. Tras la caché, `load("transactions")` tarda ~1 s en vez de ~30.
+Si el dataset está en otra carpeta: `export XRAY_DATA_DIR=/ruta/a/los/csv`. Tras la caché, `load("transactions")` tarda ~1 s en vez de ~30. Por defecto `xray.data` lee `docs/data/raw/` si existe `companies.csv`.
 
 **Web (Next.js + agente Eve):**
 
@@ -128,7 +121,7 @@ Si el dataset está en otra carpeta: `export XRAY_DATA_DIR=/ruta/a/los/csv`. Tra
 cd web && npm install && npm run dev
 ```
 
-En Vercel, *Root Directory* = `web`. Variables de entorno de Supabase y del modelo en `web/.env.local` (ver `web/AGENTS.md`).
+En Vercel, *Root Directory* = `web`. `OPENAI_API_KEY` (Helmcode) y, para importar CSV, `XRAY_API_URL` apuntando a `uv run xray-api`. Blob: `BLOB_READ_WRITE_TOKEN`. Ver `web/AGENTS.md`.
 
 **Notebooks desde otro repositorio:** `uv add "xray @ git+https://github.com/alvarovillalbaa/hackspain-2026"` y `XRAY_DATA_DIR` apuntando al dataset; reglas en [`notebooks/README.md`](notebooks/README.md).
 

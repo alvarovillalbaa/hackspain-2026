@@ -327,6 +327,18 @@ def test_projection_depends_on_the_level_bin_not_on_recent_score_history():
     assert (out["proj_p10"] <= out["proj_p50"]).all() and (out["proj_p50"] <= out["proj_p90"]).all()
 
 
+def test_projection_quantiles_never_fall_as_the_level_rises():
+    """El mapa isotónico existe para que más nivel no dé menos score; el abanico, que se dibuja al
+    lado del score, hereda la regla aunque la etiqueta de un tramo se hunda."""
+    dipped = _train_table(n=600)
+    dip = dipped["level"].between(0.5, 0.6)
+    dipped.loc[dip, "label_t6"] = dipped.loc[dip, "label_t6"] - 0.3  # un tramo con la etiqueta baja
+    for train in (dipped, _train_table(n=600)):
+        pts = np.asarray(rules.fit(train, RulesConfig(), train_until="2025-08").projection_points)
+        for col, name in enumerate(rules.PROJECTION_COLUMNS):
+            assert np.all(np.diff(pts[:, col]) >= 0), name
+
+
 def test_model_without_projection_does_not_load_silently(tmp_path):
     m = rules.fit(_train_table(), RulesConfig(), train_until="2025-08")
     raw = json.loads(json.dumps(asdict(m)))

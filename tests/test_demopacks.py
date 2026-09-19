@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -11,6 +12,7 @@ from xray.demopacks import (
     GROUP_COMPANIES,
     GROUP_ID,
     UPDATE_COMPANY,
+    _score_latest,
     append_stress_month,
 )
 from xray import features
@@ -96,6 +98,20 @@ def test_append_stress_month_moves_photo_and_features_month():
 
     feats = features.build(tables=mutated)
     assert feats["month"].max() == "2026-09"
+
+
+def test_stale_model_soft_fails_instead_of_aborting_the_pack(tmp_path, monkeypatch):
+    """Un modelo anterior al slice 14 (sin proyección a t+6) tiene que seguir el camino blando del
+    modelo ausente: `generate_update` escribe su stub porque `_score_latest` devuelve {} (#31)."""
+    monkeypatch.setenv("XRAY_ARTIFACTS_DIR", str(tmp_path / "art"))
+    stale = tmp_path / "art" / "scores" / "rules_model.json"
+    stale.parent.mkdir(parents=True)
+    stale.write_text(
+        json.dumps({"knots_x": [0.0, 1.0], "knots_y": [0.0, 100.0], "train_until": "2025-08",
+                    "lead_cutoff": 20.0, "n_train": 0}),
+        encoding="utf-8",
+    )
+    assert _score_latest(_tiny_tables(), ["COMP_TINY"]) == {}
 
 
 @pytest.mark.skipif(not (NEW / "group" / "companies.csv").exists(), reason="demo pack not generated")

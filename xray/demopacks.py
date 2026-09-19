@@ -212,7 +212,10 @@ def _score_latest(tables: dict[str, pd.DataFrame], company_ids: list[str]) -> di
     model_path = artifacts_dir() / "scores" / "rules_model.json"
     if not model_path.exists():
         return {}
-    model = rules.RulesModel.load(model_path)
+    try:
+        model = rules.RulesModel.load(model_path)
+    except ValueError:  # modelo viejo (sin proyección a t+6): el mismo camino blando que si falta
+        return {}
     feats = features.build(tables=tables)
     if "cash_buffer_days" not in feats.columns:
         feats = features.derive(feats)

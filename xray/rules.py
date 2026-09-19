@@ -121,7 +121,9 @@ def _fit_projection(
     train: pd.DataFrame, model: RulesModel, cfg: RulesConfig
 ) -> tuple[list[float], list[list[float]]]:
     """Cuantiles de la etiqueta por tramo de nivel, pasados por el mapa: como el mapa es monótono y
-    nivel(t+6) = etiqueta(t) (model_card.md §4), son los cuantiles del score dentro de 6 meses."""
+    nivel(t+6) = etiqueta(t) (model_card.md §4), son los cuantiles del score dentro de 6 meses.
+    Los tres se hacen no decrecientes entre tramos porque el mapa ya lo es: más nivel nunca puede
+    dibujar un abanico más bajo al lado de un score más alto."""
     level = train["level"].to_numpy(dtype=float)
     label = train["label_t6"].to_numpy(dtype=float)
     bins = max(1, min(cfg.projection_bins, len(train) // cfg.projection_min_rows))
@@ -136,7 +138,8 @@ def _fit_projection(
             rows = label
         q = np.quantile(rows, cfg.projection_quantiles)
         points.append([float(v) for v in model.predict(q)])
-    return [float(e) for e in edges], points
+    rising = np.maximum.accumulate(np.asarray(points, dtype=float), axis=0)  # por columna, no por fila
+    return [float(e) for e in edges], [[float(v) for v in row] for row in rising]
 
 
 def fit(indexed: pd.DataFrame, cfg: RulesConfig | None = None, train_until: str = "2025-08") -> RulesModel:

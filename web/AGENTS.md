@@ -18,6 +18,8 @@ This Next.js app also hosts an eve agent. `withEve()` in `next.config.ts` mounts
 
 For a content-only change to the agent's identity, purpose, tone, or response guidelines, edit `agent/instructions.md`. Preserve the model in `agent/agent.ts` unless asked to change it.
 
+The retrieval tools in `agent/tools/` read the screening pipeline outputs (`company_optimization_pipeline/outputs/`, generated, not in git) through `agent/lib/data.ts`: `PIPELINE_OUTPUTS` env, then `web/data/`, then the repo path. Run the pipeline once before `npm run dev`; for a deploy, copy the outputs to `web/data/`. Tests in `agent/**/*.test.ts` build their own fixture and need neither.
+
 ## X Ray demo seam
 
 All demo data goes through `lib/xray/provider.ts` (`export const provider`). Screens and `components/xray/**` must **never** import `lib/xray/registry/` — only the provider does. Swap the mock by changing the single `provider` assignment. Score JSON mirrors `docs/plan.md` §6 (`lib/xray/schemas.ts`).

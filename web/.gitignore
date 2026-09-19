@@ -45,3 +45,6 @@ dist
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Copia local de las salidas del pipeline para el agente (ver AGENTS.md)
+data/

@@ -136,16 +136,54 @@ def test_shift_hurts_without_touching_the_policy_or_the_history():
     assert h.eom == 10_000.0 and np.array_equal(h.inflows, np.full(12, 50_000.0))
 
 
+LAM, MU = 40_000.0, 0.0
+
+
+def _realised(frame):
+    """El objetivo realizado de una corrida de `evaluate_policy`, como lo calcula el oráculo."""
+    return (frame["total_cost"] + LAM * frame["breach"]
+            + MU * (frame["dscr_fail_months"] > 0)).to_numpy()
+
+
 def test_perfect_foresight_is_at_least_as_good_as_mpc():
+    """El oráculo no pierde contra el MPC cuando se le mide la ventana que optimiza.
+
+    `months = cfg.horizon` no es un detalle del test: el oráculo es voraz con previsión a
+    `cfg.horizon` meses, así que medirle una tabla más corta le cobra la protección que compra para
+    meses que la tabla no mira (con `horizon=6, months=3` pierde por 12,65 € en 1 de 8 semillas, y
+    no es un fallo suyo). Con la ventana bien puesta gana o empata en 8 de 8.
+    """
     hs = [_varied(eom=1_000.0, dip=6_000.0, line_limit=30_000.0),
           _varied(eom=2_000.0, dip=5_000.0, line_limit=30_000.0)]
     cfg = pj.SimConfig(n_paths=50, horizon=6, seed=2)
-    lam, mu = 40_000.0, 0.0
-    oracle = pl.perfect_foresight(hs, cfg, months=3, seed=4, lam=lam, mu=mu)
-    mpc = pl.evaluate_policy(pl.make_mpc_policy(lam, mu, n_paths=60), hs, cfg, months=3, seed=4)
-    realised = mpc["total_cost"] + lam * mpc["breach"] + mu * (mpc["dscr_fail_months"] > 0)
+    oracle = pl.perfect_foresight(hs, cfg, months=6, seed=4, lam=LAM, mu=MU)
+    mpc = pl.evaluate_policy(pl.make_mpc_policy(LAM, MU, n_paths=60), hs, cfg, months=6, seed=4)
+    gap = oracle["objective"].to_numpy() - _realised(mpc)
     assert list(oracle.columns)[-1] == "objective"
-    assert (oracle["objective"].to_numpy() <= realised.to_numpy() + 1e-9).all()
+    assert (gap <= 1e-9).all()
+    assert (gap < 0).any()  # canario: si el oráculo solo empatara, el test no estaría midiendo nada
+
+
+def test_perfect_foresight_picks_the_best_realised_candidate():
+    """Con horizonte de un mes el oráculo *es* el mínimo sobre la rejilla, candidato a candidato.
+
+    Es la comprobación de que sus semillas de rollout son exactamente las del paso real: si no lo
+    fueran, el objetivo que reporta no coincidiría con el de correr ese mismo candidato en
+    `evaluate_policy`.
+    """
+    hs = [_varied(eom=1_000.0, dip=6_000.0, line_limit=30_000.0),
+          _varied(eom=2_000.0, dip=5_000.0, line_limit=30_000.0)]
+    cfg = pj.SimConfig(n_paths=50, horizon=1, seed=2)
+    oracle = pl.perfect_foresight(hs, cfg, months=1, seed=4, lam=LAM, mu=MU)
+
+    best = np.full(len(hs), np.inf)
+    for index in range(max(len(pl.candidate_actions(h, cfg)) for h in hs)):
+        def pick(hist, c=None, rng=None, index=index):
+            actions = pl.candidate_actions(hist, c or cfg)
+            return actions[min(index, len(actions) - 1)]
+
+        best = np.minimum(best, _realised(pl.evaluate_policy(pick, hs, cfg, months=1, seed=4)))
+    assert oracle["objective"].to_numpy() == pytest.approx(best)
 
 
 def test_adl_refinance_waits_for_a_big_gap():
@@ -179,3 +217,44 @@ def test_combine_takes_the_first_non_none():
     assert pl.combine(pl.adl_refinance, pl.advisor_rules)(h, CFG, None).kind == "refinance"
     assert pl.combine(pl.do_nothing, pl.advisor_rules)(h, CFG, None).kind == "line_cover"
     assert pl.combine(pl.do_nothing, pl.do_nothing)(h, CFG, None) is pj.NONE
+
+
+# --- regresiones de la ronda 1 de revisión --------------------------------------------------------
+
+
+def test_supplied_candidates_still_break_ties_towards_none():
+    """Empate → `NONE` también cuando los candidatos llegan de fuera y `none` no va la primera."""
+    calm = _hist(line_limit=20_000.0)  # no rompe: cubrir no cuesta nada y tampoco cambia nada
+    rec = pl.mpc_recommend(calm, CFG, lam=100_000.0, mu=0.0, rng=11,
+                           candidates=[pj.Action("line_cover"), pj.NONE])
+    assert {alt["objective"] for alt in rec.alternatives} == {0.0}  # el empate es real
+    assert rec.action.kind == "none" and rec.alternatives[0]["kind"] == "none"
+    assert len(rec.alternatives) == 2
+
+
+def test_shift_scales_the_pool_like_the_history():
+    """Con historia corta el sorteo viene del pool, y el pool también tiene que ir desplazado.
+
+    La historia propia y el pool están calibrados para dar el mismo triplete (48 K de entradas,
+    4,8 K de bache), así que venga el sorteo de donde venga, lo que se arrastra al mes siguiente
+    tiene que ser ese valor sin escalar. Si el pool entrara al mundo sin desplazar, el desescalado
+    lo devolvería inflado (96 K de entradas, 3,2 K de bache).
+    """
+    seen: list[tuple[float, float]] = []
+
+    def spy(hist, cfg=None, rng=None):
+        seen.append((float(hist.inflows[-1]), float(hist.dips[-1])))
+        return pj.NONE
+
+    hs = [pj.History(company_id=f"C{i}", month="2026-01", eom=200_000.0,
+                     inflows=np.full(1, 48_000.0), outflows=np.full(1, 48_000.0),
+                     dips=np.full(1, 4_800.0), operating_share=0.8, debt_service_m=0.0)
+          for i in range(20)]
+    pool = pj.FlowPool.from_triplets(np.array([[1.0, 1.0, 0.1]] * 50))
+    cfg = pj.SimConfig(n_paths=1, horizon=1, seed=0)
+    pl.evaluate_policy(spy, hs, cfg, months=2, seed=0, pool=pool,
+                       shift={"inflow_scale": 0.5, "dip_scale": 1.5})
+    carried = seen[1::2]  # la segunda llamada de cada empresa ya lleva el sorteo del primer mes
+    assert len(carried) == 20
+    for inflow, dip in carried:
+        assert inflow == pytest.approx(48_000.0) and dip == pytest.approx(4_800.0)

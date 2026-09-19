@@ -199,15 +199,16 @@ def mpc_recommend(
 ) -> Recommendation:
     """Enumera los candidatos, los simula pareados y devuelve el que minimiza `objective`.
 
-    Usa `cfg.n_paths` caminos y `cfg.horizon` meses. Empate → `NONE`, que va siempre la primera y
-    gana por comparación estricta: si un producto no mejora en el objetivo, no se recomienda. Si
-    `candidates` llega sin la acción vacía se le antepone, porque `breach_prob_none` es la
-    referencia de toda la ficha.
+    Usa `cfg.n_paths` caminos y `cfg.horizon` meses. Empate → `NONE`, que se coloca siempre la
+    primera y gana por comparación estricta: si un producto no mejora en el objetivo, no se
+    recomienda. Si `candidates` llega sin la acción vacía se le antepone, y si llega con ella en
+    otra posición se mueve al frente, porque `breach_prob_none` es la referencia de toda la ficha.
     """
     cfg = cfg or SimConfig()
-    actions = list(candidates) if candidates is not None else candidate_actions(hist, cfg)
-    if not any(action.kind == "none" for action in actions):
-        actions = [NONE, *actions]
+    supplied = list(candidates) if candidates is not None else candidate_actions(hist, cfg)
+    empty = [action for action in supplied if action.kind == "none"]
+    # `none` al frente venga como venga: el empate lo gana ella, y es la referencia de la ficha.
+    actions = [*(empty or [NONE]), *(a for a in supplied if a.kind != "none")]
     seed = _base_seed(rng, cfg)
 
     alternatives: list[dict] = []
@@ -454,6 +455,29 @@ def _shift_history(hist: History, shift: dict | None) -> History:
     )
 
 
+def _shift_pool(pool: FlowPool | None, shift: dict | None) -> FlowPool | None:
+    """El pool, a la misma escala que la historia desplazada.
+
+    Con historia corta, `projection._draw_triplets` llena parte de los sorteos con
+    `pool.sample(rng, count, med_out)`, y ese muestreo escala por la mediana de **cargos**, que el
+    desvío no toca. Sin desplazar también el pool, esos tripletes entrarían al mundo sin escalar y
+    `_unshift_draws` los dividiría igual que a los demás: la entrada del pool se arrastraría al
+    doble (96 K en vez de 48 K con `inflow_scale = 0,5`) y el bache a la mitad. Los dos errores se
+    suman a favor de la empresa, y justo en las de historia corta, que son las que peor lo llevan en
+    la tabla de estrés.
+    """
+    if pool is None or not shift:
+        return pool
+    inflow_scale = float(shift.get("inflow_scale", 1.0))
+    dip_scale = float(shift.get("dip_scale", 1.0))
+    if inflow_scale == 1.0 and dip_scale == 1.0:
+        return pool
+    triplets = np.array(pool.triplets, dtype=float)
+    triplets[:, 0] *= inflow_scale
+    triplets[:, 2] *= dip_scale
+    return FlowPool.from_triplets(triplets)
+
+
 def _unshift_draws(paths: Paths, shift: dict | None) -> Paths:
     """Devuelve el sorteo a la escala de la empresa para que el desvío no se componga."""
     if not shift or paths.draws is None:
@@ -469,7 +493,11 @@ def _unshift_draws(paths: Paths, shift: dict | None) -> Paths:
 
 
 def _step(hist: History, action: Action, step_cfg: SimConfig, rng, pool, shift):
-    """Un mes realizado: `(paths de un camino y un mes, historia del mes siguiente)`."""
+    """Un mes realizado: `(paths de un camino y un mes, historia del mes siguiente)`.
+
+    `pool` tiene que llegar ya desplazado (`_shift_pool`), porque el desvío se aplica a la historia
+    y a las dos ramas de `_draw_triplets` por igual.
+    """
     world = _shift_history(hist, shift)
     paths = simulate(world, action, step_cfg, rng=rng, pool=pool, horizon=1)
     return paths, advance(hist, _unshift_draws(paths, shift), action, k=0, cfg=step_cfg)
@@ -504,6 +532,7 @@ def evaluate_policy(
     cfg = cfg or SimConfig()
     shift = _check_shift(shift)
     step_cfg = replace(_shift_config(cfg, shift), n_paths=1)
+    step_pool = _shift_pool(pool, shift)  # una vez, no una por mes
 
     rows = []
     for i, start in enumerate(hists):
@@ -512,7 +541,7 @@ def evaluate_policy(
         for j in range(months):
             action = policy(hist, cfg, np.random.default_rng([seed, i, j, 1])) or NONE
             paths, hist = _step(hist, action, step_cfg, np.random.default_rng([seed, i, j]),
-                                pool, shift)
+                                step_pool, shift)
             cost, breached, failed = _month_outcome(paths, cfg)
             total_cost += cost
             n_breach += int(breached)
@@ -529,13 +558,28 @@ def evaluate_policy(
     return pd.DataFrame(rows, columns=RESULT_COLUMNS)
 
 
+def _continuation(hist: History) -> Action:
+    """Lo que hace el oráculo en los meses 2..H del rollout: mantener la póliza encendida.
+
+    El modelo del MPC es `simulate(horizon=H)` con la acción puesta, y ahí una facilidad como
+    `line_cover` (o la línea que acaba de abrir `line_open`) cubre descubiertos **los H meses**. El
+    rollout del oráculo va mes a mes, así que si continuara con `NONE` valoraría la cobertura por un
+    solo mes y la compararía contra un MPC que la ve entera: medido, 40 379 € (la rotura se come el
+    λ) frente a 176,77 € y rotura 0. Por eso la continuación es `line_cover` mientras quede
+    disponible —que es además la condición de elegibilidad de `_plan`— y `NONE` cuando no queda.
+    """
+    if float(hist.line_limit) - float(hist.line_drawn) > 0:
+        return Action("line_cover")
+    return NONE
+
+
 def _realised_objective(
     hist: History, action: Action, step_cfg: SimConfig, seeds, pool, lam: float, mu: float
 ) -> float:
-    """Objetivo *realizado* de tomar `action` ahora y no volver a actuar, sobre `seeds` meses."""
+    """Objetivo *realizado* de tomar `action` ahora y seguir con la póliza puesta, sobre `seeds`."""
     total_cost, breached, failed = 0.0, False, False
     for index, seed in enumerate(seeds):
-        paths, hist = _step(hist, action if index == 0 else NONE, step_cfg,
+        paths, hist = _step(hist, action if index == 0 else _continuation(hist), step_cfg,
                             np.random.default_rng(seed), pool, None)
         cost, month_breach, month_fail = _month_outcome(paths, step_cfg)
         total_cost += cost
@@ -556,10 +600,17 @@ def perfect_foresight(
     """El oráculo: cada mes elige el candidato que mejor sale **sobre los sorteos que ocurrirán**.
 
     Mismas semillas de mundo que `evaluate_policy`, así que es comparable fila a fila: en el mes `j`
-    prueba cada candidato con los generadores futuros `[seed, i, j+k]`, `k = 0..cfg.horizon−1`, y se
-    queda con el de menor objetivo realizado (`coste + λ·rotura + μ·fallo de DSCR`, con indicadores
-    en lugar de probabilidades). No es el óptimo global —decide mes a mes y mira `cfg.horizon`
-    meses— sino la cota práctica contra la que se mide el arrepentimiento de las políticas.
+    prueba cada candidato con los generadores futuros `[seed, i, j+k]`, `k = 0..cfg.horizon−1`,
+    continuando con la póliza puesta (`_continuation`) como hace el modelo del MPC, y se queda con
+    el de menor objetivo realizado (`coste + λ·rotura + μ·fallo de DSCR`, con indicadores en lugar
+    de probabilidades).
+
+    Es un **oráculo voraz con previsión realizada a `cfg.horizon` meses**, no el LP de 12 meses de
+    `docs/experimentos_productos.md` §B2.v: decide mes a mes y no optimiza la secuencia entera, así
+    que no es cota superior del valor de cualquier política. Dos consecuencias prácticas: en el
+    pitch hay que llamarlo por su nombre, y comparar su objetivo contra una tabla de `months <
+    cfg.horizon` no mide lo que el oráculo optimiza (compra protección para meses que la tabla no
+    mira y sale «peor» que una política miope).
 
     Devuelve las columnas de `evaluate_policy` más `objective`, el objetivo realizado de la corrida
     entera.

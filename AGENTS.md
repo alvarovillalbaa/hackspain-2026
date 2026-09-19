@@ -27,7 +27,13 @@ uv sync --all-extras        # entorno Python completo
 uv run xray-cache           # CSV → parquet (una vez; 30 s)
 uv run pytest               # verde antes de cada commit en xray/ api/ tests/
 cd web && npm run typecheck # limpio desde el 19 sep; no añadas ningún error
+cd web && npm test          # vitest sobre la lógica pura de lib/xray y hooks/xray
 ```
+
+`npm run lint` arrastra 18 errores de `react-hooks/set-state-in-effect`, todos en
+ficheros de la plantilla (`components/ai-elements/`, `components/ui/carousel.tsx`,
+`hooks/use-mobile.ts`). No bloquean el build ni el deploy; no añadas ninguno nuevo
+en código nuestro.
 
 ## Los dos seams — no los rompas sin avisar
 

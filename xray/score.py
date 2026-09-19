@@ -1,6 +1,7 @@
 """Puntuador por lotes: tabla del contrato → scores de todas las empresas (slice #11).
 
     uv run xray-score --features artifacts/features.parquet --out artifacts/scores/scores.parquet
+    # escribe también artifacts/scores/groups.parquet si existe artifacts/raw/companies.parquet
     uv run xray-score --features ref.parquet --extra nuevas.parquet --model artifacts/scores/rules_model.json
 
 Con `--extra`, las empresas nuevas se ranquean mes a mes contra la población de referencia (el
@@ -21,7 +22,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from xray import features as features_mod
+from xray import explain, features as features_mod
 from xray import labels, rules
 from xray.data import artifacts_dir
 from xray.rules import RulesConfig, RulesModel
@@ -58,14 +59,14 @@ def score_table(
     if model is None:
         model = rules.fit(scored, cfg, train_until)  # el mismo ajuste que hizo run(); lo devolvemos
     if extra is None:
-        return scored[OUTPUT_COLUMNS].reset_index(drop=True), model
+        return scored.reset_index(drop=True), model
     ext = _prepare(extra)
     overlap = sorted(set(ref["company_id"]) & set(ext["company_id"]))
     if overlap:
         raise ValueError(f"score: {len(overlap)} company_id en las dos tablas, p. ej. {overlap[:5]}")
     scored_ext = rules.run(ext, events_ext=events_ext, model=model, cfg=cfg, train_until=train_until,
                            rank_against=model.profile())
-    return scored_ext[OUTPUT_COLUMNS].reset_index(drop=True), model
+    return scored_ext.reset_index(drop=True), model
 
 
 def _read_table(path: Path) -> pd.DataFrame:
@@ -90,6 +91,10 @@ def main(argv: list[str] | None = None) -> int:
                     help="RulesModel JSON; si falta se ajusta sobre la unión y se guarda junto a --out")
     ap.add_argument("--events", default=None, help="events_ext csv (company_id, month, kind); opcional")
     ap.add_argument("--out", default=str(artifacts_dir() / "scores" / "scores.parquet"))
+    ap.add_argument("--groups", default=None,
+                    help="vista por grupo (group_rollup); por defecto groups.* al lado de --out. Solo en la pasada completa")
+    ap.add_argument("--companies", default=str(artifacts_dir() / "raw" / "companies.parquet"),
+                    help="companies.csv/parquet con company_id y group_id; si falta, no se escriben grupos")
     ap.add_argument("--train-until", default=TRAIN_UNTIL)
     args = ap.parse_args(argv)
 
@@ -99,11 +104,17 @@ def main(argv: list[str] | None = None) -> int:
     model = RulesModel.load(args.model) if args.model else None
     table, fitted = score_table(feats, extra=extra, events_ext=events_ext, model=model, train_until=args.train_until)
     out = Path(args.out)
-    _write_table(table, out)
+    _write_table(table[OUTPUT_COLUMNS], out)
     if model is None:
         fitted.save(out.parent / "rules_model.json")
     print(f"{len(table):,} filas · {table['company_id'].nunique()} empresas · "
           f"score en {table['score'].notna().mean():.0%} de las filas → {out}")
+    companies_path = Path(args.companies)
+    if extra is None and companies_path.exists():
+        groups_path = Path(args.groups) if args.groups else out.parent / f"groups{out.suffix or '.parquet'}"
+        groups = explain.group_rollup(table, _read_table(companies_path))
+        _write_table(groups, groups_path)
+        print(f"{len(groups):,} filas de grupo · {groups['group_id'].nunique()} grupos → {groups_path}")
     return 0
 
 

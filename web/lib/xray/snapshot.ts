@@ -3,6 +3,7 @@
  * Kept free of `server-only` so Eve tools and Next routes can share it.
  */
 import { scoreToBand } from "./bands";
+import { TreasuryProjectionSchema } from "./schemas";
 import type { ScoreSnapshot, Trend } from "./types";
 import type { ExportedScore } from "./dataset/types";
 
@@ -83,6 +84,7 @@ export function snapshotFromExported(row: ExportedScore): ScoreSnapshot {
     dimensions: dims,
     peer_percentile: row.peer_percentile,
     projection_6m: row.projection_6m,
+    treasury: row.treasury == null ? null : TreasuryProjectionSchema.parse(row.treasury),
     history: row.history,
     drivers: row.drivers,
     alerts,

@@ -49,6 +49,7 @@ Dos *seams* mantienen las piezas desacopladas: la tabla `features(company_id, mo
 | Modelo | **LightGBM** (+ scikit-learn para splits, métricas, calibración), como **retador** del score por reglas (plan §4 y §9, 18 sep noche) | Tabular, pocos datos, entrena en segundos, maneja nulos nativamente (historiales cortos) | XGBoost (equivalente), redes (sin justificación con 1.286 empresas) |
 | Explicabilidad | **SHAP** (TreeExplainer) | Contribución por feature y por empresa-mes → `drivers` del contrato JSON; exacto y rápido en árboles | LIME (aproximado, más lento) |
 | Simulación | numpy (Monte Carlo propio) | La proyección de caja es un bucle vectorizado; no necesita librería | PyMC/statsmodels (sobredimensionados) |
+| Estadística | **scipy** (`norm.ppf`, `lambertw`), declarado el 19 sep | Potencia de la evaluación off-policy y umbral de refinanciación de Agarwal–Driscoll–Laibson; ya llegaba vía scikit-learn | — |
 | Tests | **pytest** con fixtures mínimas en `tests/` (CSV de 3 filas) | Corren sin el dataset; validan los hechos del dataset (dirección de factura, fechas basura, caché) | — |
 | Lint | ruff | Un binario, sin configuración | black + flake8 + isort |
 
@@ -142,6 +143,8 @@ Endpoints: `GET /companies` · `GET /score/{company_id}` · `GET /debt/{company_
 ```
 
 Reglas: pydantic lo valida al salir, zod al entrar; `explanation` llega por `/explain` en segunda llamada para que el LLM no bloquee la ficha; cualquier cambio de contrato se anuncia en el canal del equipo y se refleja en los stubs el mismo momento.
+
+**19 sep 2026 — integración del MPC (#6 / #8).** `records_from_scored(..., tables=...)` añade `treasury` al export, al ingest y a los packs importables pre-puntuados. Contiene `model_version=mpc-v1`, moneda EUR, horizonte, semilla, número de caminos, historial/pool, `calibrated=false`, preferencias explícitas `risk_weight`/`dscr_weight`, `baseline`, `recommended`, `alternatives` y `cash_projection_6m` en moneda. Los importes de factoring son fracciones de cartera; `line_cover` dispone automáticamente y no fija un ticket. Pydantic valida la salida y `TreasuryProjectionSchema` el consumo. El campo es opcional/nulo para seguir leyendo packs antiguos o casos sin soporte; no sustituye `projection_6m`, que sigue en puntos. La ficha y las herramientas de Eve leen la misma simulación. Las recomendaciones/ofertas existentes del marketplace siguen siendo un flujo distinto, no se convierten en decisiones automáticas del MPC. Regenerar `uv run xray-export-web` y `uv run xray-prescore-packs` antes del build; los JSON derivados se incluyen en el commit. No hay un nuevo servicio ni una dependencia de Python en Vercel.
 
 ### 6.3 Herramientas del agente Eve — entre web y API
 

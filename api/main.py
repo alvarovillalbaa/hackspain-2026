@@ -127,12 +127,13 @@ def _companies_payload(companies_df: pd.DataFrame, group_sizes: dict[str, int]) 
     out: list[dict[str, Any]] = []
     for row in companies_df.itertuples(index=False):
         cid = str(row.company_id)
-        gid = str(getattr(row, "group_id", "") or f"GROUP_{cid}")
+        group = getattr(row, "group_id", None)
+        gid = f"GROUP_{cid}" if pd.isna(group) or group == "" else str(group)
         country = getattr(row, "country", None)
-        if country is not None and (isinstance(country, float) and pd.isna(country) or country == ""):
+        if pd.isna(country) or country == "":
             country = None
-        currency = getattr(row, "currency", None) or "EUR"
-        if isinstance(currency, float) and pd.isna(currency):
+        currency = getattr(row, "currency", None)
+        if pd.isna(currency) or currency == "":
             currency = "EUR"
         out.append({
             "company_id": cid,
@@ -214,7 +215,7 @@ async def ingest(
     profile = state.model.profile()
     scored = rules.run(feats, model=state.model, rank_against=profile)
     peer = state.peer_ref if state.peer_ref else None
-    records = records_from_scored(scored, peer_ref=peer)
+    records = records_from_scored(scored, peer_ref=peer, tables=tables)
 
     scored_ids = {r["company_id"] for r in records}
     for c in summary.companies:

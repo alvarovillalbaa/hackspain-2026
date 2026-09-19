@@ -5,6 +5,8 @@ import { deterministicMarketplace } from "./deterministic-marketplace";
 import { recommendActions } from "./recommend-actions";
 import { snapshotFromExported } from "./snapshot";
 import { DEFAULT_GROUP_COMPANIES } from "./demo";
+import { ScoreSnapshotSchema } from "./schemas";
+import importPacksJson from "./dataset/import_packs.json";
 import type { CompanyFacts, ExportedScore } from "./dataset/types";
 
 const factsById = new Map(
@@ -15,6 +17,26 @@ const scoresById = new Map(
 );
 
 describe("live fact pack (Health Scorer + facts, no mocks)", () => {
+  it("validates the published MPC seam for the portfolio and pre-scored imports", () => {
+    const imports = importPacksJson.packs.flatMap((p) => p.scores as ExportedScore[]);
+    for (const rows of [[...scoresById.values()], imports]) {
+      expect(rows.some((r) => r.treasury != null)).toBe(true);
+      for (const row of rows) {
+        expect(row).toHaveProperty("treasury");
+        const snapshot = ScoreSnapshotSchema.parse(snapshotFromExported(row));
+        expect(snapshot.treasury).toEqual(row.treasury);
+        if (!snapshot.treasury) continue;
+        const { baseline, recommended, risk_weight, dscr_weight } = snapshot.treasury;
+        expect(recommended.objective).toBeLessThanOrEqual(baseline.objective);
+        expect(recommended.objective).toBeCloseTo(
+          recommended.expected_cost + risk_weight * recommended.breach_prob
+            + dscr_weight * recommended.dscr_fail_prob,
+          6,
+        );
+      }
+    }
+  });
+
   it("has the demo group scored from docs/data/raw", () => {
     for (const id of DEFAULT_GROUP_COMPANIES) {
       expect(scoresById.get(id), `missing Health Score for ${id}`).toBeTruthy();

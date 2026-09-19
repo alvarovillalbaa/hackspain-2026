@@ -1,6 +1,88 @@
 import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { snapshotFromExported, buildScoreExplanation } from "./snapshot";
+import { ScoreSnapshotSchema, TreasuryProjectionSchema } from "./schemas";
+import { ScoreHero, TreasuryCard } from "@/components/xray/score-overview";
+import type { TreasuryProjection } from "./types";
 import type { ExportedScore } from "./dataset/types";
+
+function treasury(): TreasuryProjection {
+  const baseline = {
+    kind: "none" as const,
+    amount: 0,
+    rate: null,
+    expected_cost: 120,
+    breach_prob: 0.4,
+    dscr_fail_prob: 0.1,
+    objective: 332.5,
+  };
+  return {
+    model_version: "mpc-v1",
+    currency: "EUR",
+    horizon_months: 6,
+    n_paths: 500,
+    seed: 0,
+    history_months: 12,
+    uses_pool: false,
+    calibrated: false,
+    dscr_floor: 1.2,
+    risk_weight: 500,
+    dscr_weight: 125,
+    baseline,
+    recommended: baseline,
+    alternatives: [baseline],
+    cash_projection_6m: { p10: -100, p50: 500, p90: 2_000 },
+  };
+}
+
+it("carries the validated MPC result without replacing score points with cash", () => {
+  const exported = row({ treasury: treasury() });
+  const snapshot = snapshotFromExported(exported);
+  expect(ScoreSnapshotSchema.parse(snapshot).treasury).toEqual(exported.treasury);
+  expect(snapshot.score).toBe(exported.score);
+  expect(snapshot.projection_6m).toEqual(exported.projection_6m);
+  expect(snapshot.treasury?.cash_projection_6m.p50).toBe(500);
+});
+
+it("keeps legacy and unavailable treasury payloads readable", () => {
+  expect(ScoreSnapshotSchema.parse(snapshotFromExported(row())).treasury).toBeNull();
+  expect(snapshotFromExported(row({ treasury: null })).treasury).toBeNull();
+});
+
+it("rejects invalid simulation probabilities, currencies and calibration claims", () => {
+  expect(TreasuryProjectionSchema.safeParse({ ...treasury(), currency: "USD" }).success).toBe(false);
+  expect(TreasuryProjectionSchema.safeParse({ ...treasury(), calibrated: true }).success).toBe(false);
+  expect(() => snapshotFromExported(row({
+    treasury: { ...treasury(), baseline: { ...treasury().baseline, breach_prob: 1.1 } },
+  }))).toThrow();
+  expect(TreasuryProjectionSchema.safeParse({
+    ...treasury(), cash_projection_6m: { p10: NaN, p50: 500, p90: 2_000 },
+  }).success).toBe(false);
+});
+
+it("shows no-action evidence, debt-service risk and the uncalibrated warning together", () => {
+  const markup = renderToStaticMarkup(createElement(TreasuryCard, { treasury: treasury() }));
+  expect(markup).toContain("No actuar");
+  expect(markup).toContain("Coste financiero");
+  expect(markup).toContain("DSCR");
+  expect(markup).toContain("no calibradas");
+  expect(markup).toContain("no recalcula el Health Score");
+});
+
+it("keeps the MPC panel in the updated advisor layout without changing its controls", () => {
+  const markup = renderToStaticMarkup(createElement(ScoreHero, {
+    snapshot: snapshotFromExported(row({ treasury: treasury() })), showDrivers: true,
+  }));
+  expect(markup).toContain("Health Score");
+  expect(markup).toContain("Dimensiones");
+  expect(markup).toContain("Drivers");
+  expect(markup).toContain("Simulación de tesorería");
+  const legacy = renderToStaticMarkup(createElement(ScoreHero, {
+    snapshot: snapshotFromExported(row()), showDrivers: true,
+  }));
+  expect(legacy).not.toContain("Simulación de tesorería");
+});
 
 function row(over: Partial<ExportedScore> = {}): ExportedScore {
   return {

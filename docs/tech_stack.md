@@ -47,6 +47,7 @@ Dos *seams* mantienen las piezas desacopladas: la tabla `features(company_id, mo
 | Modelo | **LightGBM** (+ scikit-learn para splits, métricas, calibración), como **retador** del score por reglas (plan §4 y §9, 18 sep noche) | Tabular, pocos datos, entrena en segundos, maneja nulos nativamente (historiales cortos) | XGBoost (equivalente), redes (sin justificación con 1.286 empresas) |
 | Explicabilidad | **SHAP** (TreeExplainer) | Contribución por feature y por empresa-mes → `drivers` del contrato JSON; exacto y rápido en árboles | LIME (aproximado, más lento) |
 | Simulación | numpy (Monte Carlo propio) | La proyección de caja es un bucle vectorizado; no necesita librería | PyMC/statsmodels (sobredimensionados) |
+| Estadística | **scipy** (`norm.ppf`, `lambertw`), declarado el 19 sep | Potencia de la evaluación off-policy y umbral de refinanciación de Agarwal–Driscoll–Laibson; ya llegaba vía scikit-learn | — |
 | Tests | **pytest** con fixtures mínimas en `tests/` (CSV de 3 filas) | Corren sin el dataset; validan los hechos del dataset (dirección de factura, fechas basura, caché) | — |
 | Lint | ruff | Un binario, sin configuración | black + flake8 + isort |
 

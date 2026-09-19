@@ -9,6 +9,7 @@ dependencies = [
     "pyarrow>=17",
     "numpy>=1.26",
     "scikit-learn>=1.5",
+    "scipy>=1.11",
     "lightgbm>=4.5",
     "shap>=0.46",
     "fastapi>=0.115",

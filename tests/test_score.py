@@ -47,11 +47,34 @@ def test_score_table_rejects_overlapping_company_ids():
 
 def test_cli_writes_scores_and_model(tmp_path):
     out = tmp_path / "scores.parquet"
-    rc = score.main(["--features", str(features.FIXTURE_PATH), "--out", str(out)])
+    rc = score.main(["--features", str(features.FIXTURE_PATH), "--out", str(out),
+                     "--companies", str(tmp_path / "missing.csv")])
     assert rc == 0
     got = pd.read_parquet(out)
     assert len(got) == 41 and set(score.OUTPUT_COLUMNS) <= set(got.columns)
     assert (tmp_path / "rules_model.json").exists()
+    assert not (tmp_path / "groups.parquet").exists()
+
+
+def test_cli_writes_group_rollup_next_to_scores(tmp_path):
+    companies = tmp_path / "companies.csv"
+    pd.DataFrame({"company_id": ["MOCK_DIP", "MOCK_DETERIORATION", "MOCK_SHORT"],
+                  "group_id": ["G1", "G1", "G2"]}).to_csv(companies, index=False)
+    out = tmp_path / "scores.parquet"
+    rc = score.main(["--features", str(features.FIXTURE_PATH), "--out", str(out),
+                     "--companies", str(companies)])
+    assert rc == 0
+    groups = pd.read_parquet(tmp_path / "groups.parquet")
+    assert {"group_id", "month", "score", "score_min", "n_companies", "share_negative",
+            "weakest_company_id"} <= set(groups.columns)
+    row = groups.set_index(["group_id", "month"]).loc[("G1", "2026-08")]
+    assert row["n_companies"] == 2 and row["weakest_company_id"] == "MOCK_DETERIORATION"
+    scored, _ = score.score_table(features.load_fixture())
+    august = scored[scored["month"].astype(str) == "2026-08"].set_index("company_id")
+    w = august.loc[["MOCK_DIP", "MOCK_DETERIORATION"], "operating_inflows_eur"].clip(lower=1.0)
+    expected = (august.loc[w.index, "score"] * w).sum() / w.sum()
+    assert row["score"] == pytest.approx(expected)
+    assert row["score_min"] == pytest.approx(august.loc["MOCK_DETERIORATION", "score"])
 
 
 def test_cli_with_model_and_extra_writes_only_extra_rows(tmp_path):
@@ -65,3 +88,4 @@ def test_cli_with_model_and_extra_writes_only_extra_rows(tmp_path):
     assert rc == 0
     got = pd.read_csv(out)
     assert set(got["company_id"]) == {"EXTRA_1"} and len(got) == 5
+    assert not (tmp_path / "groups.csv").exists()

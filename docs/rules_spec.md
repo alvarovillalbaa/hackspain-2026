@@ -19,7 +19,7 @@
 | `rules` | `run(features, events=None, model=None, cfg=None)` | Encadena todo; ajusta si no recibe modelo |
 | `rules` | `RulesModel.save(path)` / `RulesModel.load(path)` | JSON con nudos del mapa y corte |
 | `evals` | `xray-evals` (CLI) | AUC(h) propia y externa, lead time en tres cifras, horizonte de persistencia, direccionalidad, dispersión por grupos → `artifacts/evals/metrics.json` |
-| `score` | `xray-score` (CLI) / `score_table()` | Puntuador por lotes; con `--extra` ranquea las empresas nuevas contra el perfil de referencia del modelo (19 sep) |
+| `score` | `xray-score` (CLI) / `score_table()` | Puntuador por lotes; escribe `groups.parquet` (group_rollup) al lado de los scores en la pasada completa (19 sep, tarde). Con `--extra` ranquea las empresas nuevas contra el perfil de referencia del modelo (19 sep) |
 | `profile` | `RankProfile.fit / rank` | Población de referencia por mes y señal; viaja dentro de `RulesModel` (19 sep, tarde) |
 | `explain` | `drivers`, `drivers_json`, `group_rollup` | Atribución exacta por señal para el campo `drivers` y vista por grupo (19 sep, tarde) |
 | `features` | `build()` / `xray-features` (CLI) | La tabla real del contrato desde los CSV (19 sep, tarde) |
@@ -57,7 +57,7 @@
 
 ## 7. Salida
 
-Un DataFrame plano por `(company_id, month)` con: `rank_*` (4), `red_*` (4), `n_red`, `n_signals`, `state_index`, `event`, `label_t6`, `level`, `score`, `outlook`, `trend`, `watch`, `confidence`. El JSON de `/score` (plan §6) lo construye un adaptador en `api/`, no este módulo. `xray-score` escribe la selección `score.OUTPUT_COLUMNS` (claves, score, nivel, índice, outlook, trend, watch, confidence, cobertura, rangos y señales brutas).
+Un DataFrame plano por `(company_id, month)` con: `rank_*` (4), `red_*` (4), `n_red`, `n_signals`, `state_index`, `event`, `label_t6`, `level`, `score`, `outlook`, `trend`, `watch`, `confidence`. El JSON de `/score` (plan §6) lo construye un adaptador en `api/`, no este módulo. `xray-score` escribe la selección `score.OUTPUT_COLUMNS` (claves, score, nivel, índice, outlook, trend, watch, confidence, cobertura, rangos y señales brutas). En la pasada completa, si hay `companies` con `group_id`, escribe también `groups.parquet`: score ponderado por entradas, `score_min`, filial más débil, `n_companies`, `share_negative`. No es un score recalculado sobre tesorería consolidada. Con `--extra` no se escribe (el grupo quedaría incompleto).
 
 ## 8. Evaluación (`xray/evals.py`)
 
@@ -111,5 +111,5 @@ Números en la tabla provisional, meses de test 2025-09…2026-02, antes → des
 
 - **`features.build()`** (slice #2) construye la tabla del contrato en 8 s; solo cuenta facturas de verdad (`features_seam.md` §3.8). Sobre la tabla real (21.423 filas): AUC externa (6) **0,685** (h = 1: 0,718), AUC propia (6) 0,715; 379 eventos; lead time: crónicos 17 %, con cruce 7 % (mediana 3 meses), tardíos 50 %, en el primer mes de historia 26 %; P(rojo en t+6 | rojo en t) 54 % frente a 11,7 % de base; P(rojo en t+6 | outlook negativo / estable / positivo) 66 / 8 / 16 %; dispersión por grupos 0,69 ± 0,05.
 - **Perfil de rangos por mes** (`xray/profile.py`, guardado en `RulesModel.rank_profile`): las empresas nuevas se ranquean contra la población de referencia de su mes con la misma convención de empates que el rango dentro del mes, así que una copia de una empresa de referencia obtiene su misma puntuación y dos empresas nuevas del mismo lote no se influyen. `rules.run(rank_against=modelo.profile())` es el camino; `xray-score --extra` lo usa. Para un mes sin referencia, el más cercano. Sustituye al ranking sobre la unión de la mañana.
-- **`xray/explain.py`**: `drivers()` reparte exactamente el cambio de score entre t−3 y t entre las cuatro señales (peso × Δ media móvil del rango × pendiente del mapa) con `since` = primer mes de la racha roja; `drivers_json()` es el campo `drivers` del JSON de `/score`; `group_rollup()` es la vista por grupo del monitor (score ponderado por entradas, mínimo, empresa más débil, cuota negativa).
+- **`xray/explain.py`**: `drivers()` reparte exactamente el cambio de score entre t−3 y t entre las cuatro señales (peso × Δ media móvil del rango × pendiente del mapa) con `since` = primer mes de la racha roja; `drivers_json()` es el campo `drivers` del JSON de `/score`; `group_rollup()` es la vista por grupo del monitor (score ponderado por entradas, mínimo, empresa más débil, cuota negativa). **`xray-score` la escribe** a `groups.parquet` junto a `scores.parquet` (19 sep, tarde).
 - Sigue pendiente: extracción de eventos de watch desde los CSV, bandas ancladas a PD (slice #5) y la propuesta de `revision_objetivo_score.md`.

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
+  embatFocusRing,
   FilterChip,
   outlookColor,
   scoreBadgeClass,
@@ -16,7 +17,7 @@ import { ScoreGauge } from "@/components/xray/score-gauge";
 import { ScoreTrajectory } from "@/components/xray/score-trajectory";
 import { DimensionRadar } from "@/components/xray/dimension-radar";
 import { ScoreUplift } from "@/components/xray/score-uplift";
-import { outlookMeta, trendMeta, confidenceMeta } from "@/lib/xray/bands";
+import { bandMeta, outlookMeta, trendMeta, confidenceMeta } from "@/lib/xray/bands";
 import {
   formatCompactEuro,
   formatCurrency,
@@ -120,7 +121,7 @@ export function FichaTitle({
   return (
     <div className="flex flex-wrap items-center gap-2.5 px-5 pb-[5px]">
       <h1
-        className={`${embatDisplayClass} text-[20px] font-medium tracking-[-0.3px] text-black`}
+        className={`${embatDisplayClass} min-w-0 break-words text-[20px] font-medium tracking-[-0.3px] text-black`}
       >
         {name}
       </h1>
@@ -168,7 +169,7 @@ export function SubScoreRow({ label, value }: { label: string; value: number }) 
       </p>
       <span
         className={cn(
-          "inline-flex items-center justify-center rounded-xl border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
+          "inline-flex items-center justify-center rounded-xl border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px] tabular-nums",
           scoreBadgeClass(value)
         )}
       >
@@ -180,18 +181,25 @@ export function SubScoreRow({ label, value }: { label: string; value: number }) 
 
 export function FichaGauge({
   score,
+  band,
   outlook,
 }: {
   score: number;
+  band: ScoreSnapshot["band"];
   outlook: Outlook;
 }) {
   return (
-    <div className="flex h-[200px] w-full max-w-[280px] shrink-0 items-center justify-center overflow-clip">
+    <div className="flex h-[224px] w-full max-w-[280px] shrink-0 flex-col items-center justify-center gap-1 overflow-clip">
       <ScoreGauge
         score={score}
         color={outlookColor(outlook)}
         variant="embat"
       />
+      <p className="max-w-full px-4 text-center text-[13px] font-medium tracking-[-0.13px] text-[#666]">
+        Banda <span className="text-black">{bandMeta(band).label}</span>
+        {" · "}
+        {outlookMeta(outlook).label}
+      </p>
     </div>
   );
 }
@@ -217,7 +225,10 @@ export function ConfidenceMeter({
     <Popover>
       <PopoverTrigger
         type="button"
-        className="inline-flex items-center gap-1.5 rounded-xl border border-[#dce0e6] bg-white px-2 py-0.5 text-[12px] font-medium tracking-[-0.12px] text-[#666] outline-none"
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-xl border border-[#dce0e6] bg-white px-2 py-0.5 text-[12px] font-medium tracking-[-0.12px] text-[#666] outline-none transition-colors duration-150 ease-out motion-reduce:transition-none",
+          embatFocusRing
+        )}
         aria-label={`Confianza ${meta.label}`}
       >
         <span className="flex gap-0.5" aria-hidden>
@@ -244,7 +255,7 @@ export function ConfidenceMeter({
       >
         <p>{meta.description}</p>
         {hint ? (
-          <p className="mt-1 text-[12px] text-[#999]">{hint}</p>
+          <p className="mt-1 text-[12px] text-[#6b6b6b]">{hint}</p>
         ) : null}
       </PopoverContent>
     </Popover>
@@ -269,7 +280,7 @@ export function HealthScoreCard({
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[#dce0e6] px-5 py-[15px]">
         <h2
           id="health-score"
-          className="text-[14px] font-medium tracking-[-0.14px] text-[#999]"
+          className="text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]"
         >
           Health Score
         </h2>
@@ -292,7 +303,11 @@ export function HealthScoreCard({
         </div>
       </header>
       <div className="flex flex-col items-center gap-2 px-3 pt-2">
-        <FichaGauge score={snapshot.score} outlook={snapshot.outlook} />
+        <FichaGauge
+          score={snapshot.score}
+          band={snapshot.band}
+          outlook={snapshot.outlook}
+        />
       </div>
       <div className="flex flex-col border-t border-[#dce0e6]">
         {SUB_SCORE_KEYS.map((key) => (
@@ -307,7 +322,10 @@ export function HealthScoreCard({
         <button
           type="button"
           onClick={onOpenSignals}
-          className="text-[13px] font-medium tracking-[-0.13px] text-primary hover:underline"
+          className={cn(
+            "rounded-[2px] text-[13px] font-medium tracking-[-0.13px] text-primary transition-colors duration-150 ease-out hover:underline motion-reduce:transition-none",
+            embatFocusRing
+          )}
         >
           Ver señales
         </button>
@@ -323,13 +341,13 @@ export function DriverRow({ driver }: { driver: Driver }) {
         <p className="truncate text-[15px] font-medium tracking-[-0.15px] text-[#666]">
           {signalLabel(driver.signal)}
         </p>
-        <p className="text-[12px] font-medium tracking-[-0.12px] text-[#999]">
+        <p className="text-[12px] font-medium tracking-[-0.12px] text-[#6b6b6b]">
           {formatDriverMonth(driver.since)}
         </p>
       </div>
       <span
         className={cn(
-          "inline-flex shrink-0 items-center justify-center rounded-xl border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
+          "inline-flex shrink-0 items-center justify-center rounded-xl border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px] tabular-nums",
           signedBadgeClass(driver.delta)
         )}
       >
@@ -348,7 +366,7 @@ export function ActualizacionesCard({ drivers }: { drivers: Driver[] }) {
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-5 py-[15px]">
         <h2
           id="actualizaciones-score"
-          className="text-[14px] font-medium tracking-[-0.14px] text-[#999]"
+          className="text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]"
         >
           Actualizaciones de Score
         </h2>
@@ -386,30 +404,38 @@ export function ActionRow({
   const confidence = action.confidence ?? snapshot.confidence;
 
   return (
-    <div className={cn(fichaItemClass, "hover:bg-[rgba(220,224,230,0.45)]")}>
+    <div
+      className={cn(
+        fichaItemClass,
+        "transition-colors duration-150 ease-out hover:bg-[rgba(220,224,230,0.45)] motion-reduce:transition-none"
+      )}
+    >
       <div className="flex min-w-0 flex-1 items-center gap-1 pr-1">
         <div className="min-w-0 flex-1">
           <Link
             href={href}
-            className="block min-w-0 truncate text-[15px] font-medium tracking-[-0.15px] text-[#666] hover:underline"
+            className={cn(
+              "block min-w-0 truncate text-[15px] font-medium tracking-[-0.15px] text-[#666] hover:underline",
+              embatFocusRing
+            )}
           >
             {description}
           </Link>
           {subtitle ? (
-            <p className="truncate text-[12px] font-medium tracking-[-0.12px] text-[#999]">
+            <p className="truncate text-[12px] font-medium tracking-[-0.12px] text-[#6b6b6b]">
               {subtitle}
             </p>
           ) : null}
         </div>
         <RationaleTip text={tip} />
       </div>
-      <span className="w-[72px] shrink-0 text-center text-[12px] font-medium tracking-[-0.12px] text-[#999]">
+      <span className="w-[72px] shrink-0 text-center text-[12px] font-medium tracking-[-0.12px] text-[#6b6b6b]">
         {confidenceMeta(confidence).label}
       </span>
       <Link
         href={href}
         tabIndex={-1}
-        className="w-[100px] shrink-0 text-right text-[14px] font-medium tracking-[-0.14px] text-[#999]"
+        className="w-[100px] shrink-0 truncate text-right text-[14px] font-medium tracking-[-0.14px] tabular-nums text-[#6b6b6b]"
       >
         {action.recommended_amount > 0
           ? formatCompactEuro(action.recommended_amount)
@@ -439,7 +465,10 @@ export function RationaleTip({ text }: { text: string }) {
       <PopoverTrigger
         type="button"
         aria-label="Por qué se recomienda"
-        className="inline-flex size-[10px] shrink-0 items-center justify-center outline-none"
+        className={cn(
+          "inline-flex size-[10px] shrink-0 items-center justify-center rounded-[4px] outline-none",
+          embatFocusRing
+        )}
       >
         <span className="relative size-[10px]">
           <img
@@ -487,11 +516,11 @@ export function AccionesCard<T extends ActionRecommendation>({
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-[15px]">
         <h2
           id="acciones-recomendadas"
-          className="px-2.5 text-[14px] font-medium tracking-[-0.14px] text-[#999]"
+          className="px-2.5 text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]"
         >
           Acciones recomendadas
         </h2>
-        <div className="flex items-center px-2.5 text-[14px] font-medium tracking-[-0.14px] text-[#999]">
+        <div className="flex items-center px-2.5 text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]">
           <span className="min-w-0 flex-1">Acción</span>
           <span className="w-[72px] text-center">Conf.</span>
           <span className="w-[100px] text-right">Importe</span>
@@ -545,7 +574,7 @@ export function TrajectoryCard({
         <div className="flex items-center gap-2.5">
           <h2
             id="trayectoria-score"
-            className="text-[14px] font-medium tracking-[-0.14px] text-[#999]"
+            className="text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]"
           >
             Trayectoria
           </h2>
@@ -565,7 +594,8 @@ export function TrajectoryCard({
                       close();
                     }}
                     className={cn(
-                      "w-full rounded-xl px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px]",
+                      "w-full rounded-xl px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] transition-colors duration-150 ease-out motion-reduce:transition-none",
+                      embatFocusRing,
                       range === value
                         ? "bg-primary font-semibold text-white"
                         : "border border-[#dce0e6] bg-white text-[#666]"
@@ -631,7 +661,7 @@ export function DimensionsFichaCard({
       <header className="border-b border-[#dce0e6] px-5 py-[15px]">
         <h2
           id="dimensiones-score"
-          className="text-[14px] font-medium tracking-[-0.14px] text-[#999]"
+          className="text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]"
         >
           Dimensiones
         </h2>
@@ -665,11 +695,11 @@ export function PeersFichaCard({
       <header className="border-b border-[#dce0e6] px-5 py-[15px]">
         <h2
           id="comparables-score"
-          className="text-[14px] font-medium tracking-[-0.14px] text-[#999]"
+          className="text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]"
         >
           Comparables
         </h2>
-        <p className="mt-1 text-[12px] font-medium tracking-[-0.12px] text-[#999]">
+        <p className="mt-1 text-[12px] font-medium tracking-[-0.12px] text-[#6b6b6b]">
           {SIZE_BAND_LABEL[cohort.size.band]} · {AGE_BAND_LABEL[cohort.age.band]}{" "}
           · {poolLabel}
         </p>
@@ -677,13 +707,13 @@ export function PeersFichaCard({
       <div className="grid grid-cols-2 gap-2.5 p-[15px] sm:grid-cols-4">
         <PeerTile label="Flujo mensual">
           {formatCurrency(cohort.size.monthly_flow, currency)}
-          <span className="mt-0.5 block text-[11px] font-medium text-[#999]">
+          <span className="mt-0.5 block text-[11px] font-medium text-[#6b6b6b]">
             p{cohort.size.percentile} en {cohort.currency}
           </span>
         </PeerTile>
         <PeerTile label="Antigüedad">
           {cohort.age.months} meses
-          <span className="mt-0.5 block text-[11px] font-medium text-[#999]">
+          <span className="mt-0.5 block text-[11px] font-medium text-[#6b6b6b]">
             {ageHint}
           </span>
         </PeerTile>
@@ -692,7 +722,7 @@ export function PeersFichaCard({
         </PeerTile>
         <PeerTile label="Vs. media">
           {formatDelta(cohort.delta)}
-          <span className="mt-0.5 block text-[11px] font-medium text-[#999]">
+          <span className="mt-0.5 block text-[11px] font-medium text-[#6b6b6b]">
             mejor que {cohort.better_than}/{cohort.k}
           </span>
         </PeerTile>
@@ -735,7 +765,7 @@ export function DealFichaCard({
       <header className="border-b border-[#dce0e6] px-5 py-[15px]">
         <h2
           id="oferta-aceptada"
-          className="text-[14px] font-medium tracking-[-0.14px] text-[#999]"
+          className="text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]"
         >
           Oferta aceptada
         </h2>
@@ -745,7 +775,7 @@ export function DealFichaCard({
           {deal.label} · {deal.issuer_name} ·{" "}
           {formatCurrency(deal.amount, currency)}
         </p>
-        <p className="text-[12px] text-[#999]">
+        <p className="text-[12px] text-[#6b6b6b]">
           Impacto what-if (no recalcula el índice de salud oficial)
         </p>
         <ScoreUplift uplift={deal.uplift} to={deal.projected_score} />

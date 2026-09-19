@@ -26,6 +26,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { FichaFrame, pickBannerAlert } from "@/components/embat/ficha";
+import { embatRowFocusRing } from "@/components/embat/chrome";
 import {
   FeeBadge,
   formatSavingPerYear,
@@ -54,6 +55,7 @@ import {
 } from "@/lib/xray/offer-metrics";
 import { publishedProjection } from "@/lib/xray/scoring";
 import type { ProductMatch } from "@/lib/xray/types";
+import { cn } from "@/lib/utils";
 
 function OfferItem({
   match,
@@ -78,7 +80,10 @@ function OfferItem({
   return (
     <Item
       size="sm"
-      className="rounded-none border-0 px-0 py-3 hover:bg-muted/50"
+      className={cn(
+        "rounded-none border-0 px-0 py-3 transition-colors duration-150 ease-out hover:bg-muted/50 motion-reduce:transition-none",
+        embatRowFocusRing
+      )}
       render={<Link href={href} />}
       aria-label={`Ver detalle de ${issuer}`}
     >
@@ -86,7 +91,9 @@ function OfferItem({
         <IssuerMark name={issuer} />
       </div>
       <ItemContent>
-        <ItemTitle className="text-[15px]">{issuer}</ItemTitle>
+        <ItemTitle className="text-[15px]" title={issuer}>
+          {issuer}
+        </ItemTitle>
         <ItemDescription>
           {formatCompactEuro(match.amount)} · {formatRatePct(offerRate)}
           {dates ? ` · ${dates}` : ""}

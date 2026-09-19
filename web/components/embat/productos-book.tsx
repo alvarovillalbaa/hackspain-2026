@@ -19,8 +19,10 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { IssuerMark } from "@/components/embat/offer-ui";
+import { embatRowFocusRing } from "@/components/embat/chrome";
 import { useBookProducts } from "@/hooks/xray/use-book-products";
 import { formatCompactEuro, formatRatePct } from "@/lib/xray/format";
+import { cn } from "@/lib/utils";
 
 export function ProductosBook() {
   const { data, loading, error } = useBookProducts();
@@ -63,14 +65,19 @@ export function ProductosBook() {
           {i > 0 ? <ItemSeparator className="my-0" /> : null}
           <Item
             size="sm"
-            className="rounded-none border-0 px-0 py-3 hover:bg-muted/50"
+            className={cn(
+              "rounded-none border-0 px-0 py-3 transition-colors duration-150 ease-out hover:bg-muted/50 motion-reduce:transition-none",
+              embatRowFocusRing
+            )}
             render={<Link href={`/c/${row.company_id}`} />}
           >
             <div className="flex shrink-0 items-center pr-3">
               <IssuerMark name={row.entity_name} />
             </div>
             <ItemContent>
-              <ItemTitle className="text-[15px]">{row.company_name}</ItemTitle>
+              <ItemTitle className="text-[15px]" title={row.company_name}>
+                {row.company_name}
+              </ItemTitle>
               <ItemDescription>{row.entity_name}</ItemDescription>
             </ItemContent>
             <ItemActions className="flex-wrap justify-end gap-2">

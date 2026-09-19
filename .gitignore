@@ -36,3 +36,7 @@ node_modules/
 
 # Salidas generadas del pipeline de screening (regenerar con pipeline.py)
 /company_optimization_pipeline/outputs/
+
+# impeccable live session state (dev-only); config.json and design.json are shared
+.impeccable/live/*
+!.impeccable/live/config.json

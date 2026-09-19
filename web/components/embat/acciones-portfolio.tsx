@@ -18,7 +18,7 @@ import {
   ItemSeparator,
   ItemTitle,
 } from "@/components/ui/item";
-import { signedBadgeClass } from "@/components/embat/chrome";
+import { embatRowFocusRing, signedBadgeClass } from "@/components/embat/chrome";
 import { usePortfolioActions } from "@/hooks/xray/use-portfolio-actions";
 import {
   formatCompactEuro,
@@ -71,11 +71,16 @@ export function AccionesPortfolio() {
             {i > 0 ? <ItemSeparator className="my-0" /> : null}
             <Item
               size="sm"
-              className="rounded-none border-0 px-0 py-3 hover:bg-muted/50"
+              className={cn(
+                "rounded-none border-0 px-0 py-3 transition-colors duration-150 ease-out hover:bg-muted/50 motion-reduce:transition-none",
+                embatRowFocusRing
+              )}
               render={<Link href={href} />}
             >
               <ItemContent>
-                <ItemTitle className="text-[15px]">{row.company_name}</ItemTitle>
+                <ItemTitle className="text-[15px]" title={row.company_name}>
+                  {row.company_name}
+                </ItemTitle>
                 <ItemDescription>
                   {actionKindLabel(row.kind)} · {row.title}
                 </ItemDescription>

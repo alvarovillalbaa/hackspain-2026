@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { statusClass } from "@/components/embat/chrome";
+import { embatFocusRing, statusClass } from "@/components/embat/chrome";
 import { useCompanySummaries } from "@/hooks/xray/use-company-summaries";
 import { useWatchQueue } from "@/hooks/xray/use-watch-queue";
 import { buildDashboardKpis } from "@/lib/xray/dashboard-kpis";
@@ -26,7 +26,10 @@ function KpiCard({
       <p className="text-[13px] font-medium tracking-[-0.13px] text-muted-foreground">
         {label}
       </p>
-      <p className="text-[28px] font-medium tracking-[-0.28px] text-black tabular-nums">
+      <p
+        className="truncate text-[28px] font-medium tracking-[-0.28px] tabular-nums text-black"
+        title={value}
+      >
         {value}
       </p>
       {hint ? (
@@ -155,9 +158,15 @@ function ScoreList({
               <li key={row.company_id}>
                 <Link
                   href={`/c/${row.company_id}`}
-                  className="flex items-center justify-between gap-2 rounded-xl px-2.5 py-1.5 hover:bg-muted/50"
+                  className={cn(
+                    "flex items-center justify-between gap-2 rounded-xl px-2.5 py-1.5 transition-colors duration-150 ease-out hover:bg-muted/50 motion-reduce:transition-none",
+                    embatFocusRing
+                  )}
                 >
-                  <span className="min-w-0 truncate text-[14px] text-black">
+                  <span
+                    className="min-w-0 truncate text-[14px] text-black"
+                    title={row.name}
+                  >
                     {row.name}
                   </span>
                   <span className="flex shrink-0 items-center gap-2">

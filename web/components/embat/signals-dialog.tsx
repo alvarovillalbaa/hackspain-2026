@@ -84,7 +84,7 @@ export function SignalsDialog({
                     <p className="text-[14px] font-medium tracking-[-0.14px] text-black">
                       {signalLabel(key)}
                     </p>
-                    <p className="mt-0.5 text-[12px] tracking-[-0.12px] text-[#999]">
+                    <p className="mt-0.5 text-[12px] tracking-[-0.12px] text-[#6b6b6b]">
                       {signalBlurb(key)}
                     </p>
                   </div>
@@ -96,14 +96,14 @@ export function SignalsDialog({
                       <p
                         className={cn(
                           "text-[11px] font-medium",
-                          red ? "text-[#e61847]" : "text-[#999]"
+                          red ? "text-[#e61847]" : "text-[#6b6b6b]"
                         )}
                       >
                         p{Math.round(rank * 100)}
                         {red ? " · cola roja" : ""}
                       </p>
                     ) : null}
-                    <p className="text-[10px] text-[#999]">
+                    <p className="text-[10px] text-[#6b6b6b]">
                       {polarity === "high" ? "↑ peor" : "↓ peor"}
                     </p>
                   </div>
@@ -114,7 +114,7 @@ export function SignalsDialog({
         </div>
 
         <div className="mt-2 border-t border-[#dce0e6] pt-3">
-          <p className="mb-2 text-[14px] font-medium tracking-[-0.14px] text-[#999]">
+          <p className="mb-2 text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]">
             Dimensiones
           </p>
           <DimensionRadar dimensions={snapshot.dimensions} />

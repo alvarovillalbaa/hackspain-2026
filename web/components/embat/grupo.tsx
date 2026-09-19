@@ -12,7 +12,12 @@ import {
   pickBannerAlert,
   TrajectoryCard,
 } from "@/components/embat/ficha";
-import { DemoChip, scoreBadgeClass, statusClass } from "@/components/embat/chrome";
+import {
+  DemoChip,
+  embatFocusRing,
+  scoreBadgeClass,
+  statusClass,
+} from "@/components/embat/chrome";
 import { useCompanySummaries } from "@/hooks/xray/use-company-summaries";
 import { useDemoSession } from "@/hooks/xray/use-demo-session";
 import { useGroupActions, type GroupAction } from "@/hooks/xray/use-group-actions";
@@ -35,7 +40,7 @@ export function Grupo({ groupId }: { groupId: string }) {
       {loading ? (
         <FichaSkeleton />
       ) : error || !group ? (
-        <p className="px-5 text-[14px] text-[#e61847]">
+        <p className="px-5 text-[14px] text-destructive">
           {error?.message ?? "No se ha podido cargar el score de este grupo."}
         </p>
       ) : (
@@ -116,7 +121,7 @@ function EmpresasCard({
       <header className="border-b border-[#dce0e6] px-5 py-[15px]">
         <h2
           id="empresas-grupo"
-          className="text-[14px] font-medium tracking-[-0.14px] text-[#999]"
+          className="text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]"
         >
           Empresas del grupo
         </h2>
@@ -129,13 +134,22 @@ function EmpresasCard({
             <Link
               key={m.company_id}
               href={`/c/${m.company_id}`}
-              className={cn(fichaItemClass, "hover:bg-[rgba(220,224,230,0.45)]")}
+              className={cn(
+                fichaItemClass,
+                "transition-colors duration-150 ease-out hover:bg-[rgba(220,224,230,0.45)] motion-reduce:transition-none",
+                embatFocusRing
+              )}
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[15px] font-medium tracking-[-0.15px] text-[#666]">
+                <p
+                  className="truncate text-[15px] font-medium tracking-[-0.15px] text-[#666]"
+                  title={m.name}
+                >
                   {m.name}
                 </p>
-                <p className="text-[12px] text-[#999]">{m.company_id}</p>
+                <p className="text-[12px] text-[#6b6b6b]" title={m.company_id}>
+                  {m.company_id}
+                </p>
               </div>
               <span
                 className={cn(

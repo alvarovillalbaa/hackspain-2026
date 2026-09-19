@@ -7,6 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   DemoChip,
   EmbatIcon,
+  embatFocusRing,
+  embatRowFocusRing,
   FilterChip,
   FilterField,
   statusClass,
@@ -97,8 +99,8 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
         className
       )}
     >
-      <header className="flex items-center justify-between gap-3 border-b border-[#dce0e6] px-5 py-[15px]">
-        <div className="flex min-w-0 items-center gap-2.5">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#dce0e6] px-5 py-[15px]">
+        <div className="flex min-w-0 flex-wrap items-center gap-2.5">
           <h1
             className={`${embatDisplayClass} shrink-0 text-[20px] font-medium tracking-[-0.3px] text-nowrap text-black`}
           >
@@ -110,7 +112,7 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
             </p>
           ) : null}
         </div>
-        <label className="flex w-[200px] shrink-0 items-center gap-[5px] rounded-xl border border-[#dce0e6] bg-white px-[5px] py-[2px]">
+        <label className="flex w-[200px] max-w-full shrink-0 items-center gap-[5px] rounded-xl border border-[#dce0e6] bg-white px-[5px] py-[2px] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-solid focus-within:outline-ring">
           <span className="sr-only">Buscar grupo</span>
           <EmbatIcon src="/embat/icon-search.svg" />
           <input
@@ -183,7 +185,8 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
                     close();
                   }}
                   className={cn(
-                    "w-full rounded-xl px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px]",
+                    "w-full rounded-xl px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] transition-colors duration-150 ease-out motion-reduce:transition-none",
+                    embatFocusRing,
                     filters.outlook === value
                       ? "bg-primary font-semibold text-white"
                       : "border border-[#dce0e6] bg-white text-[#666]"
@@ -266,7 +269,7 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
                 <th
                   key={label}
                   scope="col"
-                  className="overflow-hidden px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] text-ellipsis whitespace-nowrap text-[#999] first:pl-5 last:pr-5"
+                  className="overflow-hidden px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] text-ellipsis whitespace-nowrap text-[#6b6b6b] first:pl-5 last:pr-5"
                 >
                   {label}
                 </th>
@@ -286,7 +289,7 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
               <tr>
                 <td
                   colSpan={6}
-                  className="px-5 py-8 text-[14px] text-[#e61847]"
+                  className="px-5 py-8 text-[14px] text-destructive"
                 >
                   No se han podido cargar los grupos. {error.message}
                 </td>
@@ -314,14 +317,20 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
                         router.push(`/g/${group.group_id}`);
                       }
                     }}
-                    className="cursor-pointer border-b border-[#dce0e6] even:bg-[rgba(220,224,230,0.2)] hover:bg-[rgba(220,224,230,0.45)]"
+                    className={cn(
+                      "cursor-pointer border-b border-[#dce0e6] transition-colors duration-150 ease-out even:bg-[rgba(220,224,230,0.2)] hover:bg-[rgba(220,224,230,0.45)] motion-reduce:transition-none",
+                      embatRowFocusRing
+                    )}
                   >
                     <td className="px-3 py-[15px] text-[14px] tracking-[-0.14px] text-black first:pl-5">
                       <div className="flex min-w-0 items-center gap-2">
                         <Link
                           href={`/g/${group.group_id}`}
                           title={group.name}
-                          className="min-w-0 truncate text-black hover:underline"
+                          className={cn(
+                            "min-w-0 truncate text-black hover:underline",
+                            embatFocusRing
+                          )}
                           onClick={(e) => e.stopPropagation()}
                         >
                           {group.name}
@@ -332,7 +341,7 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
                     <td className="px-3 py-[15px]">
                       <span
                         className={cn(
-                          "inline-flex items-center justify-center rounded-xl border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
+                          "inline-flex items-center justify-center rounded-xl border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px] tabular-nums",
                           statusClass(group.outlook)
                         )}
                       >
@@ -349,7 +358,7 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
                         {outlook.label}
                       </span>
                     </td>
-                    <td className="px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] text-[#666]">
+                    <td className="px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] tabular-nums text-[#666]">
                       {group.n_companies}
                     </td>
                     <td
@@ -358,7 +367,7 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
                     >
                       {group.best_company_name}
                     </td>
-                    <td className="px-3 py-[15px] pr-5 text-[14px] tracking-[-0.14px] text-black">
+                    <td className="px-3 py-[15px] pr-5 text-[14px] tracking-[-0.14px] tabular-nums text-black">
                       {formatCompactEuro(group.cash_close)}
                     </td>
                   </tr>

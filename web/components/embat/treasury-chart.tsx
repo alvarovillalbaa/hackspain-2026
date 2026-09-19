@@ -52,7 +52,7 @@ export function TreasuryChartCard({
       <header className="border-b border-[#dce0e6] px-5 py-[15px]">
         <h2
           id="tesoreria-chart"
-          className="text-[14px] font-medium tracking-[-0.14px] text-[#999]"
+          className="text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]"
         >
           Tesorería
         </h2>
@@ -67,7 +67,7 @@ export function TreasuryChartCard({
               : ""}
           </p>
         ) : (
-          <p className="mt-1 text-[12px] font-medium tracking-[-0.12px] text-[#999]">
+          <p className="mt-1 text-[12px] font-medium tracking-[-0.12px] text-[#6b6b6b]">
             Caja reconstruida · sin proyección MPC
           </p>
         )}
@@ -89,13 +89,13 @@ export function TreasuryChartCard({
               <XAxis
                 dataKey="month"
                 tickFormatter={formatMonth}
-                tick={{ fill: "#999", fontSize: 11 }}
+                tick={{ fill: "#6b6b6b", fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
                 width={48}
-                tick={{ fill: "#999", fontSize: 11 }}
+                tick={{ fill: "#6b6b6b", fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v) => formatCompactEuro(Number(v))}
@@ -134,7 +134,7 @@ export function TreasuryChartCard({
                   <Area
                     type="monotone"
                     dataKey="p50"
-                    stroke="#999"
+                    stroke="#6b6b6b"
                     strokeDasharray="4 4"
                     fill="transparent"
                     connectNulls
@@ -155,7 +155,7 @@ export function TreasuryChartCard({
         )}
       </div>
       {currency !== "EUR" ? (
-        <p className="px-5 pb-2 text-[11px] text-[#999]">
+        <p className="px-5 pb-2 text-[11px] text-[#6b6b6b]">
           Serie en {currency}; la simulación MPC solo cubre EUR.
         </p>
       ) : null}

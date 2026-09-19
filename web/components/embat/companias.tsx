@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/item";
 import {
   EmbatIcon,
+  embatFocusRing,
+  embatRowFocusRing,
   FilterChip,
   FilterField,
   statusClass,
@@ -411,8 +413,19 @@ export function Companias({
                 {i > 0 ? <ItemSeparator className="my-0" /> : null}
                 <Item
                   size="sm"
-                  className="cursor-pointer rounded-none border-0 px-0 py-3 hover:bg-muted/50"
+                  tabIndex={0}
+                  className={cn(
+                    "cursor-pointer rounded-none border-0 px-0 py-3 transition-colors duration-150 ease-out hover:bg-muted/50 motion-reduce:transition-none",
+                    embatRowFocusRing
+                  )}
                   onClick={() => router.push(`/c/${row.company_id}`)}
+                  onKeyDown={(e) => {
+                    if (e.target !== e.currentTarget) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      router.push(`/c/${row.company_id}`);
+                    }
+                  }}
                 >
                   <div
                     className="flex shrink-0 items-center pr-3"
@@ -432,7 +445,10 @@ export function Companias({
                     <ItemDescription>
                       <Link
                         href={`/g/${row.group_id}`}
-                        className="text-primary hover:text-primary/80"
+                        className={cn(
+                          "rounded-[2px] text-primary transition-colors duration-150 ease-out hover:text-primary/80 motion-reduce:transition-none",
+                          embatFocusRing
+                        )}
                         onClick={(e) => e.stopPropagation()}
                       >
                         {row.group_id}
@@ -470,7 +486,7 @@ export function Companias({
       )}
 
       {selection.count > 0 ? (
-        <div className="sticky bottom-4 z-30 mt-4 flex items-center justify-between gap-3 rounded-2xl border border-border bg-white/95 px-4 py-3 shadow-sm backdrop-blur-md">
+        <div className="sticky bottom-4 z-30 mt-4 flex items-center justify-between gap-3 rounded-2xl border border-border bg-white px-4 py-3 shadow-sm">
           <p className="text-sm text-muted-foreground">
             {selection.count}/{MAX_COMPARE} seleccionadas
             {selection.count < 2 ? " · elige al menos 2" : ""}

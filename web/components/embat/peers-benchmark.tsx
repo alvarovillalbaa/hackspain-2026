@@ -18,6 +18,7 @@ import {
   type PeerCohort,
 } from "@/lib/xray/peers";
 import { formatDelta, formatNumber } from "@/lib/xray/format";
+import { embatFocusRing } from "@/components/embat/chrome";
 import { cn } from "@/lib/utils";
 
 const cardClass =
@@ -61,14 +62,14 @@ export function PeersBenchmarkCard({
       <header className="border-b border-[#dce0e6] px-5 py-[15px]">
         <h2
           id="benchmark-score"
-          className="text-[14px] font-medium tracking-[-0.14px] text-[#999]"
+          className="text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]"
         >
           Benchmarking
         </h2>
         <p className="mt-1 text-[12px] font-medium tracking-[-0.12px] text-[#666]">
           {titleBits.join(" · ")}
         </p>
-        <p className="mt-0.5 text-[11px] font-medium tracking-[-0.11px] text-[#999]">
+        <p className="mt-0.5 text-[11px] font-medium tracking-[-0.11px] text-[#6b6b6b]">
           {SIZE_BAND_LABEL[cohort.size.band]} · {AGE_BAND_LABEL[cohort.age.band]}{" "}
           · {cohort.k} vecinos
         </p>
@@ -86,7 +87,7 @@ export function PeersBenchmarkCard({
               type="category"
               dataKey="id"
               width={72}
-              tick={{ fill: "#999", fontSize: 10 }}
+              tick={{ fill: "#6b6b6b", fontSize: 10 }}
               axisLine={false}
               tickLine={false}
             />
@@ -108,7 +109,7 @@ export function PeersBenchmarkCard({
             />
             <ReferenceLine
               x={cohort.peer_score_mean}
-              stroke="#999"
+              stroke="#6b6b6b"
               strokeDasharray="4 4"
             />
             <Bar dataKey="score" radius={[0, 4, 4, 0]} barSize={10}>
@@ -128,7 +129,10 @@ export function PeersBenchmarkCard({
             <Link
               key={n.company_id}
               href={`/c/${n.company_id}`}
-              className="rounded-lg border border-[#dce0e6] px-1.5 py-0.5 text-[11px] font-medium text-[#666] hover:border-primary hover:text-primary"
+              className={cn(
+                "rounded-lg border border-[#dce0e6] px-1.5 py-0.5 text-[11px] font-medium text-[#666] transition-colors duration-150 ease-out hover:border-primary hover:text-primary motion-reduce:transition-none",
+                embatFocusRing
+              )}
             >
               {n.company_id}
             </Link>

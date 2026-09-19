@@ -18,6 +18,7 @@ import {
   ItemSeparator,
   ItemTitle,
 } from "@/components/ui/item";
+import { embatRowFocusRing } from "@/components/embat/chrome";
 import { useWatchQueue } from "@/hooks/xray/use-watch-queue";
 import { WATCH_RULE_LABEL } from "@/lib/xray/watch-queue";
 import { cn } from "@/lib/utils";
@@ -63,11 +64,16 @@ export function Watchers() {
           {i > 0 ? <ItemSeparator className="my-0" /> : null}
           <Item
             size="sm"
-            className="rounded-none border-0 px-0 py-3"
+            className={cn(
+              "rounded-none border-0 px-0 py-3 transition-colors duration-150 ease-out motion-reduce:transition-none",
+              embatRowFocusRing
+            )}
             render={<Link href={`/c/${item.company_id}`} />}
           >
             <ItemContent>
-              <ItemTitle className="text-[15px]">{item.name}</ItemTitle>
+              <ItemTitle className="text-[15px]" title={item.name}>
+                {item.name}
+              </ItemTitle>
               <ItemDescription>{item.message}</ItemDescription>
             </ItemContent>
             <ItemActions className="flex-wrap justify-end gap-2">

@@ -15,8 +15,8 @@ const num = (v: number | null | undefined, digits = 1) =>
 function Tile({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
     <div className="flex min-w-0 flex-col gap-1 rounded-[6px] border border-[#dce0e6] bg-white px-4 py-3">
-      <span className="text-[12px] font-medium tracking-[-0.12px] text-[#999]">{label}</span>
-      <span className="text-[22px] font-medium tracking-[-0.4px] text-black">{value}</span>
+      <span className="text-[12px] font-medium tracking-[-0.12px] text-[#6b6b6b]">{label}</span>
+      <span className="text-[22px] font-medium tracking-[-0.4px] tabular-nums text-black">{value}</span>
       <span className="text-[12px] tracking-[-0.12px] text-[#666]">{detail}</span>
     </div>
   );
@@ -44,7 +44,7 @@ export function AnticipacionPanel({
       )}
       aria-labelledby="anticipacion-title"
     >
-      <header className="flex items-center justify-between gap-3 border-b border-[#dce0e6] px-5 py-[15px]">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#dce0e6] px-5 py-[15px]">
         <h2 id="anticipacion-title" className={`${embatDisplayClass} text-[20px] font-medium tracking-[-0.3px] text-black`}>
           Cómo anticipa el score
         </h2>
@@ -99,7 +99,7 @@ export function AnticipacionPanel({
                   : "sin medir en este pack"}
               />
             </div>
-            <p className="mt-3 text-[12px] tracking-[-0.12px] text-[#999]">
+            <p className="mt-3 text-[12px] tracking-[-0.12px] text-[#6b6b6b]">
               Cifras de <code>xray-evals</code> sobre {new Intl.NumberFormat("es-ES").format(metrics.n_companies)} empresas y{" "}
               {new Intl.NumberFormat("es-ES").format(metrics.n_rows)} meses-empresa, entrenamiento hasta {formatMonth(metrics.train_until)}.
               El score es un pronóstico de persistencia; no son probabilidades de impago.

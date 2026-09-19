@@ -1,7 +1,6 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import metricsJson from "../../lib/xray/dataset/metrics.json";
-import { parseMethodMetrics } from "../../lib/xray/method-metrics";
+import { getMethodMetrics } from "../../lib/xray/dataset";
 
 export default defineTool({
   description:
@@ -14,7 +13,7 @@ export default defineTool({
   inputSchema: z.object({}),
   label: { start: () => "Métricas del método" },
   async execute() {
-    const metrics = parseMethodMetrics(metricsJson);
+    const metrics = getMethodMetrics();
     if (!metrics) {
       return { available: false, note: "El pack no lleva métricas del método: no se puede citar anticipación ni cobertura." };
     }

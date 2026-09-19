@@ -2,7 +2,7 @@
  * ScoreSnapshot from an ExportedScore row.
  * Kept free of `server-only` so Eve tools and Next routes can share it.
  */
-import { scoreToBand } from "./bands";
+import { scoreToBand, watchMeta } from "./bands";
 import { TreasuryProjectionSchema } from "./schemas";
 import type { ScoreSnapshot, Trend } from "./types";
 import type { ExportedScore } from "./dataset/types";
@@ -51,10 +51,11 @@ export function snapshotFromExported(row: ExportedScore): ScoreSnapshot {
 
   const alerts: ScoreSnapshot["alerts"] = [];
   if (row.watch) {
+    const meta = watchMeta(row.watch);
     alerts.push({
       id: `${companyId}-watch`,
       severity: "warning",
-      message: row.watch,
+      message: meta.description ?? row.watch,
     });
   }
   const dscr = row.signals.dscr_6m;

@@ -1,5 +1,8 @@
 import "server-only";
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import {
   nearestPeers,
   parseK,
@@ -27,7 +30,6 @@ export { snapshotFromExported } from "../snapshot";
 import companiesJson from "./companies.json";
 import factsJson from "./facts.json";
 import scoresJson from "./scores.json";
-import metricsJson from "./metrics.json";
 
 const companies = companiesJson as DatasetCompany[];
 const factsList = factsJson as CompanyFacts[];
@@ -120,9 +122,20 @@ export function hasDataset(): boolean {
   return companies.length > 0 && scoresList.length > 0;
 }
 
-/** Métricas del método (anticipación, persistencia, abanico, watch) escritas por `xray-export-web`. */
+/**
+ * Métricas del método (anticipación, persistencia, abanico, watch) escritas por `xray-export-web`.
+ * Read at runtime: a static import would break the build if the pack ships without them.
+ */
 export function getMethodMetrics(): MethodMetrics | null {
-  return parseMethodMetrics(metricsJson);
+  try {
+    const raw = readFileSync(
+      join(process.cwd(), "lib/xray/dataset/metrics.json"),
+      "utf8"
+    );
+    return parseMethodMetrics(JSON.parse(raw));
+  } catch {
+    return null;
+  }
 }
 
 let peerUniverseCache: PeerCompany[] | null = null;

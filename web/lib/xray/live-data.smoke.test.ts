@@ -7,6 +7,8 @@ import { snapshotFromExported } from "./snapshot";
 import { DEFAULT_GROUP_COMPANIES } from "./demo";
 import { ScoreSnapshotSchema } from "./schemas";
 import importPacksJson from "./dataset/import_packs.json";
+import metricsJson from "./dataset/metrics.json";
+import { parseMethodMetrics } from "./method-metrics";
 import type { CompanyFacts, ExportedScore } from "./dataset/types";
 
 const factsById = new Map(
@@ -84,5 +86,18 @@ describe("live fact pack (Health Scorer + facts, no mocks)", () => {
     expect(
       matches[0]!.breakdown.match >= matches[matches.length - 1]!.breakdown.match
     ).toBe(true);
+  });
+
+  it("publishes method metrics and real watch events", () => {
+    const metrics = parseMethodMetrics(metricsJson);
+    expect(metrics).not.toBeNull();
+    expect(metrics!.lead_time.n_events).toBeGreaterThan(0);
+    expect(metrics!.projection?.n ?? 0).toBeGreaterThan(0);
+    const rows = [...scoresById.values()];
+    expect(rows.some((r) => r.watch != null)).toBe(true);
+    for (const row of rows) {
+      expect(row.projection_6m.p10).toBeLessThanOrEqual(row.projection_6m.p50);
+      expect(row.projection_6m.p50).toBeLessThanOrEqual(row.projection_6m.p90);
+    }
   });
 });

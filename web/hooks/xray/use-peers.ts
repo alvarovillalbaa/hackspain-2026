@@ -41,3 +41,38 @@ export function usePeers(companyId: string | undefined, k?: number) {
     error: fetchedFor === companyId ? error : null,
   };
 }
+
+export function usePeerCohorts(ids: string[]) {
+  const key = ids.join(",");
+  const [data, setData] = useState<PeerCohort[]>([]);
+  const [fetchedFor, setFetchedFor] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (ids.length === 0) {
+      setData([]);
+      setFetchedFor(key);
+      return;
+    }
+    let cancelled = false;
+    setFetchedFor(null);
+    Promise.allSettled(ids.map((id) => provider.getPeers(id))).then((settled) => {
+      if (cancelled) return;
+      setData(
+        settled.flatMap((r) =>
+          r.status === "fulfilled" && r.value ? [r.value] : []
+        )
+      );
+      setFetchedFor(key);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // ids is represented by key
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  return {
+    data: fetchedFor === key ? data : [],
+    loading: fetchedFor !== key,
+  };
+}

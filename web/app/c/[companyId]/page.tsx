@@ -8,7 +8,6 @@ import { ScoreOverview } from "@/components/xray/score-overview";
 import { ActionCard } from "@/components/xray/action-card";
 import { ScoreUplift } from "@/components/xray/score-uplift";
 import { ImportDialog } from "@/components/xray/import/import-dialog";
-import { PeerCohortCard } from "@/components/xray/peer-cohort-card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCompanyScore } from "@/hooks/xray/use-company-score";
@@ -17,7 +16,6 @@ import { useCompanies } from "@/hooks/xray/use-companies";
 import { usePeers } from "@/hooks/xray/use-peers";
 import { useSelection } from "@/hooks/xray/use-selection";
 import { publishedProjectionMany } from "@/lib/xray/scoring";
-import { formatDelta } from "@/lib/xray/format";
 
 export default function ScorePage({
   params,
@@ -66,19 +64,8 @@ export default function ScorePage({
           <ScoreOverview
             snapshot={score}
             title={company?.name ?? companyId}
-            subtitle={
-              peers && peers.k > 0
-                ? `Financial Health Score · confianza ${score.confidence} · ${formatDelta(peers.delta)} vs ${peers.k} similares`
-                : undefined
-            }
-            extras={
-              peers && peers.k > 0 ? (
-                <PeerCohortCard
-                  cohort={peers}
-                  currency={company?.currency ?? "EUR"}
-                />
-              ) : null
-            }
+            peers={peers}
+            currency={company?.currency ?? "EUR"}
           />
 
           <section className="space-y-4">

@@ -99,6 +99,29 @@ describe("rollupGroup", () => {
     expect(g?.snapshot.drivers[0]?.signal).toBe("cash_buffer_days");
   });
 
+  it("aggregates member projection_6m fans weighted by inflow", () => {
+    const g = rollupGroup("GROUP_1", [
+      member("A", 20, 1, { projection_6m: { p10: 10, p50: 20, p90: 30 } }),
+      member("B", 80, 3, { projection_6m: { p10: 70, p50: 80, p90: 90 } }),
+    ]);
+    expect(g?.snapshot.projection_6m).toEqual({ p10: 55, p50: 65, p90: 75 });
+  });
+
+  it("skips members without a fan; flat fan at group score if none has one", () => {
+    const mixed = rollupGroup("GROUP_1", [
+      member("A", 20, 1, { projection_6m: { p10: 10, p50: 20, p90: 30 } }),
+      member("B", 80, 3, { projection_6m: undefined }),
+    ]);
+    expect(mixed?.snapshot.projection_6m).toEqual({ p10: 10, p50: 20, p90: 30 });
+
+    const none = rollupGroup("GROUP_1", [
+      member("A", 20, 1, { projection_6m: undefined }),
+      member("B", 80, 3, { projection_6m: undefined }),
+    ]);
+    expect(none?.snapshot.score).toBe(65);
+    expect(none?.snapshot.projection_6m).toEqual({ p10: 65, p50: 65, p90: 65 });
+  });
+
   it("returns null for an empty group", () => {
     expect(rollupGroup("GROUP_X", [])).toBeNull();
   });

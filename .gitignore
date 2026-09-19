@@ -23,3 +23,11 @@ node_modules/
 .env*
 !.env.example
 .DS_Store
+
+# Local
+.atl/
+data/
+.codegraph/
+
+# Salidas generadas del pipeline de screening (regenerar con pipeline.py)
+company_optimization_pipeline/outputs/

@@ -5,7 +5,8 @@ from xray import adoption
 
 
 def _tx(rows):
-    df = pd.DataFrame(rows, columns=["company_id", "product_id", "date", "amount", "category", "description"])
+    cols = ["company_id", "product_id", "date", "amount", "category", "description"]
+    df = pd.DataFrame(rows, columns=cols)
     df["date"] = pd.to_datetime(df["date"])
     df["transaction_id"] = [f"T{i}" for i in range(len(df))]
     return df
@@ -26,12 +27,16 @@ def frames():
         ("C3", "P3", "2025-02-01", 1000, "-", "DISPOSICION CREDITO"),
         ("C3", "P4", "2025-05-01", -200, "fee", "COMISION"),
     ])
-    products = pd.DataFrame({"product_id": ["P1", "P2", "P3", "P4"], "company_id": ["C1", "C2", "C3", "C3"],
-                             "type": ["checking", "checking", "checking", "lineofcredit"]})
+    products = pd.DataFrame({
+        "product_id": ["P1", "P2", "P3", "P4"],
+        "company_id": ["C1", "C2", "C3", "C3"],
+        "type": ["checking", "checking", "checking", "lineofcredit"],
+    })
     debt = pd.DataFrame({"product_id": ["D1"], "company_id": ["C3"], "type": ["lineofcredit"],
                          "created_at": pd.to_datetime(["2025-05-03"]), "granted": [-50000.0]})
     months = pd.period_range("2024-10", "2025-09", freq="M").astype(str)
-    feats = pd.DataFrame([(c, m) for c in ["C1", "C2", "C3"] for m in months], columns=["company_id", "month"])
+    pairs = [(c, m) for c in ["C1", "C2", "C3"] for m in months]
+    feats = pd.DataFrame(pairs, columns=["company_id", "month"])
     return tx, debt, products, feats
 
 
@@ -56,7 +61,8 @@ def test_step_up_detected(frames):
 
 def test_description_rules(frames):
     ev = adoption.adoption_events(*frames)
-    assert _one(ev, "anticipo", "description", "C2")["month"] == "2025-03"   # la devolución de febrero no cuenta
+    # la devolución de febrero no cuenta
+    assert _one(ev, "anticipo", "description", "C2")["month"] == "2025-03"
     assert _one(ev, "factoring", "description", "C2")["amount_eur"] == 3000
     assert _one(ev, "disposicion", "description", "C3")["month"] == "2025-02"
 
@@ -71,7 +77,8 @@ def test_line_tx_and_created_at(frames):
 def test_columns_and_months_inside_history(frames):
     ev = adoption.adoption_events(*frames)
     assert list(ev.columns) == adoption.COLUMNS
-    assert set(ev["product"]) <= set(adoption.PRODUCTS) and set(ev["source"]) <= set(adoption.SOURCES)
+    assert set(ev["product"]) <= set(adoption.PRODUCTS)
+    assert set(ev["source"]) <= set(adoption.SOURCES)
     assert ev["month"].str.fullmatch(r"\d{4}-\d{2}").all()
 
 
@@ -80,7 +87,8 @@ def test_clean_events_filters_and_first_only(frames):
     # la ventana del fixture (2024-10..2025-09) deja 6 meses antes y 5 después de 2025-04
     c = adoption.clean_events(ev, product="loan", source="step_up", min_pre=3, min_post=5)
     assert len(c) == 1 and c.iloc[0]["month"] == "2025-04"
-    assert adoption.clean_events(ev, min_pre=6, min_post=6).query("product == 'loan' and source == 'installment'").empty
+    wide = adoption.clean_events(ev, min_pre=6, min_post=6)
+    assert wide.query("product == 'loan' and source == 'installment'").empty
 
 
 def test_monthly_debt_service(frames):

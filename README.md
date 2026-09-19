@@ -71,7 +71,7 @@ El evento de deterioro se define sobre el propio dataset (no hay etiqueta de imp
 | Acierto | AUC(h) para h = 1…12 en meses no vistos, contra el evento propio (0,71 a 6 m) **y** contra un resultado que el score no construye, el saldo bruto pasando a negativo (0,69 a 6 m, 0,72 a 1 m) |
 | Anticipación | Persistencia: P(rojo a 6 m \| rojo hoy) 54 % frente a 12 % de base; lead time en tres cifras (crónicos 17 %, con cruce 7 % y mediana 3 meses, tardíos 50 %) |
 | Direccionalidad | P(rojo a 6 m \| outlook negativo / estable / positivo) 66 / 8 / 16 % |
-| Proyección | Cobertura del abanico 80 % = 82,8 % en test, MAE de la mediana 5,8 pts, pinball 1,845 frente a 1,853 de la base martingala; y resolución del watch: P(rojo en ≤ 3 m \| watch) 15,2 % frente a 7,8 % |
+| Proyección | Cobertura del abanico 80 % = 82,8 % en test, MAE de la mediana 5,8 pts, pinball 1,845 frente a 1,853 de la base martingala; y resolución del watch: P(rojo en ≤ 3 m \| watch) 17,1 % frente a 7,8 % |
 | Estabilidad | Matriz de transición mensual, % reversiones ≤ 3 m, PSI (pendiente, slice #5) |
 | Generalización | Split temporal (train meses 1–12, test 13–18) y dispersión por grupos (`group_id`) |
 

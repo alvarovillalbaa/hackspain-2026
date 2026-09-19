@@ -226,7 +226,7 @@ Lectura: **el índice de estado baja tras cualquier adopción** (mecánica del D
 
 **A4.** El X-learner con `min_child_samples = 30` no puede partir el brazo tratado (33 y 12 filas de train): τ̂ casi constante; la variante con hojas de 5 sale monótona en el colchón de caja pero con n = 15. **Archivado**, como preveía el plan.
 
-### 8.2 Pista B — simulador, líneas base, MPC y RL (notebook 04, 77 s)
+### 8.2 Pista B — simulador, líneas base, MPC y RL (notebook 04, 2 min)
 
 **B1, simulador validado por backtest** (test 2025-09 … 2026-02, 5.190 filas con saldo ≥ 0, tasa de rotura 8,1 %):
 
@@ -237,7 +237,7 @@ Lectura: **el índice de estado baja tras cualquier adopción** (mecánica del D
 | Calibración por deciles (predicha → realizada) | 2,9 % → 3,8 % … 18,7 % → 23,1 %, monótona | — | pendiente 0,8–1,2: **sí en el centro, corta en la cola** |
 | AUC(6) en las mismas filas | simulador 0,698 · **score de reglas 0,699** | | El simulador ordena igual que el score |
 
-Reproducción de A2 con la mecánica: para disposiciones y primeros usos de línea, el ΔP(rotura) simulado (−0,02 y −0,07 calibrado) cae dentro del IC del estudio de eventos; para la primera cuota el simulador dice −0,03 y los datos +0,10: **los datos llevan la selección, el simulador solo la mecánica**.
+Reproducción de A2 con la mecánica (simulada en el mes anterior al evento, con el préstamo dimensionado para reproducir la cuota observada): para disposiciones y primeros usos de línea, el ΔP(rotura) simulado (−0,03 y −0,07 calibrado) cae dentro del IC del estudio de eventos; para la primera cuota el simulador dice −0,03 y los datos +0,10: **los datos llevan la selección, el simulador solo la mecánica**.
 
 **B2–B3, bucle cerrado** (126 empresas retenidas por grupo, desde 2025-08, 12 meses, coste relativo = coste / mediana de cargos mensuales; el coste medio en euros lo domina una sola empresa con 2.700 M€ de cargos y no es comparable):
 
@@ -251,7 +251,7 @@ Reproducción de A2 con la mecánica: para disposiciones y primeros usos de lín
 | MPC k = 0,5 | 126 | 0,438 | 0,095 | 182 | 19 % | idem |
 | MPC k = 2 | 126 | 0,460 | 0,095 | 162 | 20 % | idem |
 
-Criterio B3 («MPC ≥ mejor regla en coste **y** rotura, ≤ 20 % de cambios, < 1 s por empresa»): **cumplido** en coste relativo (0,42–0,46 frente a 0,58), en rotura (0,095 frente a 0,278), en estabilidad (16–20 %) y en tiempo (1,9 ms por empresa-mes), **con un coste que la métrica no recoge**: el MPC toma préstamos y dobla los meses con DSCR bajo (162–187 frente a 82). La frontera coste–riesgo (B5, submuestra de 100 a 6 meses) sale plana (rotura 2–3 %, coste 0,105–0,110 para k de 0,1 a 4): λ apenas decide, las diferencias de coste sí. Frente al oráculo voraz con previsión perfecta a 6 meses, el MPC no es peor en el 90 % de las empresas y el arrepentimiento medio es el 0,6 % del coste.
+Criterio B3 («MPC ≥ mejor regla en coste **y** rotura, ≤ 20 % de cambios, < 1 s por empresa»): **cumplido** en coste relativo (0,42–0,46 frente a 0,58), en rotura (0,095 frente a 0,278), en estabilidad (16–20 %) y en tiempo (1,9 ms por empresa-mes), **con un coste que la métrica no recoge**: el MPC toma préstamos y dobla los meses con DSCR bajo (162–187 frente a 82; con λ alto prefiere la línea al préstamo y baja a 162). La frontera coste–riesgo (B5, submuestra de 100 a 6 meses) sale plana (rotura 2–3 %, coste 0,105–0,110 para k de 0,1 a 4): λ apenas decide, las diferencias de coste sí. Frente al oráculo voraz con previsión perfecta a 6 meses, el MPC no es peor en el 90 % de las empresas y el arrepentimiento medio es el 0,6 % del coste.
 
 **B4, RL (iteración Q ajustada con LightGBM).** Coste relativo 0,70 y rotura 0,127 en el mundo base frente a 0,44 / 0,095 del MPC: **no iguala a MPC**. La política aprendida elige préstamo en 1.187 de 1.512 meses porque el vector de estado del experimento no incluye los flujos comprometidos (`committed_outflow_m`, `pending_flows`, añadidos al simulador el mismo día) y el mes de carencia del préstamo parece gratis a un paso; los objetivos de la iteración Q divergen (media −1,3 → −7,9 en 8 iteraciones). Bajo el mundo desplazado (entradas −20 %, caídas +30 %, tipos +200 pb) las reglas pasan a rotura 0,67 y coste 1,12, el MPC a 0,25 / 0,96 y el FQI a 0,19 / 1,24: **el MPC es el que menos degrada en coste; el FQI compra menos roturas con un 30 % más de coste**. Criterio B4: **no cumplido**; el siguiente paso es meter los compromisos en el estado y usar la Q como aproximación del valor dentro del MPC, no en su lugar.
 

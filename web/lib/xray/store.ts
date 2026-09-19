@@ -1,7 +1,15 @@
 /**
- * Durable JSON store for the live demo (no Postgres).
- * Uses Vercel Blob when BLOB_READ_WRITE_TOKEN is set; otherwise falls back
- * to process-local Maps so local dev still works.
+ * Durable JSON store for the live demo (no Postgres, no database).
+ *
+ * Three tiers, in order:
+ *   1. Vercel Blob, when BLOB_READ_WRITE_TOKEN is set — the only tier that
+ *      survives on Vercel, whose filesystem is read-only outside /tmp.
+ *   2. JSON files inside the repo (`web/data/runtime/`, override with
+ *      XRAY_RUNTIME_DIR) — what everything the platform generates locally
+ *      lands in, so it survives restarts and can be committed or reset with
+ *      `git checkout`.
+ *   3. Process-local Maps, the last resort (a Vercel deploy with no Blob
+ *      token): the demo still runs, but nothing outlives a cold start.
  *
  * Prefixes:
  *   xray/session.json
@@ -48,7 +56,90 @@ function hasBlob(): boolean {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 }
 
-/** Process-local fallback when Blob is unavailable (dev / token-less previews). */
+/**
+ * Vercel bundles the app into a read-only filesystem, so the in-repo tier is
+ * for local runs only. One failed write disables it for the rest of the
+ * process instead of logging on every request.
+ */
+let fsDisabled = process.env.VERCEL ? true : false;
+
+function hasFs(): boolean {
+  return !fsDisabled;
+}
+
+/** Durable at all, or memory-only? */
+function hasDurable(): boolean {
+  return hasBlob() || hasFs();
+}
+
+/** `xray/imports/COMP_0058.json` → `<runtime dir>/imports/COMP_0058.json` */
+async function fsPathFor(pathname: string): Promise<string> {
+  const { join, resolve } = await import("node:path");
+  const root =
+    process.env.XRAY_RUNTIME_DIR ??
+    join(process.cwd(), "data", "runtime");
+  return resolve(root, pathname.replace(/^xray\//, ""));
+}
+
+async function fsGetJson<T>(pathname: string): Promise<T | null> {
+  if (!hasFs()) return null;
+  try {
+    const { readFile } = await import("node:fs/promises");
+    const raw = await readFile(await fsPathFor(pathname), "utf8");
+    return JSON.parse(raw) as T;
+  } catch (err) {
+    const code = (err as { code?: string }).code;
+    if (code !== "ENOENT") console.warn(`[fs] get ${pathname} failed:`, err);
+    return null;
+  }
+}
+
+async function fsPutJson(pathname: string, body: unknown): Promise<boolean> {
+  if (!hasFs()) return false;
+  try {
+    const { mkdir, writeFile } = await import("node:fs/promises");
+    const { dirname } = await import("node:path");
+    const file = await fsPathFor(pathname);
+    await mkdir(dirname(file), { recursive: true });
+    await writeFile(file, `${JSON.stringify(body, null, 2)}\n`, "utf8");
+    return true;
+  } catch (err) {
+    fsDisabled = true;
+    console.warn(`[fs] put ${pathname} failed, memory only from now on:`, err);
+    return false;
+  }
+}
+
+async function fsDeletePath(pathname: string): Promise<boolean> {
+  if (!hasFs()) return false;
+  try {
+    const { rm } = await import("node:fs/promises");
+    await rm(await fsPathFor(pathname), { force: true });
+    return true;
+  } catch (err) {
+    console.warn(`[fs] delete ${pathname} failed:`, err);
+    return false;
+  }
+}
+
+/** Pathnames under a prefix, e.g. every imported pack. */
+async function fsListPrefix(prefix: string): Promise<string[]> {
+  if (!hasFs()) return [];
+  try {
+    const { readdir } = await import("node:fs/promises");
+    const dir = prefix.endsWith("/") ? prefix : `${prefix}/`;
+    const names = await readdir(await fsPathFor(dir));
+    return names
+      .filter((n) => n.endsWith(".json"))
+      .map((n) => `${dir}${n}`);
+  } catch (err) {
+    const code = (err as { code?: string }).code;
+    if (code !== "ENOENT") console.warn(`[fs] list ${prefix} failed:`, err);
+    return [];
+  }
+}
+
+/** Process-local fallback when neither Blob nor the repo are writable. */
 const memoryImports = new Map<string, ImportedPack>();
 const memoryDeals = new Map<string, AcceptedDeal>();
 const memoryActions = new Map<string, StoredActions>();
@@ -56,47 +147,93 @@ const memoryDecisions = new Map<string, StoredDecision>();
 let memorySession: DemoSession | null = null;
 
 async function blobGetJson<T>(pathname: string): Promise<T | null> {
-  if (!hasBlob()) return null;
-  try {
-    const { blobs } = await list({ prefix: pathname, limit: 1 });
-    const hit = blobs.find((b) => b.pathname === pathname) ?? blobs[0];
-    if (!hit?.url) return null;
-    const res = await fetch(hit.url);
-    if (!res.ok) return null;
-    return (await res.json()) as T;
-  } catch (err) {
-    console.warn(`[blob] get ${pathname} failed:`, err);
-    return null;
+  if (hasBlob()) {
+    try {
+      const { blobs } = await list({ prefix: pathname, limit: 1 });
+      const hit = blobs.find((b) => b.pathname === pathname) ?? blobs[0];
+      if (hit?.url) {
+        const res = await fetch(hit.url);
+        if (res.ok) return (await res.json()) as T;
+      }
+    } catch (err) {
+      console.warn(`[blob] get ${pathname} failed:`, err);
+    }
   }
+  return fsGetJson<T>(pathname);
 }
 
 async function blobPutJson(pathname: string, body: unknown): Promise<boolean> {
-  if (!hasBlob()) return false;
-  try {
-    await put(pathname, JSON.stringify(body), {
-      access: "public",
-      addRandomSuffix: false,
-      contentType: "application/json",
-      allowOverwrite: true,
-    });
-    return true;
-  } catch (err) {
-    console.warn(`[blob] put ${pathname} failed:`, err);
-    return false;
+  if (hasBlob()) {
+    try {
+      await put(pathname, JSON.stringify(body), {
+        access: "public",
+        addRandomSuffix: false,
+        contentType: "application/json",
+        allowOverwrite: true,
+      });
+      return true;
+    } catch (err) {
+      console.warn(`[blob] put ${pathname} failed:`, err);
+    }
   }
+  return fsPutJson(pathname, body);
+}
+
+async function blobDeletePath(pathname: string): Promise<boolean> {
+  if (hasBlob()) {
+    try {
+      const { blobs } = await list({ prefix: pathname, limit: 1 });
+      const hit = blobs.find((b) => b.pathname === pathname) ?? blobs[0];
+      if (hit?.url) await del(hit.url);
+    } catch (err) {
+      console.warn(`[blob] delete ${pathname} failed:`, err);
+      return false;
+    }
+  }
+  await fsDeletePath(pathname);
+  return true;
 }
 
 async function blobDeletePrefix(prefix: string): Promise<number> {
-  if (!hasBlob()) return 0;
-  try {
-    const { blobs } = await list({ prefix, limit: 200 });
-    if (blobs.length === 0) return 0;
-    await del(blobs.map((b) => b.url));
-    return blobs.length;
-  } catch (err) {
-    console.warn(`[blob] delete ${prefix} failed:`, err);
-    return 0;
+  let n = 0;
+  if (hasBlob()) {
+    try {
+      const { blobs } = await list({ prefix, limit: 200 });
+      if (blobs.length > 0) {
+        await del(blobs.map((b) => b.url));
+        n += blobs.length;
+      }
+    } catch (err) {
+      console.warn(`[blob] delete ${prefix} failed:`, err);
+    }
   }
+  // Prefix may be a directory (`xray/imports/`) or an id prefix
+  // (`xray/recommendations/COMP_1`); readdir only handles the former.
+  const slash = prefix.lastIndexOf("/");
+  const dir = prefix.slice(0, slash + 1);
+  const startsWith = prefix.slice(slash + 1);
+  for (const path of await fsListPrefix(dir)) {
+    if (startsWith && !path.slice(dir.length).startsWith(startsWith)) continue;
+    if (await fsDeletePath(path)) n += 1;
+  }
+  return n;
+}
+
+/** Pathnames stored under a prefix, across whichever tier is active. */
+async function listStoredPaths(prefix: string): Promise<string[]> {
+  const paths = new Set<string>();
+  if (hasBlob()) {
+    try {
+      const { blobs } = await list({ prefix, limit: 500 });
+      for (const b of blobs) {
+        if (b.pathname.endsWith(".json")) paths.add(b.pathname);
+      }
+    } catch (err) {
+      console.warn(`[blob] list ${prefix} failed:`, err);
+    }
+  }
+  for (const p of await fsListPrefix(prefix)) paths.add(p);
+  return [...paths];
 }
 
 /** Reset memory maps — tests only. */
@@ -140,7 +277,7 @@ export async function readDecision(
 ): Promise<StoredDecision | null> {
   const mem = memoryDecisions.get(key);
   if (mem) return mem;
-  if (!hasBlob()) return null;
+  if (!hasDurable()) return null;
   try {
     const pathname = `${REC_PREFIX}${encodeURIComponent(key)}.json`;
     const hit = await blobGetJson<StoredDecision>(pathname);
@@ -161,7 +298,7 @@ export async function writeDecision(
     saved_at: new Date().toISOString(),
   };
   memoryDecisions.set(key, body);
-  if (!hasBlob()) return true;
+  if (!hasDurable()) return true;
   try {
     const pathname = `${REC_PREFIX}${encodeURIComponent(key)}.json`;
     return await blobPutJson(pathname, body);
@@ -193,7 +330,7 @@ export async function writeImportedPack(
   const id = pack.company.company_id;
   memoryImports.set(id, body);
 
-  if (!hasBlob()) return true;
+  if (!hasDurable()) return true;
   try {
     const pathname = `${IMPORT_PREFIX}${encodeURIComponent(id)}.json`;
     await blobPutJson(pathname, body);
@@ -210,7 +347,7 @@ export async function readImportedPack(
   const mem = memoryImports.get(companyId);
   if (mem) return mem;
 
-  if (!hasBlob()) return null;
+  if (!hasDurable()) return null;
   try {
     const pathname = `${IMPORT_PREFIX}${encodeURIComponent(companyId)}.json`;
     const pack = await blobGetJson<ImportedPack>(pathname);
@@ -230,17 +367,14 @@ export async function listImportedPacks(): Promise<ImportedPack[]> {
 export async function listImportedCompanies(): Promise<CompanyRef[]> {
   const fromMem = [...memoryImports.values()].map((p) => p.company);
 
-  if (!hasBlob()) return fromMem;
+  if (!hasDurable()) return fromMem;
 
   try {
-    const { blobs } = await list({ prefix: IMPORT_PREFIX, limit: 500 });
     const ids = new Set(fromMem.map((c) => c.company_id));
     const extra: CompanyRef[] = [];
-    for (const b of blobs) {
-      if (!b.pathname.endsWith(".json")) continue;
-      const res = await fetch(b.url);
-      if (!res.ok) continue;
-      const pack = (await res.json()) as ImportedPack;
+    for (const pathname of await listStoredPaths(IMPORT_PREFIX)) {
+      const pack = await blobGetJson<ImportedPack>(pathname);
+      if (!pack?.company) continue;
       memoryImports.set(pack.company.company_id, pack);
       if (!ids.has(pack.company.company_id)) {
         extra.push(pack.company);
@@ -249,7 +383,7 @@ export async function listImportedCompanies(): Promise<CompanyRef[]> {
     }
     return [...fromMem, ...extra];
   } catch (err) {
-    console.warn("[blob] listImportedCompanies failed:", err);
+    console.warn("[store] listImportedCompanies failed:", err);
     return fromMem;
   }
 }
@@ -261,7 +395,7 @@ export async function readDeal(
 ): Promise<AcceptedDeal | null> {
   const mem = memoryDeals.get(companyId);
   if (mem) return mem;
-  if (!hasBlob()) return null;
+  if (!hasDurable()) return null;
   const pathname = `${DEAL_PREFIX}${encodeURIComponent(companyId)}.json`;
   const deal = await blobGetJson<AcceptedDeal>(pathname);
   if (deal) memoryDeals.set(companyId, deal);
@@ -270,24 +404,15 @@ export async function readDeal(
 
 export async function writeDeal(deal: AcceptedDeal): Promise<boolean> {
   memoryDeals.set(deal.company_id, deal);
-  if (!hasBlob()) return true;
+  if (!hasDurable()) return true;
   const pathname = `${DEAL_PREFIX}${encodeURIComponent(deal.company_id)}.json`;
   return blobPutJson(pathname, deal);
 }
 
 export async function deleteDeal(companyId: string): Promise<boolean> {
   memoryDeals.delete(companyId);
-  if (!hasBlob()) return true;
-  try {
-    const pathname = `${DEAL_PREFIX}${encodeURIComponent(companyId)}.json`;
-    const { blobs } = await list({ prefix: pathname, limit: 1 });
-    const hit = blobs.find((b) => b.pathname === pathname) ?? blobs[0];
-    if (hit?.url) await del(hit.url);
-    return true;
-  } catch (err) {
-    console.warn("[blob] deleteDeal failed:", err);
-    return false;
-  }
+  if (!hasDurable()) return true;
+  return blobDeletePath(`${DEAL_PREFIX}${encodeURIComponent(companyId)}.json`);
 }
 
 export async function deleteDealsForCompanies(
@@ -314,7 +439,7 @@ export async function readActions(
 ): Promise<ActionRecommendation[] | null> {
   const mem = memoryActions.get(companyId);
   if (mem) return mem.actions;
-  if (!hasBlob()) return null;
+  if (!hasDurable()) return null;
   const pathname = `${ACTIONS_PREFIX}${encodeURIComponent(companyId)}.json`;
   const stored = await blobGetJson<StoredActions>(pathname);
   if (stored?.actions) {
@@ -333,24 +458,17 @@ export async function writeActions(
     saved_at: new Date().toISOString(),
   };
   memoryActions.set(companyId, body);
-  if (!hasBlob()) return true;
+  if (!hasDurable()) return true;
   const pathname = `${ACTIONS_PREFIX}${encodeURIComponent(companyId)}.json`;
   return blobPutJson(pathname, body);
 }
 
 export async function invalidateActions(companyId: string): Promise<boolean> {
   memoryActions.delete(companyId);
-  if (!hasBlob()) return true;
-  try {
-    const pathname = `${ACTIONS_PREFIX}${encodeURIComponent(companyId)}.json`;
-    const { blobs } = await list({ prefix: pathname, limit: 1 });
-    const hit = blobs.find((b) => b.pathname === pathname) ?? blobs[0];
-    if (hit?.url) await del(hit.url);
-    return true;
-  } catch (err) {
-    console.warn("[blob] invalidateActions failed:", err);
-    return false;
-  }
+  if (!hasDurable()) return true;
+  return blobDeletePath(
+    `${ACTIONS_PREFIX}${encodeURIComponent(companyId)}.json`
+  );
 }
 
 export async function invalidateActionsForCompanies(

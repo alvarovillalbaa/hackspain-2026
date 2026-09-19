@@ -9,6 +9,7 @@ import {
   type Tables,
 } from "@/lib/xray/facts-builder";
 import { getDatasetCompany } from "@/lib/xray/dataset";
+import { matchPrescoredPack, sha256 } from "@/lib/xray/import-packs";
 import { invalidateRecommendCache } from "@/lib/xray/recommend-cache";
 import { snapshotFromExported } from "@/lib/xray/snapshot";
 import {
@@ -90,6 +91,7 @@ export async function POST(req: Request) {
 
   const tables: Tables = {};
   const proxyForm = new FormData();
+  const uploadedDigests: { name: string; sha256: string }[] = [];
   const selectedFilter = form.get("selected_company_ids");
   let selectedIds: string[] | null = null;
   if (typeof selectedFilter === "string" && selectedFilter) {
@@ -105,6 +107,7 @@ export async function POST(req: Request) {
 
   for (const file of files) {
     const buf = Buffer.from(await file.arrayBuffer());
+    uploadedDigests.push({ name: file.name, sha256: sha256(buf) });
     const meta = mappings[file.name];
     if (!meta?.kind) {
       return NextResponse.json(
@@ -138,6 +141,7 @@ export async function POST(req: Request) {
   }
 
   let ingest: IngestResponse;
+  let scoredOffline = false;
   try {
     const res = await fetch(`${xrayApiUrl()}/ingest`, {
       method: "POST",
@@ -145,20 +149,33 @@ export async function POST(req: Request) {
     });
     if (!res.ok) {
       const detail = await res.text();
-      return NextResponse.json(
-        { error: `X Ray API ${res.status}: ${detail.slice(0, 500)}` },
-        { status: 502 }
-      );
+      throw new Error(`X Ray API ${res.status}: ${detail.slice(0, 500)}`);
     }
     ingest = (await res.json()) as IngestResponse;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json(
-      {
-        error: `No se pudo alcanzar XRAY_API_URL (${xrayApiUrl()}): ${msg}. Arranca con \`uv run xray-api\` y, en Vercel, un tunnel.`,
-      },
-      { status: 503 }
-    );
+    // No Python process on Vercel: serve the pack the Health Scorer already
+    // scored offline, matched byte for byte, and say so in the response.
+    const pack = matchPrescoredPack(uploadedDigests, targetCompanyId);
+    if (!pack) {
+      return NextResponse.json(
+        {
+          error: `No se pudo puntuar la importación: ${msg}. Arranca \`uv run xray-api\` (y en Vercel expón XRAY_API_URL), o sube un pack de docs/data/raw/new/ ya pre-puntuado con \`uv run xray-prescore-packs\`.`,
+        },
+        { status: 503 }
+      );
+    }
+    scoredOffline = true;
+    console.warn(`[import] API unreachable (${msg}); using pack ${pack.case}`);
+    ingest = {
+      companies: pack.companies,
+      scores: pack.scores,
+      summary: { case: pack.case, prescored: true },
+      warnings: [
+        ...pack.warnings,
+        `Sin API de scoring: se sirve el pack "${pack.case}" pre-puntuado por el Health Scorer (uv run xray-prescore-packs).`,
+      ],
+    };
   }
 
   let companies = ingest.companies.map((c) => ({ ...c, imported: true }));
@@ -215,6 +232,7 @@ export async function POST(req: Request) {
     scores,
     summary: ingest.summary,
     warnings: ingest.warnings ?? [],
+    scored_offline: scoredOffline,
     watch: {
       alerts: watchAlerts,
       triggered: true,

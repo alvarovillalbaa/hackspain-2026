@@ -1,0 +1,636 @@
+{
+  "generated_at": "2026-09-19T17:37:40+00:00",
+  "source": "xray-prescore-packs",
+  "note": "Scores del Health Scorer de Python calculados offline sobre los packs de docs/data/raw/new/. Los sirve /api/xray/import cuando no hay XRAY_API_URL alcanzable (Vercel).",
+  "packs": [
+    {
+      "case": "group",
+      "files": [
+        {
+          "name": "balances.csv",
+          "sha256": "d266215ae5bb02ccebc7e062c45059708fcc6ca272babf14bbf179c918e6f8af"
+        },
+        {
+          "name": "banking_products.csv",
+          "sha256": "f40db77ab9b1c0dd5a3a09c4c4585808d947386f2267e5e0af9269270b203a5f"
+        },
+        {
+          "name": "companies.csv",
+          "sha256": "0b22d7566f408bc9918022bb15c6871d2565d45cc1cbffc27946b2905308d4fc"
+        },
+        {
+          "name": "debt_products.csv",
+          "sha256": "799c567078a773f050d02c8a56a51ced773eb10bf123f2973aa8f9519438c16b"
+        },
+        {
+          "name": "debt_schedule_config.csv",
+          "sha256": "c3f520ad03bf3f4ee6151468e018251d2f515b982e304e95ce1917763c45bbb8"
+        },
+        {
+          "name": "groups.csv",
+          "sha256": "a9e496833abd4eb6048c78a0888f9be7acd7c60864651964c3ab580b4e73b855"
+        },
+        {
+          "name": "invoices.csv",
+          "sha256": "5f11d9a1fc37d69de802b8ca7d37697311d692604d66b3ed9f5cb5541ee2fb2a"
+        },
+        {
+          "name": "transactions.csv",
+          "sha256": "cd09e129bbe67c78c85df9d0c2807e6b3076fb7b76aa32deceeb6050e2a017dd"
+        }
+      ],
+      "target_company_id": null,
+      "company_ids": [
+        "COMP_0001",
+        "COMP_0793",
+        "COMP_0878"
+      ],
+      "companies": [
+        {
+          "company_id": "COMP_0001",
+          "group_id": "GROUP_0147",
+          "name": "Norte Distribución S.L.",
+          "country": null,
+          "currency": "EUR",
+          "n_companies_in_group": 3,
+          "imported": true
+        },
+        {
+          "company_id": "COMP_0793",
+          "group_id": "GROUP_0147",
+          "name": "Atlas Comercio 986",
+          "country": null,
+          "currency": "EUR",
+          "n_companies_in_group": 3,
+          "imported": true
+        },
+        {
+          "company_id": "COMP_0878",
+          "group_id": "GROUP_0147",
+          "name": "Iberia Group 940",
+          "country": null,
+          "currency": "EUR",
+          "n_companies_in_group": 3,
+          "imported": true
+        }
+      ],
+      "scores": [
+        {
+          "company_id": "COMP_0001",
+          "month": "2026-08",
+          "score": 59.9,
+          "level": 0.627,
+          "state_index": 0.645,
+          "outlook": "stable",
+          "trend": "flat",
+          "watch": null,
+          "confidence": "medium",
+          "n_signals": 4,
+          "n_red": 0,
+          "months_of_history": 8,
+          "signals": {
+            "cash_buffer_days": 3.56,
+            "overdue_flow_rate_3m": 0.0175,
+            "dscr_6m": 6598.411,
+            "net_cash_flow_ratio_3m": -0.1234
+          },
+          "ranks": {
+            "cash_buffer_days": 0.345,
+            "overdue_flow_rate_3m": 0.83,
+            "dscr_6m": 0.873,
+            "net_cash_flow_ratio_3m": 0.734
+          },
+          "rank_balance": 0.345,
+          "rank_overdue": 0.83,
+          "rank_dscr": 0.873,
+          "rank_inflows": 0.734,
+          "dimensions": {
+            "liquidity": 0.345,
+            "collections": 0.83,
+            "payments": 0.772,
+            "debt": 0.873,
+            "activity": 0.734
+          },
+          "peer_percentile": 75,
+          "history": [
+            {
+              "month": "2026-01",
+              "score": 54.7
+            },
+            {
+              "month": "2026-02",
+              "score": 54.7
+            },
+            {
+              "month": "2026-03",
+              "score": 57.9
+            },
+            {
+              "month": "2026-04",
+              "score": 56.9
+            },
+            {
+              "month": "2026-05",
+              "score": 57.9
+            },
+            {
+              "month": "2026-06",
+              "score": 57.9
+            },
+            {
+              "month": "2026-07",
+              "score": 58.9
+            },
+            {
+              "month": "2026-08",
+              "score": 59.9
+            }
+          ],
+          "drivers": [
+            {
+              "signal": "cash_buffer_days",
+              "delta": -1.67,
+              "since": "2026-08"
+            },
+            {
+              "signal": "overdue_flow_rate_3m",
+              "delta": 1.42,
+              "since": "2026-08"
+            },
+            {
+              "signal": "net_cash_flow_ratio_3m",
+              "delta": 0.86,
+              "since": "2026-08"
+            }
+          ],
+          "driver_detail": [
+            {
+              "signal": "cash_buffer_days",
+              "delta": -1.67,
+              "since": null,
+              "value": 3.563380134880179,
+              "rank": 0.345
+            },
+            {
+              "signal": "overdue_flow_rate_3m",
+              "delta": 1.42,
+              "since": null,
+              "value": 0.017468938825465137,
+              "rank": 0.83
+            },
+            {
+              "signal": "net_cash_flow_ratio_3m",
+              "delta": 0.86,
+              "since": null,
+              "value": -0.1234290514862525,
+              "rank": 0.734
+            },
+            {
+              "signal": "dscr_6m",
+              "delta": 0.02,
+              "since": null,
+              "value": 6598.411166666668,
+              "rank": 0.873
+            }
+          ],
+          "projection_6m": {
+            "p10": 53.9,
+            "p50": 61.9,
+            "p90": 66.5
+          },
+          "origin": "ml"
+        },
+        {
+          "company_id": "COMP_0793",
+          "month": "2026-08",
+          "score": 50.8,
+          "level": 0.493,
+          "state_index": 0.514,
+          "outlook": "stable",
+          "trend": "flat",
+          "watch": null,
+          "confidence": "medium",
+          "n_signals": 4,
+          "n_red": 0,
+          "months_of_history": 8,
+          "signals": {
+            "cash_buffer_days": 7.76,
+            "overdue_flow_rate_3m": 0.2282,
+            "dscr_6m": 21.459,
+            "net_cash_flow_ratio_3m": -0.1764
+          },
+          "ranks": {
+            "cash_buffer_days": 0.433,
+            "overdue_flow_rate_3m": 0.534,
+            "dscr_6m": 0.414,
+            "net_cash_flow_ratio_3m": 0.693
+          },
+          "rank_balance": 0.433,
+          "rank_overdue": 0.534,
+          "rank_dscr": 0.414,
+          "rank_inflows": 0.693,
+          "dimensions": {
+            "liquidity": 0.433,
+            "collections": 0.534,
+            "payments": 0.629,
+            "debt": 0.414,
+            "activity": 0.693
+          },
+          "peer_percentile": 47,
+          "history": [
+            {
+              "month": "2026-01",
+              "score": 44.0
+            },
+            {
+              "month": "2026-02",
+              "score": 45.1
+            },
+            {
+              "month": "2026-03",
+              "score": 46.5
+            },
+            {
+              "month": "2026-04",
+              "score": 47.2
+            },
+            {
+              "month": "2026-05",
+              "score": 49.4
+            },
+            {
+              "month": "2026-06",
+              "score": 49.4
+            },
+            {
+              "month": "2026-07",
+              "score": 50.8
+            },
+            {
+              "month": "2026-08",
+              "score": 50.8
+            }
+          ],
+          "drivers": [
+            {
+              "signal": "dscr_6m",
+              "delta": -1.29,
+              "since": "2026-08"
+            },
+            {
+              "signal": "overdue_flow_rate_3m",
+              "delta": 0.84,
+              "since": "2026-08"
+            },
+            {
+              "signal": "net_cash_flow_ratio_3m",
+              "delta": 0.81,
+              "since": "2026-08"
+            }
+          ],
+          "driver_detail": [
+            {
+              "signal": "dscr_6m",
+              "delta": -1.29,
+              "since": null,
+              "value": 21.459101322463695,
+              "rank": 0.414
+            },
+            {
+              "signal": "overdue_flow_rate_3m",
+              "delta": 0.84,
+              "since": null,
+              "value": 0.22817766152821697,
+              "rank": 0.534
+            },
+            {
+              "signal": "net_cash_flow_ratio_3m",
+              "delta": 0.81,
+              "since": null,
+              "value": -0.1763968830836858,
+              "rank": 0.693
+            },
+            {
+              "signal": "cash_buffer_days",
+              "delta": 0.49,
+              "since": null,
+              "value": 7.757664948651486,
+              "rank": 0.433
+            }
+          ],
+          "projection_6m": {
+            "p10": 45.4,
+            "p50": 52.2,
+            "p90": 56.1
+          },
+          "origin": "ml"
+        },
+        {
+          "company_id": "COMP_0878",
+          "month": "2026-08",
+          "score": 52.3,
+          "level": 0.515,
+          "state_index": 0.446,
+          "outlook": "stable",
+          "trend": "flat",
+          "watch": null,
+          "confidence": "medium",
+          "n_signals": 4,
+          "n_red": 0,
+          "months_of_history": 8,
+          "signals": {
+            "cash_buffer_days": 35.9,
+            "overdue_flow_rate_3m": 0.6281,
+            "dscr_6m": 9.316,
+            "net_cash_flow_ratio_3m": -0.5114
+          },
+          "ranks": {
+            "cash_buffer_days": 0.652,
+            "overdue_flow_rate_3m": 0.259,
+            "dscr_6m": 0.29,
+            "net_cash_flow_ratio_3m": 0.433
+          },
+          "rank_balance": 0.652,
+          "rank_overdue": 0.259,
+          "rank_dscr": 0.29,
+          "rank_inflows": 0.433,
+          "dimensions": {
+            "liquidity": 0.652,
+            "collections": 0.259,
+            "payments": 0.363,
+            "debt": 0.29,
+            "activity": 0.433
+          },
+          "peer_percentile": 54,
+          "history": [
+            {
+              "month": "2026-01",
+              "score": 43.5
+            },
+            {
+              "month": "2026-02",
+              "score": 45.1
+            },
+            {
+              "month": "2026-03",
+              "score": 45.1
+            },
+            {
+              "month": "2026-04",
+              "score": 49.4
+            },
+            {
+              "month": "2026-05",
+              "score": 50.8
+            },
+            {
+              "month": "2026-06",
+              "score": 51.7
+            },
+            {
+              "month": "2026-07",
+              "score": 52.3
+            },
+            {
+              "month": "2026-08",
+              "score": 52.3
+            }
+          ],
+          "drivers": [
+            {
+              "signal": "cash_buffer_days",
+              "delta": 3.02,
+              "since": "2026-08"
+            },
+            {
+              "signal": "net_cash_flow_ratio_3m",
+              "delta": -1.07,
+              "since": "2026-08"
+            },
+            {
+              "signal": "overdue_flow_rate_3m",
+              "delta": 0.74,
+              "since": "2026-08"
+            }
+          ],
+          "driver_detail": [
+            {
+              "signal": "cash_buffer_days",
+              "delta": 3.02,
+              "since": null,
+              "value": 35.90332294706393,
+              "rank": 0.652
+            },
+            {
+              "signal": "net_cash_flow_ratio_3m",
+              "delta": -1.07,
+              "since": null,
+              "value": -0.5113513251590773,
+              "rank": 0.433
+            },
+            {
+              "signal": "overdue_flow_rate_3m",
+              "delta": 0.74,
+              "since": null,
+              "value": 0.6281293140160684,
+              "rank": 0.259
+            },
+            {
+              "signal": "dscr_6m",
+              "delta": null,
+              "since": null,
+              "value": 9.315951428571429,
+              "rank": 0.29
+            }
+          ],
+          "projection_6m": {
+            "p10": 47.7,
+            "p50": 52.9,
+            "p90": 56.0
+          },
+          "origin": "ml"
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "case": "update",
+      "files": [
+        {
+          "name": "balances.csv",
+          "sha256": "1f90a7aa9f4f2000eb7903363a4b24a394f8f5546942dddee78b3a7533310953"
+        },
+        {
+          "name": "banking_products.csv",
+          "sha256": "1b293c4c800d963302e17b3411c7ef668798887995aaf2d25594fe87074d42e7"
+        },
+        {
+          "name": "companies.csv",
+          "sha256": "cf3886e8f44737f9237709896e1d3786f6e09797aa4eb7c540ac3dd302f0d000"
+        },
+        {
+          "name": "debt_products.csv",
+          "sha256": "f1382802983e97e5adbdb2a19102aee85153aaa898819ec5e12613f9069bf211"
+        },
+        {
+          "name": "debt_schedule_config.csv",
+          "sha256": "c3f520ad03bf3f4ee6151468e018251d2f515b982e304e95ce1917763c45bbb8"
+        },
+        {
+          "name": "groups.csv",
+          "sha256": "a9e496833abd4eb6048c78a0888f9be7acd7c60864651964c3ab580b4e73b855"
+        },
+        {
+          "name": "invoices.csv",
+          "sha256": "66d8418b56c8eb31a3174d2bee89c84e85cec098c01dbff4403523ae08a9b398"
+        },
+        {
+          "name": "transactions.csv",
+          "sha256": "5eac922575b42541d48c4fa68ed7c636fc59b2afd77404c0a4c06474cfc291dd"
+        }
+      ],
+      "target_company_id": "COMP_0001",
+      "company_ids": [
+        "COMP_0001"
+      ],
+      "companies": [
+        {
+          "company_id": "COMP_0001",
+          "group_id": "GROUP_0147",
+          "name": "Norte Distribución S.L.",
+          "country": null,
+          "currency": "EUR",
+          "n_companies_in_group": 3,
+          "imported": true
+        }
+      ],
+      "scores": [
+        {
+          "company_id": "COMP_0001",
+          "month": "2026-09",
+          "score": 55.1,
+          "level": 0.554,
+          "state_index": 0.377,
+          "outlook": "stable",
+          "trend": "flat",
+          "watch": null,
+          "confidence": "medium",
+          "n_signals": 4,
+          "n_red": 1,
+          "months_of_history": 9,
+          "signals": {
+            "cash_buffer_days": -21.49,
+            "overdue_flow_rate_3m": 0.5462,
+            "dscr_6m": 12126.822,
+            "net_cash_flow_ratio_3m": -0.3704
+          },
+          "ranks": {
+            "cash_buffer_days": 0.011,
+            "overdue_flow_rate_3m": 0.289,
+            "dscr_6m": 0.9,
+            "net_cash_flow_ratio_3m": 0.542
+          },
+          "rank_balance": 0.011,
+          "rank_overdue": 0.289,
+          "rank_dscr": 0.9,
+          "rank_inflows": 0.542,
+          "dimensions": {
+            "liquidity": 0.011,
+            "collections": 0.289,
+            "payments": 0.441,
+            "debt": 0.9,
+            "activity": 0.542
+          },
+          "peer_percentile": 62,
+          "history": [
+            {
+              "month": "2026-01",
+              "score": 52.9
+            },
+            {
+              "month": "2026-02",
+              "score": 54.7
+            },
+            {
+              "month": "2026-03",
+              "score": 56.9
+            },
+            {
+              "month": "2026-04",
+              "score": 56.9
+            },
+            {
+              "month": "2026-05",
+              "score": 56.9
+            },
+            {
+              "month": "2026-06",
+              "score": 56.9
+            },
+            {
+              "month": "2026-07",
+              "score": 58.5
+            },
+            {
+              "month": "2026-08",
+              "score": 58.9
+            },
+            {
+              "month": "2026-09",
+              "score": 55.1
+            }
+          ],
+          "drivers": [
+            {
+              "signal": "cash_buffer_days",
+              "delta": -4.29,
+              "since": "2026-09"
+            },
+            {
+              "signal": "net_cash_flow_ratio_3m",
+              "delta": 0.69,
+              "since": "2026-09"
+            }
+          ],
+          "driver_detail": [
+            {
+              "signal": "cash_buffer_days",
+              "delta": -4.29,
+              "since": "2026-09",
+              "value": -21.485692592592592,
+              "rank": 0.011
+            },
+            {
+              "signal": "net_cash_flow_ratio_3m",
+              "delta": 0.69,
+              "since": null,
+              "value": -0.37042735615962374,
+              "rank": 0.542
+            },
+            {
+              "signal": "overdue_flow_rate_3m",
+              "delta": 0.24,
+              "since": null,
+              "value": 0.5461639986977559,
+              "rank": 0.289
+            },
+            {
+              "signal": "dscr_6m",
+              "delta": 0.14,
+              "since": null,
+              "value": 12126.822333333335,
+              "rank": 0.9
+            }
+          ],
+          "projection_6m": {
+            "p10": 44.3,
+            "p50": 51.7,
+            "p90": 56.5
+          },
+          "origin": "ml"
+        }
+      ],
+      "warnings": []
+    }
+  ]
+}

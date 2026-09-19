@@ -48,4 +48,10 @@ next-env.d.ts
 
 # Copia local de las salidas del pipeline para el agente (ver AGENTS.md)
 # Anclado a /data/ para no ignorar web/lib/xray/dataset/ (fact pack commiteado).
-/data/
+/data/*
+# data/runtime/ es la persistencia en repo (sesión, imports, deals, decisiones):
+# los JSON son estado de sesión y no van a git; la nota que lo explica, sí.
+# Hay que re-incluir el directorio porque git no entra en uno excluido.
+!/data/runtime/
+/data/runtime/*
+!/data/runtime/README.md

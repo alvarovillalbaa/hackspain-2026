@@ -12,7 +12,7 @@
  *      token): the demo still runs, but nothing outlives a cold start.
  *
  * Prefixes:
- *   xray/session.json
+ *   xray/session.json  (focus group for /start; not a table filter)
  *   xray/imports/{id}.json
  *   xray/recommendations/{company:action}.json
  *   xray/actions/{id}.json

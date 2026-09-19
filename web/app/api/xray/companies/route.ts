@@ -24,6 +24,7 @@ export async function GET() {
       { status: 503 }
     );
   }
+  // Echo the rehearsal focus; the list is the full fact pack + imports.
   const session = await readSession();
   const groupId = session.group_id;
 
@@ -31,13 +32,11 @@ export async function GET() {
   const packs = await listImportedPacks();
   const packById = new Map(packs.map((p) => [p.company.company_id, p]));
   const importedById = new Map(imported.map((c) => [c.company_id, c]));
-  const base = listDatasetCompanies().filter((c) => c.group_id === groupId);
+  const base = listDatasetCompanies();
   const ids = new Set(base.map((c) => c.company_id));
   const merged = [
     ...base,
-    ...imported.filter(
-      (c) => c.group_id === groupId && !ids.has(c.company_id)
-    ),
+    ...imported.filter((c) => !ids.has(c.company_id)),
   ];
 
   const companies: CompanyRef[] = merged.map((c) => {

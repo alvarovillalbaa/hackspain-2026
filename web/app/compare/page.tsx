@@ -40,10 +40,10 @@ function CompareInner() {
       {ids.length < 2 ? (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Elige 2 o 3 empresas en el portfolio.
+            Elige 2 o 3 empresas en Compañías.
           </p>
-          <Link href="/" className={cn(buttonVariants({ size: "sm" }))}>
-            Volver al portfolio
+          <Link href="/companies" className={cn(buttonVariants({ size: "sm" }))}>
+            Volver a compañías
           </Link>
         </div>
       ) : loading || peersLoading ? (
@@ -56,8 +56,8 @@ function CompareInner() {
           <p className="text-sm text-muted-foreground">
             No hay score para esas empresas.
           </p>
-          <Link href="/" className={cn(buttonVariants({ size: "sm" }))}>
-            Volver al portfolio
+          <Link href="/companies" className={cn(buttonVariants({ size: "sm" }))}>
+            Volver a compañías
           </Link>
         </div>
       ) : (

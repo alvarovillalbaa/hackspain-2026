@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Noto_Sans, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Providers } from "@/components/xray/providers";
+import { embatFontVars } from "@/components/embat/font";
 
 const sourceSans3Heading = Source_Sans_3({
   subsets: ["latin"],
@@ -43,7 +44,8 @@ export default function RootLayout({
         geistMono.variable,
         "font-sans",
         notoSans.variable,
-        sourceSans3Heading.variable
+        sourceSans3Heading.variable,
+        embatFontVars
       )}
     >
       <body className="flex min-h-full flex-col">

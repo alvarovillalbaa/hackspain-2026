@@ -250,7 +250,7 @@ export function ImportDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange} disablePointerDismissal>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="embat-ui font-embat max-h-[85vh] overflow-y-auto rounded-[8px] border border-[#dce0e6] sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
             {lockedTarget ? "Actualizar datos" : "Importar empresas"}

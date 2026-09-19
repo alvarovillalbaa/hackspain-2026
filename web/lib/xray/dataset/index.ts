@@ -8,6 +8,11 @@ import {
   type PeerCompany,
 } from "../peers";
 import { rollupGroup, type GroupScore } from "../group-score";
+import {
+  buildCompanySummaries,
+  type CompanySummary,
+} from "../company-summary";
+import { buildGroupSummaries, type GroupSummary } from "../group-summary";
 import type { CompanyRef, ScoreSnapshot } from "../types";
 import { snapshotFromExported } from "../snapshot";
 import type {
@@ -126,6 +131,14 @@ export function getPeerCohort(
   k?: unknown
 ): PeerCohort | null {
   return nearestPeers(companyId, peerUniverse(), parseK(k));
+}
+
+export function listGroupSummaries(): GroupSummary[] {
+  return buildGroupSummaries(companies, scoresList, factsList);
+}
+
+export function listCompanySummaries(): CompanySummary[] {
+  return buildCompanySummaries(companies, scoresList, factsList);
 }
 
 export function getGroupScore(groupId: string): GroupScore | null {

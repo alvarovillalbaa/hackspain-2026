@@ -14,13 +14,13 @@ This Next.js app also hosts an eve agent. `withEve()` in `next.config.ts` mounts
 
 - `agent/` — the agent (instructions, `agent.ts`, tools, channels, subagents, …). Import its files with `#…` (for example `#lib/foo.ts`).
 - `app/chat/`, `app/s/`, `app/_components/` — the web chat that talks to the agent through `useEveAgent` from `eve/react`.
-- `app/page.tsx`, `app/c/` — demo X Ray (portfolio → score → marketplace). Docs: `docs/frontend_v0.md`. Runtime: `docs/auditoria_plataforma.md`.
+- `app/page.tsx`, `app/companies/`, `app/c/` — demo X Ray (grupos → compañías → ficha → marketplace). Docs: `docs/frontend_v0.md`. Runtime: `docs/auditoria_plataforma.md`.
 
 For a content-only change to the agent's identity, purpose, tone, or response guidelines, edit `agent/instructions.md`. Preserve the model in `agent/agent.ts` unless asked to change it.
 
 The retrieval tools in `agent/tools/` and the marketplace subagents read the committed fact pack in `lib/xray/dataset/` (`companies.json`, `facts.json`, `scores.json`) through `agent/lib/data.ts` and `agent/lib/facts.ts`. Acciones de la ficha: `GET /api/xray/actions` llama a `recommendActions` (mismos hechos que `get_recommended_actions`); el LLM no elige importes. Regenerate with `npm run build:facts` (cash/debt/invoices) and `uv run xray-export-web` (Health Scorer).
 
-Mutable demo state persists to Vercel Blob when `BLOB_READ_WRITE_TOKEN` is set (memory Maps otherwise): `xray/session.json` (active group, default `GROUP_0147`), `xray/imports/`, `xray/recommendations/`, `xray/actions/`, `xray/deals/`, `xray/alerts/`. Hidden operator UI: `/start` (noindex, not in nav). Portfolio `/` lists only the active group.
+Mutable demo state persists to Vercel Blob when `BLOB_READ_WRITE_TOKEN` is set (memory Maps otherwise): `xray/session.json` (focus group for rehearsal, default `GROUP_0147`; does not filter `/` or `/companies`), `xray/imports/`, `xray/recommendations/`, `xray/actions/`, `xray/deals/`, `xray/alerts/`. Hidden operator UI: `/start` (noindex, not in nav). Pins that group (reset deals/actions) and opens `/g/{id}`. A “Demo” chip marks it on the groups table and group ficha.
 
 ## X Ray demo seam
 

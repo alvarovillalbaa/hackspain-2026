@@ -70,7 +70,7 @@ export function StartPage() {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(body.error || `HTTP ${res.status}`);
       }
-      router.push("/");
+      router.push(`/g/${groupId}`);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo fijar el grupo");
@@ -107,16 +107,17 @@ export function StartPage() {
           Operador · noindex
         </p>
         <h1 className="font-heading text-2xl font-semibold tracking-tight">
-          Grupo de la demo
+          Foco de la demo
         </h1>
         <p className="text-sm text-muted-foreground">
-          Elige el grupo compartido en Blob. Todo el mundo en la URL de Vercel
-          verá el mismo portfolio. Por defecto:{" "}
-          <span className="font-mono">{DEFAULT_GROUP_ID}</span>.
+          Grupos y compañías listan todo el fact pack. Aquí fijas el grupo
+          compartido en Blob: reset de deals/acciones y el default{" "}
+          <span className="font-mono">{DEFAULT_GROUP_ID}</span>. Al elegir se
+          abre su ficha.
         </p>
         {data ? (
           <p className="text-sm">
-            Activo:{" "}
+            Foco:{" "}
             <Badge variant="secondary" className="font-mono">
               {data.active_group_id}
             </Badge>
@@ -187,7 +188,7 @@ export function StartPage() {
                         {g.group_id}
                       </span>
                       {active ? (
-                        <Badge className="text-[10px]">activo</Badge>
+                        <Badge className="text-[10px]">foco</Badge>
                       ) : null}
                     </div>
                     <p className="truncate text-xs text-muted-foreground">
@@ -196,7 +197,7 @@ export function StartPage() {
                     </p>
                   </div>
                   <span className="shrink-0 text-xs text-muted-foreground">
-                    {busy === g.group_id ? "…" : "Seleccionar"}
+                    {busy === g.group_id ? "…" : "Fijar y abrir"}
                   </span>
                 </button>
               </li>

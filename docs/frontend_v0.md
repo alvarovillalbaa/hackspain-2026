@@ -1,8 +1,8 @@
 # Frontend v0 — X Ray demo
 
-Last updated: 2026-09-19 (Blob session + `/start` + portfolio por grupo)
+Last updated: 2026-09-19 (chrome Embat sin sidebar: grupos + compañías + ficha)
 
-Demo de pantallas dentro de `web/`. Sin auth, sin sidebar. Hay backend propio: rutas `app/api/xray/*` (Next) y, para importar CSV, FastAPI de ingest (`POST /ingest`), no `GET /score`.
+Demo de pantallas dentro de `web/`. Chrome advisor: top nav text (Grupos / Compañías / Ajustes), Inter Variable + Inter Display, chips cyan. Sin sidebar ni logo Embat. Hay backend propio: rutas `app/api/xray/*` (Next) y, para importar CSV, FastAPI de ingest (`POST /ingest`), no `GET /score`.
 
 Todo el dato de UI pasa por un único seam: `provider` en [`web/lib/xray/provider.ts`](../web/lib/xray/provider.ts). Cómo está cableado el resto (fact pack, Eve, dos scores): [`auditoria_plataforma.md`](auditoria_plataforma.md). Persistencia mutable en Vercel Blob (JSON), no Postgres ni Supabase.
 
@@ -10,21 +10,25 @@ Todo el dato de UI pasa por un único seam: `provider` en [`web/lib/xray/provide
 
 | Ruta | Qué hace |
 |---|---|
-| `/` | Portfolio del **grupo activo**: filtros (grupo/banda/divisa/origen) + búsqueda + Importar en el header; score/banda en cada fila |
-| `/start` | Ruta oculta (noindex): elige el grupo compartido de la demo |
-| `/c/[companyId]` | Ficha: pills Health Score / Dimensiones (radiales), sub-scores con barras, drivers, acciones 1-col (click → marketplace) + Trayectoria con forecast 6m. Sin título de página |
+| `/` | Grupos empresariales (tabla: score, estado, empresas, mejor empresa, cierre agregado) |
+| `/companies` | Compañías (tabla: score, estado, situación, tipo, cierre + filtros banda/divisa/origen + comparar + import) |
+| `/grupo-empresarial` | Redirect a `/` |
+| `/start` | Operador (noindex): fija el grupo foco en Blob (reset deals/acciones) y abre `/g/{id}`. No filtra las tablas. |
+| `/c/[companyId]` | Ficha: gauge + desglose Bankability/Business + drivers + acciones + trayectoria 3/6/12m + radar + peers + deal/import |
+| `/g/[groupId]` | Ficha de grupo: mismo spine + acciones del grupo + empresas |
 | `/c/[companyId]/a/[actionId]` | Amortize dashboard o marketplace (ofertas izquierda, importe derecha; barra apilada score + uplift) |
 | `/c/[companyId]/a/[actionId]/p/[productId]` | Detalle producto (página, no modal). `?p=` redirige aquí. Solicitar → 10s → Aprobar |
+| `/compare` | Comparar 2–3 empresas (desde `/companies`) |
 | `/chat` | Chat del agente (fuera del shell advisor) |
 | `/s`, `/s/[sessionId]` | Chat sin sesión / reanudar sesión |
 
-Chrome: tema claro, `max-w-7xl` / padding estrecho, breadcrumb-only (sin h1/descripción), sin badges «Eve». Reasoning = icono (i) + tooltip.
+Chrome advisor: tema claro, Inter, radio 4px, `#11a8ff`, breadcrumbs en nested routes. Chat Eve fuera. Reasoning = icono (i) + tooltip.
 
 ## Persistencia Blob (demo DB)
 
 | Prefijo | Qué |
 |---|---|
-| `xray/session.json` | `{ group_id }` compartido en la URL live |
+| `xray/session.json` | Grupo foco de ensayo (`/start`); no filtra tablas |
 | `xray/imports/{id}.json` | Packs CSV importados |
 | `xray/recommendations/{company:action}.json` | Decisiones Eve marketplace |
 | `xray/actions/{id}.json` | Títulos/rationale de ficha Eve |
@@ -41,7 +45,7 @@ export const provider: XrayProvider = eveProvider;
 
 `eveProvider` solo habla con `/api/xray/*` (el fact pack no entra en el bundle del browser). No hay `mockProvider`: el portfolio sale de `lib/xray/dataset/` (Health Scorer + facts de `docs/data/raw`).
 
-Métodos: `listCompanies`, `getScore`, `listActions`, `listProducts`, `getNegotiation`, `getAmortizeContext`, `importCompanies`.
+Métodos: `listCompanies`, `listGroups`, `listCompanySummaries`, `getScore`, `listActions`, `listProducts`, `getNegotiation`, `getAmortizeContext`, `importCompanies`.
 
 Cada bloque de datos lleva `origin: "ml" | "llm" | "eve" | "deterministic"`. El export Python escribe `origin: "ml"` aunque el motor sea reglas + isotónica.
 
@@ -87,7 +91,7 @@ El detalle de producto no cierra el flujo: `termImprovements` (determinista) sug
 | Acciones / facts | `recommendActions` + `facts.json`; Eve redacta títulos; sin fallback TEMPLATES en API |
 | Marketplace Eve | quantity → offering → match; cifras recomputadas en servidor |
 | Import CSV | FastAPI `POST /ingest` + Blob |
-| Grupo activo | Blob `session.json` + `/start` |
+| Grupo foco (demo) | Blob `session.json` + `/start`. No filtra `/` ni `/companies`; chip «Demo» en la tabla de grupos. |
 | Chat Eve | `/chat`, `/s`; tools leen el mismo fact pack |
 | Watcher | `watch-rules.ts` + cron + post-import |
 | `GET /score` FastAPI, `/debt`, `/whatif`, `/explain` | **No existen.** Plan §6, no runtime |

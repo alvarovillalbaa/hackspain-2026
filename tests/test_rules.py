@@ -348,3 +348,13 @@ def test_model_without_projection_does_not_load_silently(tmp_path):
     path.write_text(json.dumps(raw), encoding="utf-8")
     with pytest.raises(ValueError, match="proyección"):
         RulesModel.load(path)
+
+
+def test_model_with_inconsistent_projection_does_not_load(tmp_path):
+    m = rules.fit(_train_table(), RulesConfig(), train_until="2025-08")
+    raw = json.loads(json.dumps(asdict(m)))
+    raw["projection_points"] = raw["projection_points"][:-1]  # un tramo menos que cortes
+    path = tmp_path / "half_model.json"
+    path.write_text(json.dumps(raw), encoding="utf-8")
+    with pytest.raises(ValueError, match="inconsistente"):
+        RulesModel.load(path)

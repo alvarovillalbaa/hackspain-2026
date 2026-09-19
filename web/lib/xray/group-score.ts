@@ -187,11 +187,12 @@ export function rollupGroup(
 
   const alerts: ScoreSnapshot["alerts"] = [];
   if (watch) {
-    const meta = watchMeta(watch);
+    // `watch` junta varios códigos ("a · b") y watchMeta solo conoce uno: traducir código a código
+    const message = watches.map((w) => watchMeta(w).description).join(" ");
     alerts.push({
       id: `${groupId}-watch`,
       severity: "warning",
-      message: meta.description ?? watch,
+      message: message || watch,
     });
   }
   for (const m of weighted) {

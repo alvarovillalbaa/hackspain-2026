@@ -77,6 +77,22 @@ def test_cli_writes_group_rollup_next_to_scores(tmp_path):
     assert row["score_min"] == pytest.approx(august.loc["MOCK_DETERIORATION", "score"])
 
 
+def test_cli_events_csv_wins_over_events_from_data(tmp_path):
+    """`--events` tiene precedencia sobre `--events-from-data`: con ambos, nunca se llama a
+    `xray.data.load()` y el watch sale solo del csv (aquí ni siquiera existe el dataset)."""
+    ev = tmp_path / "events.csv"
+    pd.DataFrame({"company_id": ["MOCK_DIP"], "month": ["2026-08"],
+                  "kind": ["main_customer_lost"]}).to_csv(ev, index=False)
+    out = tmp_path / "scores.parquet"
+    rc = score.main(["--features", str(features.FIXTURE_PATH), "--out", str(out),
+                     "--companies", str(tmp_path / "missing.csv"),
+                     "--events", str(ev), "--events-from-data"])
+    assert rc == 0
+    got = pd.read_parquet(out)
+    row = got[(got["company_id"] == "MOCK_DIP") & (got["month"] == "2026-08")].iloc[0]
+    assert row["watch"] == "main_customer_lost"
+
+
 def test_cli_with_model_and_extra_writes_only_extra_rows(tmp_path):
     ref = features.load_fixture()
     extra_path = tmp_path / "extra.csv"

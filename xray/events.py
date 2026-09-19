@@ -5,18 +5,22 @@ Tres códigos, los de `rules.WATCH_KINDS`:
 - `main_customer_lost`: un cliente recurrente (factura emitida en ≥ `recurrence_months` de los
   últimos `window_months`) que pesaba ≥ `min_share` de la facturación emitida de esa ventana y no
   factura en los últimos `absence_months` meses (t incluido). Evento en el primer mes que cumple;
-  no se repite mientras siga cumpliendo (mismo episodio).
+  no se repite mientras siga cumpliendo (mismo episodio). La ventana mira toda la historia de
+  facturas, también antes del primer mes de la rejilla: un cliente que se fue justo antes de que
+  empiecen las features cuenta igual.
 - `large_maturity`: contrato de `debt_schedule_config` cuyo último pago cae en los
   `maturity_days` días siguientes al fin del mes t, con saldo pendiente ≥
   `maturity_min_outflow_months` meses de cargos (media de 3 meses de `outflows_eur`). Evento en
   el primer mes dentro de la ventana que cumple el saldo, una vez por contrato. Solo existe con
   cuadro de amortización.
-- `expensive_new_debt`: producto de deuda dado de alta con tipo de contrato por encima del
-  percentil `expensive_percentile` de los tipos de contrato de la tabla. Evento en el mes del alta;
-  sin contrato no hay evento (nulo, no estimado; `interest_charge` no sirve, plan §5). El percentil
-  se calcula sobre la tabla que recibe el llamador: con menos de `expensive_min_contracts`
-  contratos con tipo no hay referencia y el evento no se emite (en ingest/packs la tabla es la del
-  propio pack, así que allí prácticamente nunca dispara; la referencia es la de la cartera).
+- `expensive_new_debt`: producto de deuda dado de alta con tipo de contrato por encima del tipo
+  de referencia «caro». La referencia es el percentil `expensive_percentile` congelado en el
+  `RulesModel` (`cfg.expensive_rate_threshold`, lo escribe `xray-score` con `rate_reference`);
+  si el llamador no lo trae, se calcula sobre la tabla recibida pero solo con los contratos
+  existentes a fin del mes del alta — sin mirar el futuro — y exigiendo ≥ `expensive_min_contracts`
+  contratos con tipo. Evento en el mes del alta; sin contrato no hay evento (nulo, no estimado;
+  `interest_charge` no sirve, plan §5). Los productos del cuadro sin alta en `debt_products`
+  cuentan como preexistentes en el pool.
 
 Determinista y sin mirar el futuro: lo que ocurre en t solo usa filas con fecha ≤ fin de t. La
 rejilla es la de la tabla de features (empresa, mes): fuera de ella no se emiten eventos.
@@ -47,6 +51,7 @@ class EventsConfig:
     maturity_min_outflow_months: float = 1.0  # saldo pendiente mínimo, en meses de cargos
     expensive_percentile: float = 75.0  # percentil de los tipos de contrato que define «caro»
     expensive_min_contracts: int = 4  # contratos con tipo mínimos para que el percentil sea referencia
+    expensive_rate_threshold: float | None = None  # percentil congelado del RulesModel; anula el pool propio
 
 
 def _empty() -> pd.DataFrame:
@@ -77,8 +82,9 @@ def main_customer_lost(invoices: pd.DataFrame, grid: pd.DataFrame, cfg: EventsCo
     iss = inv[(inv["direction"] == "issued") & inv["counterparty_id"].notna() & inv["issuance_date"].notna()]
     if len(iss) == 0:
         return _empty()
-    months = pd.period_range(grid["month"].min(), grid["month"].max(), freq="M")
     iss = iss.assign(month=iss["issuance_date"].dt.to_period("M"), a=iss["amount"].abs())
+    # la recurrencia mira toda la historia de facturas, también antes del primer mes de la rejilla
+    months = pd.period_range(min(grid["month"].min(), iss["month"].min()), grid["month"].max(), freq="M")
     iss = iss[iss["month"].isin(months)]
     if len(iss) == 0:
         return _empty()
@@ -129,29 +135,79 @@ def large_maturity(schedule: pd.DataFrame, features: pd.DataFrame, grid: pd.Data
     return _in_grid(first, grid, "large_maturity")
 
 
-def expensive_new_debt(debt: pd.DataFrame, schedule: pd.DataFrame, grid: pd.DataFrame, cfg: EventsConfig) -> pd.DataFrame:
-    """Alta de deuda con tipo de contrato por encima del percentil de los contratos de la tabla."""
-    if len(debt) == 0 or len(schedule) == 0 or len(grid) == 0:
-        return _empty()
-    if not {"product_id", "company_id", "created_at"} <= set(debt.columns):
-        return _empty()
-    if not {"product_id", "annual_interest_rate_or_spread"} <= set(schedule.columns):
-        return _empty()
-    rates = schedule.dropna(subset=["product_id", "annual_interest_rate_or_spread"]).copy()
+def _contract_rates(schedule: pd.DataFrame | None) -> pd.DataFrame:
+    """Un tipo de contrato por `product_id` del cuadro de amortización (el más bajo, ordenado)."""
+    cols = ["product_id", "annual_interest_rate_or_spread"]
+    if schedule is None or len(schedule) == 0 or not set(cols) <= set(schedule.columns):
+        return pd.DataFrame(columns=cols)
+    rates = schedule.dropna(subset=cols).copy()
     rates["annual_interest_rate_or_spread"] = pd.to_numeric(rates["annual_interest_rate_or_spread"], errors="coerce")
     rates = rates.dropna(subset=["annual_interest_rate_or_spread"])
     rates = rates.sort_values("annual_interest_rate_or_spread").drop_duplicates("product_id")
-    rates = rates[["product_id", "annual_interest_rate_or_spread"]]
-    if len(rates) < cfg.expensive_min_contracts:
+    return rates[cols].reset_index(drop=True)
+
+
+def _rate_pool(rates: pd.DataFrame, debt: pd.DataFrame, cutoff: pd.Timestamp | None) -> pd.Series:
+    """Tipos de los contratos conocidos a fecha `cutoff`: alta en `debt_products` ≤ cutoff, o
+    sin alta (preexistentes). Sin cutoff devuelve toda la tabla."""
+    if cutoff is None or not {"product_id", "created_at"} <= set(debt.columns):
+        return rates["annual_interest_rate_or_spread"]
+    created = debt.dropna(subset=["product_id"])[["product_id", "created_at"]].copy()
+    created["created_at"] = pd.to_datetime(created["created_at"], errors="coerce")
+    created = created.drop_duplicates("product_id")
+    merged = rates.merge(created, on="product_id", how="left")["created_at"]
+    return rates.loc[(merged.isna() | (merged <= cutoff)).to_numpy(), "annual_interest_rate_or_spread"]
+
+
+def rate_reference(tables: dict[str, pd.DataFrame], cfg: EventsConfig | None = None,
+                   as_of: str | None = None) -> float | None:
+    """Percentil `expensive_percentile` de los tipos de contrato conocidos a `as_of` (YYYY-MM);
+    None si el pool es menor que `expensive_min_contracts`. `xray-score` lo congela en el
+    RulesModel para que ingest y los packs comparen contra la cartera de referencia."""
+    cfg = cfg or EventsConfig()
+    debt = tables.get("debt_products")
+    if debt is None or len(debt) == 0:
+        return None
+    rates = _contract_rates(tables.get("debt_schedule_config"))
+    if rates.empty:
+        return None
+    cutoff = pd.Period(str(as_of), "M").end_time if as_of else None
+    pool = _rate_pool(rates, debt, cutoff)
+    if len(pool) < cfg.expensive_min_contracts:
+        return None
+    return float(np.percentile(pool, cfg.expensive_percentile))
+
+
+def expensive_new_debt(debt: pd.DataFrame, schedule: pd.DataFrame, grid: pd.DataFrame, cfg: EventsConfig) -> pd.DataFrame:
+    """Alta de deuda con tipo por encima del de referencia: el percentil congelado en el modelo
+    o el percentil de los contratos existentes a fin del mes del alta."""
+    if len(debt) == 0 or len(grid) == 0:
         return _empty()
-    threshold = float(np.percentile(rates["annual_interest_rate_or_spread"], cfg.expensive_percentile))
+    if not {"product_id", "company_id", "created_at"} <= set(debt.columns):
+        return _empty()
+    rates = _contract_rates(schedule)
+    if rates.empty:
+        return _empty()
     new = debt.dropna(subset=["product_id", "company_id", "created_at"]).merge(rates, on="product_id")
     new = new.assign(created_at=pd.to_datetime(new["created_at"], errors="coerce"))
-    new = new[new["created_at"].notna() & (new["annual_interest_rate_or_spread"] > threshold)]
+    new = new[new["created_at"].notna()]
     if len(new) == 0:
         return _empty()
-    rows = pd.DataFrame({"company_id": new["company_id"].to_numpy(), "month": new["created_at"].dt.to_period("M").to_numpy()})
-    return _in_grid(rows, grid, "expensive_new_debt")
+    new = new.assign(month=new["created_at"].dt.to_period("M"))
+    if cfg.expensive_rate_threshold is not None:
+        sel = new[new["annual_interest_rate_or_spread"] > cfg.expensive_rate_threshold]
+    else:
+        parts = []
+        for m, grp in new.groupby("month", sort=True):
+            pool = _rate_pool(rates, debt, m.end_time)
+            if len(pool) < cfg.expensive_min_contracts:
+                continue
+            thr = float(np.percentile(pool, cfg.expensive_percentile))
+            parts.append(grp[grp["annual_interest_rate_or_spread"] > thr])
+        sel = pd.concat(parts) if parts else new.iloc[0:0]
+    if len(sel) == 0:
+        return _empty()
+    return _in_grid(sel[["company_id", "month"]].drop_duplicates(), grid, "expensive_new_debt")
 
 
 def build(tables: dict[str, pd.DataFrame], features: pd.DataFrame, cfg: EventsConfig | None = None) -> pd.DataFrame:

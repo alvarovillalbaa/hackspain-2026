@@ -20,6 +20,7 @@ Detalle y justificación de cada columna: docs/features_seam.md.
 
 from __future__ import annotations
 
+import sys
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -412,6 +413,9 @@ def build(data_dir: str | os.PathLike | None = None, *, tables: dict[str, pd.Dat
 
 
 def main(argv: list[str] | None = None) -> int:
+    # consola cp1252 de Windows: UTF-8 para separadores y flechas de los resúmenes
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     """`xray-features [--data-dir …] [--out artifacts/features.parquet]`: construye y guarda la tabla."""
     import argparse
     import time
@@ -429,7 +433,7 @@ def main(argv: list[str] | None = None) -> int:
     df.to_parquet(out, index=False)
     cov = df[SIGNAL_COLUMNS].notna().mean()
     print(f"{len(df):,} filas · {df['company_id'].nunique()} empresas · {df['month'].min()}…{df['month'].max()} "
-          f"· {time.time() - t0:.0f} s → {out}")
+          f"· {time.time() - t0:.0f} s -> {out}")
     print("cobertura de señales: " + " · ".join(f"{c} {v:.0%}" for c, v in cov.items()))
     return 0
 

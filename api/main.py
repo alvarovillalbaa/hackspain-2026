@@ -213,7 +213,8 @@ async def ingest(
         feats = features.derive(feats)
 
     profile = state.model.profile()
-    events_ext = events.build(tables, feats)
+    events_cfg = events.EventsConfig(expensive_rate_threshold=state.model.expensive_rate_p75)
+    events_ext = events.build(tables, feats, events_cfg)
     scored = rules.run(feats, model=state.model, rank_against=profile, events_ext=events_ext)
     peer = state.peer_ref if state.peer_ref else None
     records = records_from_scored(scored, peer_ref=peer, tables=tables)

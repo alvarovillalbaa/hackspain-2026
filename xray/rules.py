@@ -82,6 +82,7 @@ class RulesModel:
     rank_profile: dict | None = None
     projection_edges: list[float] | None = None  # cortes de nivel de los tramos (len = tramos + 1)
     projection_points: list[list[float]] | None = None  # por tramo: [p10, p50, p90] del score a t+6
+    expensive_rate_p75: float | None = None  # tipo «caro» de referencia (events.rate_reference a train_until)
 
     def predict(self, level: np.ndarray | pd.Series) -> np.ndarray:
         x = np.asarray(level, dtype=float)

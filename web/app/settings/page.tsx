@@ -75,16 +75,6 @@ export default function SettingsPage() {
 
   return (
     <AppShell crumbs={[{ label: "Ajustes" }]}>
-      <div className="mb-8 space-y-2">
-        <h1 className="font-heading text-3xl font-semibold tracking-tight">
-          Ajustes
-        </h1>
-        <p className="max-w-xl text-sm text-muted-foreground">
-          Conecta Slack una vez. A partir de ahí las alertas del watcher salen
-          solas al canal: no hay cola que pulsar.
-        </p>
-      </div>
-
       <Card className="max-w-xl">
         <CardHeader>
           <div className="flex items-center justify-between gap-3">

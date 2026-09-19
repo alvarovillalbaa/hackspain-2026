@@ -32,7 +32,7 @@ export function ScoreDeltaBar({
         aria-label={`Score ${current.toFixed(1)}, uplift ${formatDelta(uplift)}`}
       >
         <div
-          className="absolute inset-y-0 left-0 bg-primary"
+          className="absolute inset-y-0 left-0 bg-primary/70"
           style={{ width: `${basePct}%` }}
         />
         {addPct > 0 ? (

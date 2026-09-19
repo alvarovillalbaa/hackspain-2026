@@ -14,7 +14,7 @@ export function OfferRequestBar({
     useOfferRequest(10_000);
 
   return (
-    <div className="sticky bottom-0 z-10 -mx-3 border-t bg-background/95 px-3 py-4 backdrop-blur sm:-mx-4 sm:px-4">
+    <div className="sticky bottom-0 z-10 -mx-2 border-t bg-background/95 px-2 py-4 backdrop-blur sm:-mx-3 sm:px-3">
       {isPending ? (
         <div className="mb-3 space-y-2">
           <div className="flex items-center justify-between text-sm">
@@ -51,7 +51,7 @@ export function OfferRequestBar({
             onClick={start}
             disabled={disabled}
           >
-            Solicitar oferta
+            Solicitar
           </Button>
         ) : null}
 

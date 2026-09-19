@@ -39,9 +39,6 @@ function CompareInner() {
     <AppShell crumbs={[{ label: "Comparar" }]}>
       {ids.length < 2 ? (
         <div className="space-y-3">
-          <h1 className="font-heading text-3xl font-semibold tracking-tight">
-            Comparar
-          </h1>
           <p className="text-sm text-muted-foreground">
             Elige 2 o 3 empresas en el portfolio.
           </p>
@@ -56,9 +53,6 @@ function CompareInner() {
         </div>
       ) : rows.length < 2 ? (
         <div className="space-y-3">
-          <h1 className="font-heading text-3xl font-semibold tracking-tight">
-            Comparar
-          </h1>
           <p className="text-sm text-muted-foreground">
             No hay score para esas empresas.
           </p>

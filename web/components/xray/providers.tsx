@@ -5,7 +5,12 @@ import { Toaster } from "@/components/ui/toast";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="light"
+      forcedTheme="light"
+      enableSystem={false}
+    >
       <Toaster>{children}</Toaster>
     </ThemeProvider>
   );

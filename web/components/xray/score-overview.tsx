@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useState, type ReactNode } from "react";
 import { ScoreGauge } from "@/components/xray/score-gauge";
 import { ScoreBandBadge, OutlookBadge } from "@/components/xray/score-band-badge";
 import { DimensionRadar, type RadarSeries } from "@/components/xray/dimension-radar";
@@ -7,8 +9,8 @@ import {
   type TrajectorySeries,
 } from "@/components/xray/score-trajectory";
 import { DriverList } from "@/components/xray/driver-list";
-import { OriginChip } from "@/components/xray/origin-chip";
 import { PeerCohortCard } from "@/components/xray/peer-cohort-card";
+import { ReasoningHint } from "@/components/xray/reasoning-hint";
 import {
   Card,
   CardContent,
@@ -18,16 +20,41 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Progress,
+  ProgressLabel,
+  ProgressValue,
+} from "@/components/ui/progress";
 import { watchMeta } from "@/lib/xray/bands";
-import { formatDelta, formatMonth } from "@/lib/xray/format";
+import { formatDelta, formatMonth, formatNumber } from "@/lib/xray/format";
 import type { PeerCohort } from "@/lib/xray/peers";
 import type {
+  DimensionKey,
+  Dimensions,
   Driver,
   Projection6m,
   ScoreSnapshot,
   SubScores,
 } from "@/lib/xray/types";
 import { cn } from "@/lib/utils";
+
+const DIMENSION_KEYS: DimensionKey[] = [
+  "liquidity",
+  "collections",
+  "payments",
+  "debt",
+  "activity",
+];
+
+const DIMENSION_LABELS: Record<DimensionKey, string> = {
+  liquidity: "Liquidez",
+  collections: "Cobros",
+  payments: "Pagos",
+  debt: "Deuda",
+  activity: "Actividad",
+};
+
+type GaugeMode = "score" | "dimensions";
 
 export function scoreSubtitle(
   snapshot: ScoreSnapshot,
@@ -39,36 +66,58 @@ export function scoreSubtitle(
   return `Financial Health Score · confianza ${snapshot.confidence} · peer p${snapshot.peer_percentile}`;
 }
 
+function subScoreReasoning(label: string, value: number): string {
+  return `${label}: ${formatNumber(value)} / 100. Componente del Health Score (no es el mapa isotónico).`;
+}
+
+function dimensionReasoning(key: DimensionKey, value: number): string {
+  const pts = Math.round(value * 100);
+  return `${DIMENSION_LABELS[key]}: ${pts} / 100. Dimensión normalizada del fact pack.`;
+}
+
+function trajectoryReasoning(
+  snapshot: ScoreSnapshot,
+  projection?: Projection6m
+): string {
+  const trend =
+    snapshot.trend === "improving"
+      ? "mejora"
+      : snapshot.trend === "worsening"
+        ? "empeora"
+        : "se mantiene";
+  const base = `Tendencia ${trend}. Outlook ${snapshot.outlook}.`;
+  if (!projection) return base;
+  return `${base} Forecast 6m: p10 ${projection.p10.toFixed(1)}, p50 ${projection.p50.toFixed(1)}, p90 ${projection.p90.toFixed(1)}.`;
+}
+
 export function SubScoresCard({ subScores }: { subScores: SubScores }) {
   return (
     <Card size="sm">
       <CardHeader>
         <CardTitle>Sub-scores</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2 font-mono tabular-nums">
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Bankability</span>
-          <span>{subScores.bankability}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Business</span>
-          <span>{subScores.business_profile}</span>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-export function ProjectionCard({ projection }: { projection: Projection6m }) {
-  return (
-    <Card size="sm">
-      <CardHeader>
-        <CardTitle>Proyección 6m</CardTitle>
-        <CardDescription>p10 / p50 / p90</CardDescription>
-      </CardHeader>
-      <CardContent className="font-mono text-sm tabular-nums">
-        {projection.p10.toFixed(1)} · {projection.p50.toFixed(1)} ·{" "}
-        {projection.p90.toFixed(1)}
+      <CardContent className="space-y-4">
+        <Progress value={subScores.bankability}>
+          <div className="flex w-full items-center gap-2">
+            <ProgressLabel>Bankability</ProgressLabel>
+            <ReasoningHint
+              text={subScoreReasoning("Bankability", subScores.bankability)}
+            />
+            <ProgressValue />
+          </div>
+        </Progress>
+        <Progress value={subScores.business_profile}>
+          <div className="flex w-full items-center gap-2">
+            <ProgressLabel>Business</ProgressLabel>
+            <ReasoningHint
+              text={subScoreReasoning(
+                "Business profile",
+                subScores.business_profile
+              )}
+            />
+            <ProgressValue />
+          </div>
+        </Progress>
       </CardContent>
     </Card>
   );
@@ -77,28 +126,23 @@ export function ProjectionCard({ projection }: { projection: Projection6m }) {
 export function ScoreHeader({
   snapshot,
   title,
-  subtitle,
 }: {
   snapshot: ScoreSnapshot;
-  title: ReactNode;
-  subtitle?: string;
+  /** Compact identity for compare columns; omitted on the ficha (breadcrumb owns it). */
+  title?: ReactNode;
 }) {
   const watch = watchMeta(snapshot.watch ?? null);
   return (
-    <div className="flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <div className="mb-2 flex items-center gap-2">
-          <OriginChip origin={snapshot.origin} />
-          <span className="font-mono text-xs text-muted-foreground">
-            {snapshot.company_id} · {formatMonth(snapshot.month)}
-          </span>
-        </div>
-        <h1 className="font-heading text-3xl font-semibold tracking-tight">
-          {title}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {subtitle ?? scoreSubtitle(snapshot)}
-        </p>
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="min-w-0">
+        {title ? (
+          <div className="font-heading text-base font-semibold tracking-tight">
+            {title}
+          </div>
+        ) : null}
+        <span className="font-mono text-xs text-muted-foreground">
+          {snapshot.company_id} · {formatMonth(snapshot.month)}
+        </span>
       </div>
       <div className="flex items-center gap-2">
         <ScoreBandBadge band={snapshot.band} />
@@ -109,47 +153,111 @@ export function ScoreHeader({
   );
 }
 
+function GaugeModePills({
+  mode,
+  onChange,
+}: {
+  mode: GaugeMode;
+  onChange: (m: GaugeMode) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {(
+        [
+          ["score", "Health Score"],
+          ["dimensions", "Dimensiones"],
+        ] as const
+      ).map(([id, label]) => (
+        <button
+          key={id}
+          type="button"
+          onClick={() => onChange(id)}
+          className={cn(
+            "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+            mode === id
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted text-muted-foreground hover:text-foreground"
+          )}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function DimensionsGauges({ dimensions }: { dimensions: Dimensions }) {
+  return (
+    <div className="flex flex-wrap justify-center gap-4 sm:justify-start">
+      {DIMENSION_KEYS.map((key) => {
+        const pts = dimensions[key] * 100;
+        return (
+          <ScoreGauge
+            key={key}
+            score={pts}
+            label={DIMENSION_LABELS[key]}
+            size="sm"
+            reasoning={dimensionReasoning(key, dimensions[key])}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 export function ScoreHero({
   snapshot,
   extras,
   color,
   layout = "split",
+  showDrivers = false,
 }: {
   snapshot: ScoreSnapshot;
   extras?: ReactNode;
   color?: string;
   layout?: "split" | "stack";
+  showDrivers?: boolean;
 }) {
+  const [mode, setMode] = useState<GaugeMode>("score");
   const watch = watchMeta(snapshot.watch ?? null);
   return (
-    <div
-      className={cn(
-        "grid gap-6",
-        layout === "split" && "lg:grid-cols-[240px_1fr]"
-      )}
-    >
-      <ScoreGauge
-        score={snapshot.score}
-        band={snapshot.band}
-        reasoning={snapshot.explanation}
-        color={color}
-      />
-      <div className="grid gap-4 sm:grid-cols-2">
-        <SubScoresCard subScores={snapshot.sub_scores} />
-        <ProjectionCard projection={snapshot.projection_6m} />
-        {watch.active ? (
-          <Alert className="sm:col-span-2">
-            <AlertTitle>Watch activo</AlertTitle>
-            <AlertDescription>{watch.description}</AlertDescription>
-          </Alert>
-        ) : null}
-        {snapshot.alerts.map((a) => (
-          <Alert key={a.id} className="sm:col-span-2" variant="destructive">
-            <AlertTitle>{a.severity}</AlertTitle>
-            <AlertDescription>{a.message}</AlertDescription>
-          </Alert>
-        ))}
-        {extras}
+    <div className="space-y-4">
+      <GaugeModePills mode={mode} onChange={setMode} />
+      <div
+        className={cn(
+          "grid gap-6",
+          layout === "split" && "lg:grid-cols-[minmax(240px,1fr)_1fr]"
+        )}
+      >
+        {mode === "score" ? (
+          <ScoreGauge
+            score={snapshot.score}
+            band={snapshot.band}
+            reasoning={snapshot.explanation}
+            color={color}
+          />
+        ) : (
+          <DimensionsGauges dimensions={snapshot.dimensions} />
+        )}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <SubScoresCard subScores={snapshot.sub_scores} />
+          {showDrivers ? (
+            <DriversPanel drivers={snapshot.drivers} compact />
+          ) : null}
+          {watch.active ? (
+            <Alert className="sm:col-span-2">
+              <AlertTitle>Watch activo</AlertTitle>
+              <AlertDescription>{watch.description}</AlertDescription>
+            </Alert>
+          ) : null}
+          {snapshot.alerts.map((a) => (
+            <Alert key={a.id} className="sm:col-span-2" variant="destructive">
+              <AlertTitle>{a.severity}</AlertTitle>
+              <AlertDescription>{a.message}</AlertDescription>
+            </Alert>
+          ))}
+          {extras}
+        </div>
       </div>
     </div>
   );
@@ -187,20 +295,27 @@ export function TrajectoryPanel({
   history,
   projection,
   series,
+  reasoning,
 }: {
   history?: ScoreSnapshot["history"];
   projection?: Projection6m;
   series?: TrajectorySeries[];
+  reasoning?: string | null;
 }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Trayectoria</CardTitle>
-        <CardDescription>
-          {series && series.length > 0
-            ? "Histórico del Health Score"
-            : "Histórico + abanico a 6 meses"}
-        </CardDescription>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <CardTitle>Trayectoria</CardTitle>
+            <CardDescription>
+              {series && series.length > 0
+                ? "Histórico del Health Score"
+                : "Histórico + abanico a 6 meses"}
+            </CardDescription>
+          </div>
+          {reasoning ? <ReasoningHint text={reasoning} /> : null}
+        </div>
       </CardHeader>
       <CardContent>
         <ScoreTrajectory
@@ -213,12 +328,20 @@ export function TrajectoryPanel({
   );
 }
 
-export function DriversPanel({ drivers }: { drivers: Driver[] }) {
+export function DriversPanel({
+  drivers,
+  compact = false,
+}: {
+  drivers: Driver[];
+  compact?: boolean;
+}) {
   return (
-    <Card>
+    <Card size={compact ? "sm" : "default"}>
       <CardHeader>
         <CardTitle>Drivers</CardTitle>
-        <CardDescription>Señales que mueven el score</CardDescription>
+        {!compact ? (
+          <CardDescription>Señales que mueven el score</CardDescription>
+        ) : null}
       </CardHeader>
       <CardContent>
         <DriverList drivers={drivers} />
@@ -239,11 +362,10 @@ function peersExtras(
   return null;
 }
 
-/** Header + gauge + sub-scores + proyección + comparables. Same cards as the ficha. */
+/** Compact column for compare: identity + gauge pills + sub-scores (+ drivers). */
 export function ScoreColumn({
   snapshot,
   title,
-  subtitle,
   extras,
   peers,
   currency,
@@ -252,8 +374,7 @@ export function ScoreColumn({
   className,
 }: {
   snapshot: ScoreSnapshot;
-  title: ReactNode;
-  subtitle?: string;
+  title?: ReactNode;
   extras?: ReactNode;
   peers?: PeerCohort | null;
   currency?: string;
@@ -262,17 +383,14 @@ export function ScoreColumn({
   className?: string;
 }) {
   return (
-    <div className={cn("min-w-0 space-y-10", className)}>
-      <ScoreHeader
-        snapshot={snapshot}
-        title={title}
-        subtitle={subtitle ?? scoreSubtitle(snapshot, peers)}
-      />
+    <div className={cn("min-w-0 space-y-6", className)}>
+      <ScoreHeader snapshot={snapshot} title={title} />
       <ScoreHero
         snapshot={snapshot}
         extras={peersExtras(peers, currency, extras)}
         color={color}
         layout={layout}
+        showDrivers
       />
     </div>
   );
@@ -280,39 +398,39 @@ export function ScoreColumn({
 
 export function ScoreOverview({
   snapshot,
-  title,
-  subtitle,
   extras,
   peers,
   currency,
-  drivers = true,
+  actions,
 }: {
   snapshot: ScoreSnapshot;
-  title: ReactNode;
-  subtitle?: string;
   extras?: ReactNode;
   peers?: PeerCohort | null;
   currency?: string;
-  drivers?: boolean;
+  /** Acciones column left of Trayectoria. */
+  actions?: ReactNode;
 }) {
   return (
     <>
       <ScoreColumn
         snapshot={snapshot}
-        title={title}
-        subtitle={subtitle}
         extras={extras}
         peers={peers}
         currency={currency}
       />
-      <div className="grid gap-6 lg:grid-cols-2">
-        <DimensionsPanel dimensions={snapshot.dimensions} />
+      <div
+        className={cn(
+          "grid gap-6",
+          actions ? "lg:grid-cols-[minmax(16rem,22rem)_1fr]" : "lg:grid-cols-1"
+        )}
+      >
+        {actions}
         <TrajectoryPanel
           history={snapshot.history}
           projection={snapshot.projection_6m}
+          reasoning={trajectoryReasoning(snapshot, snapshot.projection_6m)}
         />
       </div>
-      {drivers ? <DriversPanel drivers={snapshot.drivers} /> : null}
     </>
   );
 }

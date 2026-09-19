@@ -159,8 +159,3 @@ def test_validate_rejects_nan_in_required_column(mock):
     broken.loc[0, "min_balance_eur"] = np.nan
     with pytest.raises(ValueError, match="no anulable"):
         features.validate(broken)
-
-
-def test_build_is_not_implemented_yet():
-    with pytest.raises(NotImplementedError, match="slice #2"):
-        features.build()

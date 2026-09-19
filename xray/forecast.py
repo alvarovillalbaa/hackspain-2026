@@ -51,6 +51,8 @@ class ForecastResult:
     max_source_timestamp: str
     calibration_version: str = "unavailable"
     calibration_status: str = "not_fitted"
+    calibration_metadata: dict[str, object] | None = None
+    calibrated_medians: dict[int, float] | None = None
     intervals: dict[int, tuple[float, float] | None] | None = None
     threshold_probabilities: dict[int, dict[str, float] | None] | None = None
 
@@ -63,6 +65,11 @@ class ForecastResult:
             "max_source_timestamp": self.max_source_timestamp,
             "calibration_version": self.calibration_version,
             "calibration_status": self.calibration_status,
+            "calibration_metadata": self.calibration_metadata,
+            "calibrated_medians": {
+                str(horizon): (self.calibrated_medians or {}).get(horizon)
+                for horizon in self.horizons
+            },
             "intervals": {
                 str(horizon): (self.intervals or {}).get(horizon) for horizon in self.horizons
             },

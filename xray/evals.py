@@ -12,6 +12,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from .calibration import CalibrationArtifact, fit_calibration_artifact
+from .features import calculate_features
+from .forecast import BaselineForecaster
+from .ledger import Ledger
+from .scorecard import Scorecard
+
 
 @dataclass(frozen=True)
 class RollingFold:
@@ -182,18 +188,256 @@ def lightgbm_acceptance_gate(
     return decisions
 
 
+def evaluate_probability_calibration(
+    artifact: CalibrationArtifact, predictions: pd.DataFrame
+) -> dict[str, dict[str, dict[str, float | int]]]:
+    report: dict[str, dict[str, dict[str, float | int]]] = {}
+    records: list[dict[str, object]] = []
+    for row in predictions.itertuples(index=False):
+        horizon = int(row.horizon_days)
+        residuals = artifact.score_residuals.get(horizon)
+        if residuals is None or not len(residuals):
+            continue
+        scenarios = np.clip(float(row.predicted_score) + residuals, 0, 100)
+        raw = {
+            "score_below_40": float(np.mean(scenarios < 40)),
+            "decline_at_least_15": float(np.mean(scenarios <= float(row.current_score) - 15)),
+        }
+        actual = {
+            "score_below_40": float(row.actual_score) < 40,
+            "decline_at_least_15": float(row.actual_score) <= float(row.current_score) - 15,
+        }
+        for event, probability in raw.items():
+            calibrator = artifact.probability_calibrators.get(f"{horizon}:{event}")
+            calibrated = (
+                float(calibrator.predict(probability)[0]) if calibrator is not None else probability
+            )
+            records.append(
+                {
+                    "horizon": horizon,
+                    "event": event,
+                    "probability": calibrated,
+                    "actual": float(actual[event]),
+                }
+            )
+    frame = pd.DataFrame(records)
+    for (horizon, event), rows in frame.groupby(["horizon", "event"]):
+        report.setdefault(str(int(horizon)), {})[str(event)] = {
+            "rows": len(rows),
+            "event_rate": round(float(rows["actual"].mean()), 4),
+            "mean_probability": round(float(rows["probability"].mean()), 4),
+            "brier_score": round(float(((rows["probability"] - rows["actual"]) ** 2).mean()), 4),
+        }
+    return report
+
+
+def baseline_walk_forward_backtest(
+    ledger: Ledger,
+    entity_ids: list[str],
+    origins: list[pd.Timestamp],
+    *,
+    horizons: tuple[int, ...] = (30, 90, 180),
+    minimum_history_days: int = 365,
+) -> pd.DataFrame:
+    """Generate strictly trailing baseline predictions and reconstructed future outcomes."""
+
+    rows: list[dict[str, object]] = []
+    scorecard = Scorecard()
+    forecaster = BaselineForecaster(ledger, scorecard)
+    maximum_horizon = max(horizons)
+    for entity_number, entity_id in enumerate(entity_ids, start=1):
+        for origin in origins:
+            try:
+                current_snapshot = ledger.snapshot(entity_id, origin)
+                if (
+                    not current_snapshot.coverage.transactions
+                    or not current_snapshot.coverage.reconstructable_balance
+                    or current_snapshot.coverage.history_days < minimum_history_days
+                ):
+                    continue
+                current_panel = calculate_features(current_snapshot)
+                current = scorecard.score(current_panel)
+                forecast = forecaster.forecast(
+                    entity_id,
+                    origin,
+                    horizon_days=maximum_horizon,
+                    score_horizons=horizons,
+                )
+                for horizon in horizons:
+                    target = current_snapshot.as_of + pd.Timedelta(days=horizon)
+                    actual_snapshot = ledger.snapshot(entity_id, target)
+                    if (
+                        not actual_snapshot.coverage.transactions
+                        or not actual_snapshot.coverage.reconstructable_balance
+                    ):
+                        continue
+                    actual_panel = calculate_features(actual_snapshot)
+                    actual = scorecard.score(actual_panel)
+                    predicted = forecast.horizons[horizon].score
+                    rows.append(
+                        {
+                            "entity_id": entity_id,
+                            "origin": current_snapshot.as_of,
+                            "target_date": target,
+                            "horizon_days": horizon,
+                            "current_score": current.score,
+                            "predicted_score": predicted.score,
+                            "actual_score": actual.score,
+                            "confidence": current.confidence,
+                            "balance_reliability": current_snapshot.coverage.balance_reliability,
+                            "reconstructed_products": current_snapshot.audit.get(
+                                "backward_reconstructed_products", 0
+                            ),
+                            "is_out_of_fold": True,
+                            "model": forecaster.model_version,
+                        }
+                    )
+            except (KeyError, ValueError, IndexError):
+                continue
+        if entity_number % 25 == 0:
+            print(
+                f"backtested {entity_number}/{len(entity_ids)} entities; {len(rows)} rows",
+                flush=True,
+            )
+    return pd.DataFrame(rows)
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Evaluate out-of-fold X-Ray forecasts")
-    parser.add_argument("predictions", help="CSV or Parquet file with forecast outcomes")
-    parser.add_argument("--output", help="optional JSON report path")
+    parser = argparse.ArgumentParser(description="Backtest and evaluate X-Ray forecasts")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    report_parser = subparsers.add_parser("report", help="report metrics from predictions")
+    report_parser.add_argument("predictions", help="CSV or Parquet forecast outcomes")
+    report_parser.add_argument("--output", help="optional JSON report path")
+    backtest_parser = subparsers.add_parser(
+        "backtest", help="fit calibration from reconstructed balance histories"
+    )
+    backtest_parser.add_argument("--data", default="artifacts/cache")
+    backtest_parser.add_argument(
+        "--predictions-output", default="artifacts/calibration/predictions.parquet"
+    )
+    backtest_parser.add_argument(
+        "--artifact-output", default="artifacts/calibration/calibration.pkl"
+    )
+    backtest_parser.add_argument("--origin-start")
+    backtest_parser.add_argument("--origin-end")
+    backtest_parser.add_argument("--frequency", default="ME")
+    backtest_parser.add_argument("--entity-type", choices=("group", "company"), default="group")
+    backtest_parser.add_argument("--max-entities", type=int)
+    backtest_parser.add_argument("--minimum-history-days", type=int, default=365)
+    backtest_parser.add_argument("--coverage", type=float, default=0.80)
     args = parser.parse_args(argv)
-    path = Path(args.predictions)
-    frame = pd.read_parquet(path) if path.suffix == ".parquet" else pd.read_csv(path)
-    report = evaluate_predictions(frame)
-    payload = json.dumps(report, indent=2)
-    if args.output:
-        Path(args.output).write_text(payload, encoding="utf-8")
-    print(payload)
+    if args.command == "report":
+        path = Path(args.predictions)
+        frame = pd.read_parquet(path) if path.suffix == ".parquet" else pd.read_csv(path)
+        report = evaluate_predictions(frame)
+        payload = json.dumps(report, indent=2)
+        if args.output:
+            Path(args.output).write_text(payload, encoding="utf-8")
+        print(payload)
+        return 0
+
+    ledger = Ledger(args.data, reconstruct_balances=True)
+    maximum_horizon = 180
+    transaction_start = pd.to_datetime(ledger.transactions["date"]).min().normalize()
+    data_end = pd.to_datetime(ledger.balances["date"]).max().normalize()
+    origin_start = (
+        pd.Timestamp(args.origin_start)
+        if args.origin_start
+        else transaction_start + pd.Timedelta(days=365)
+    )
+    origin_end = (
+        pd.Timestamp(args.origin_end)
+        if args.origin_end
+        else data_end - pd.Timedelta(days=maximum_horizon)
+    )
+    origins = list(pd.date_range(origin_start, origin_end, freq=args.frequency))
+    if not origins:
+        raise ValueError("no valid backtest origins for the selected date range")
+    if args.entity_type == "group":
+        entity_ids = sorted(ledger.companies["group_id"].dropna().unique().tolist())
+    else:
+        entity_ids = sorted(ledger.companies["company_id"].dropna().unique().tolist())
+    if args.max_entities:
+        entity_ids = entity_ids[: args.max_entities]
+    predictions = baseline_walk_forward_backtest(
+        ledger,
+        entity_ids,
+        origins,
+        minimum_history_days=args.minimum_history_days,
+    )
+    if predictions.empty:
+        raise ValueError("backtest produced no predictions")
+    prediction_path = Path(args.predictions_output)
+    prediction_path.parent.mkdir(parents=True, exist_ok=True)
+    predictions.to_parquet(prediction_path, index=False)
+    unique_origins = sorted(pd.to_datetime(predictions["origin"]).unique())
+    if len(unique_origins) < 3:
+        raise ValueError("at least three historical origins are required for calibration")
+    calibration_origin_count = max(2, int(np.floor(len(unique_origins) * 0.67)))
+    calibration_origins = unique_origins[:calibration_origin_count]
+    validation_origins = unique_origins[calibration_origin_count:]
+    calibration_rows = predictions.loc[
+        pd.to_datetime(predictions["origin"]).isin(calibration_origins)
+    ].copy()
+    validation_rows = predictions.loc[
+        pd.to_datetime(predictions["origin"]).isin(validation_origins)
+    ].copy()
+    artifact = fit_calibration_artifact(
+        calibration_rows,
+        coverage=args.coverage,
+        metadata={
+            "model_version": BaselineForecaster.model_version,
+            "score_version": Scorecard().config.version,
+            "entity_type": args.entity_type,
+            "origin_start": min(origins).isoformat(),
+            "origin_end": max(origins).isoformat(),
+            "balance_mode": "single_anchor_backward",
+            "balance_reliability": 0.75,
+            "calibration_origins": [
+                pd.Timestamp(origin).isoformat() for origin in calibration_origins
+            ],
+            "validation_origins": [
+                pd.Timestamp(origin).isoformat() for origin in validation_origins
+            ],
+        },
+    )
+    validation_rows["interval_lower"] = validation_rows.apply(
+        lambda row: artifact.conformal.interval(
+            float(row["predicted_score"]) + artifact.point_bias[int(row["horizon_days"])],
+            int(row["horizon_days"]),
+            str(row["confidence"]),
+        )[0],
+        axis=1,
+    )
+    validation_rows["interval_upper"] = validation_rows.apply(
+        lambda row: artifact.conformal.interval(
+            float(row["predicted_score"]) + artifact.point_bias[int(row["horizon_days"])],
+            int(row["horizon_days"]),
+            str(row["confidence"]),
+        )[1],
+        axis=1,
+    )
+    validation_report = evaluate_predictions(validation_rows)
+    validation_report["probability_calibration"] = evaluate_probability_calibration(
+        artifact, validation_rows
+    )
+    artifact.metadata["validation"] = validation_report
+    artifact.save(args.artifact_output)
+    report = evaluate_predictions(predictions)
+    print(
+        json.dumps(
+            {
+                "predictions": str(prediction_path),
+                "artifact": str(args.artifact_output),
+                "origins": [origin.isoformat() for origin in origins],
+                "entities": len(entity_ids),
+                "calibration": artifact.metadata,
+                "backtest_evaluation": report,
+                "untouched_validation": validation_report,
+            },
+            indent=2,
+        )
+    )
     return 0
 
 

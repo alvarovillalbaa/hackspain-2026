@@ -99,7 +99,7 @@ def calculate_features(snapshot: LedgerSnapshot, window_days: int = 180) -> Feat
     outflows = -operating.loc[operating["amount_accounting"].lt(0), "amount_accounting"]
     history_coverage = min(1.0, snapshot.coverage.history_days / max(window_days, 1))
     tx_reliability = min(history_coverage, min(1.0, len(tx) / 30.0))
-    balance_reliability = 1.0 if snapshot.coverage.reconstructable_balance else 0.0
+    balance_reliability = snapshot.coverage.balance_reliability
     source_ts = snapshot.max_source_timestamp.isoformat()
     result: dict[str, FeatureValue] = {}
 
@@ -308,6 +308,7 @@ def calculate_features(snapshot: LedgerSnapshot, window_days: int = 180) -> Feat
         coverage_flags={
             "transactions": snapshot.coverage.transactions,
             "reconstructable_balance": snapshot.coverage.reconstructable_balance,
+            "balance_reliability": snapshot.coverage.balance_reliability,
             "invoices": snapshot.coverage.invoices,
             "debt_schedule": snapshot.coverage.debt_schedule,
             "history_days": snapshot.coverage.history_days,

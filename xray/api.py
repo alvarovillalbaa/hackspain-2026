@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import os
 from functools import lru_cache
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
 
+from .calibration import CalibrationArtifact
 from .forecast import BaselineForecaster
 from .ledger import Ledger
 from .score import default_data_directory, score_entity
@@ -17,6 +19,26 @@ app = FastAPI(title="X-Ray financial health", version="0.1.0")
 @lru_cache(maxsize=1)
 def get_ledger() -> Ledger:
     return Ledger(os.environ.get("XRAY_DATA_DIR", str(default_data_directory())))
+
+
+@lru_cache(maxsize=2)
+def get_calibration(entity_type: str) -> CalibrationArtifact | None:
+    configured = os.environ.get("XRAY_CALIBRATION_ARTIFACT")
+    candidates = (
+        [Path(configured)]
+        if configured
+        else [
+            Path(f"artifacts/calibration/{entity_type}.pkl"),
+            Path("artifacts/calibration/calibration.pkl"),
+        ]
+    )
+    for path in candidates:
+        if not path.exists():
+            continue
+        artifact = CalibrationArtifact.load(path)
+        if artifact.metadata.get("entity_type") in {None, entity_type}:
+            return artifact
+    return None
 
 
 def _score(entity_id: str, as_of: str):
@@ -53,6 +75,11 @@ def forecast(
             horizon_days=horizon_days,
             score_horizons=(horizon_days,),
         )
+        entity_type, _ = get_ledger().resolve_entity(entity_id)
+        calibration = get_calibration(entity_type)
+        if calibration is not None:
+            current = _score(entity_id, as_of).result
+            result = calibration.apply(result, current_score=current.score, entity_type=entity_type)
         return result.to_dict(include_weekly=True)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

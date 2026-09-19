@@ -25,3 +25,19 @@ def test_future_transaction_change_does_not_change_earlier_snapshot(mini_cache):
     tx.to_parquet(mini_cache / "transactions.parquet", index=False)
     after = Ledger(mini_cache).snapshot("C1", "2024-07-31").liquid_balance
     assert before == after
+
+
+def test_single_anchor_backward_reconstruction_is_explicit(mini_cache):
+    balances = pd.read_parquet(mini_cache / "balances.parquet")
+    balances.loc[balances.product_id.eq("B1"), ["date", "balance"]] = [
+        pd.Timestamp("2024-08-31"),
+        2100.0,
+    ]
+    balances.to_parquet(mini_cache / "balances.parquet", index=False)
+    strict = Ledger(mini_cache).snapshot("C1", "2024-07-31")
+    reconstructed = Ledger(mini_cache, reconstruct_balances=True).snapshot("C1", "2024-07-31")
+    assert strict.liquid_balance is None
+    assert reconstructed.liquid_balance == 1200.0
+    assert reconstructed.coverage.balance_reliability == 0.75
+    assert reconstructed.audit["backward_reconstructed_products"] == 1
+    assert reconstructed.audit["balance_lineage_max_timestamp"].startswith("2024-08-31")

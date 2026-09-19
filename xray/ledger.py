@@ -26,6 +26,7 @@ NON_OPERATING_CATEGORIES = {
 class Coverage:
     transactions: bool
     reconstructable_balance: bool
+    balance_reliability: float
     invoices: bool
     debt_schedule: bool
     history_days: int
@@ -59,8 +60,14 @@ class Ledger:
     CSV mode is useful for tests; production commands should first run ``xray-cache``.
     """
 
-    def __init__(self, data_dir: str | Path = "artifacts/cache") -> None:
+    def __init__(
+        self,
+        data_dir: str | Path = "artifacts/cache",
+        *,
+        reconstruct_balances: bool = False,
+    ) -> None:
         self.data_dir = Path(data_dir)
+        self.reconstruct_balances = reconstruct_balances
 
     def _read(self, name: str, columns: list[str] | None = None) -> pd.DataFrame:
         parquet = self.data_dir / f"{name}.parquet"
@@ -113,6 +120,15 @@ class Ledger:
         return frame
 
     @cached_property
+    def _transaction_company_indices(self) -> dict[str, np.ndarray]:
+        return {
+            str(company_id): positions
+            for company_id, positions in self.transactions.groupby(
+                "company_id", sort=False
+            ).indices.items()
+        }
+
+    @cached_property
     def invoices(self) -> pd.DataFrame:
         frame = self._read("invoices")
         if "amount_accounting" not in frame:
@@ -128,6 +144,26 @@ class Ledger:
                 | (frame["due_date"] >= frame["issuance_date"] - pd.Timedelta(days=31))
             )
         return frame
+
+    @cached_property
+    def _invoice_company_indices(self) -> dict[str, np.ndarray]:
+        return {
+            str(company_id): positions
+            for company_id, positions in self.invoices.groupby(
+                "company_id", sort=False
+            ).indices.items()
+        }
+
+    @staticmethod
+    def _company_rows(
+        frame: pd.DataFrame,
+        indices: dict[str, np.ndarray],
+        company_ids: tuple[str, ...],
+    ) -> pd.DataFrame:
+        positions = [indices[company_id] for company_id in company_ids if company_id in indices]
+        if not positions:
+            return frame.iloc[0:0]
+        return frame.iloc[np.concatenate(positions)]
 
     @cached_property
     def debt_schedules(self) -> pd.DataFrame:
@@ -148,11 +184,9 @@ class Ledger:
     def _transactions_as_of(
         self, company_ids: tuple[str, ...], as_of: pd.Timestamp
     ) -> pd.DataFrame:
-        tx = self.transactions
+        tx = self._company_rows(self.transactions, self._transaction_company_indices, company_ids)
         result = tx.loc[
-            tx["company_id"].isin(company_ids)
-            & pd.to_datetime(tx["date"]).le(as_of)
-            & tx["status"].fillna("").str.lower().eq("booked")
+            pd.to_datetime(tx["date"]).le(as_of) & tx["status"].fillna("").str.lower().eq("booked")
         ].copy()
         result["date"] = pd.to_datetime(result["date"])
         result["category"] = result["category"].fillna("-").str.lower()
@@ -183,51 +217,103 @@ class Ledger:
             self.balances["product_id"].isin(products["product_id"])
         ].copy()
         if snapshots.empty:
-            return products.assign(balance_as_of=np.nan, reconstructable=False)
-        snapshots["date"] = pd.to_datetime(snapshots["date"])
-        # A balance observation is usable only once it has actually been recorded. Backward
-        # reconstruction from a later extraction would make an earlier score change when a
-        # future transaction changes, violating the point-in-time contract.
-        latest = (
-            snapshots.loc[snapshots["date"].le(as_of)]
-            .sort_values("date")
-            .drop_duplicates("product_id", keep="last")
-        )
-        result = products.merge(
-            latest[["product_id", "date", "balance"]], on="product_id", how="left"
-        )
-        created = pd.to_datetime(result["created_at"], errors="coerce")
-        result["reconstructable"] = (
-            result["balance"].notna()
-            & result["date"].le(as_of)
-            & (created.isna() | created.le(as_of))
-        )
-        if result["date"].notna().any():
-            movements = tx[["product_id", "date", "amount_accounting"]].merge(
-                result[["product_id", "date"]].rename(columns={"date": "balance_date"}),
-                on="product_id",
-                how="inner",
+            return products.assign(
+                date=pd.NaT,
+                balance=np.nan,
+                balance_native_as_of=np.nan,
+                balance_as_of=np.nan,
+                reconstructable=False,
+                reconstruction_method="unavailable",
+                reconstruction_reliability=0.0,
             )
-            movements = movements.loc[movements["date"].gt(movements["balance_date"])]
-        else:
-            movements = tx.iloc[0:0]
-        movement_sum = movements.groupby("product_id")["amount_accounting"].sum()
-        result["balance_as_of"] = result["balance"] + result["product_id"].map(movement_sum).fillna(
-            0.0
+        snapshots["date"] = pd.to_datetime(snapshots["date"])
+        company_tx = self._company_rows(
+            self.transactions, self._transaction_company_indices, company_ids
         )
-        result.loc[~result["reconstructable"], "balance_as_of"] = np.nan
-        return result
+        all_tx = company_tx.loc[
+            company_tx["product_id"].isin(products["product_id"])
+            & company_tx["status"].fillna("").str.lower().eq("booked")
+        ].copy()
+        all_tx["date"] = pd.to_datetime(all_tx["date"])
+        company_currency = self.companies.set_index("company_id")["currency"]
+        rows: list[dict[str, object]] = []
+        for product in products.to_dict(orient="records"):
+            product_id = str(product["product_id"])
+            product_snapshots = snapshots.loc[snapshots["product_id"].eq(product_id)].sort_values(
+                "date"
+            )
+            product_tx = all_tx.loc[all_tx["product_id"].eq(product_id)]
+            past = product_snapshots.loc[product_snapshots["date"].le(as_of)]
+            future = product_snapshots.loc[product_snapshots["date"].gt(as_of)]
+            method = "unavailable"
+            reliability = 0.0
+            anchor_date = pd.NaT
+            anchor_balance = np.nan
+            balance_native = np.nan
+            created = pd.to_datetime(product.get("created_at"), errors="coerce")
+            eligible = pd.isna(created) or created <= as_of
+            if eligible and not past.empty:
+                anchor = past.iloc[-1]
+                anchor_date = pd.Timestamp(anchor["date"])
+                anchor_balance = float(anchor["balance"])
+                movements = product_tx.loc[
+                    product_tx["date"].gt(anchor_date) & product_tx["date"].le(as_of),
+                    "amount",
+                ]
+                balance_native = anchor_balance + float(movements.sum())
+                method = "observed_anchor_forward"
+                reliability = 1.0
+            elif eligible and self.reconstruct_balances and not future.empty:
+                anchor = future.iloc[0]
+                anchor_date = pd.Timestamp(anchor["date"])
+                anchor_balance = float(anchor["balance"])
+                movements = product_tx.loc[
+                    product_tx["date"].gt(as_of) & product_tx["date"].le(anchor_date), "amount"
+                ]
+                balance_native = anchor_balance - float(movements.sum())
+                method = "single_anchor_backward"
+                reliability = 0.75
+
+            product_currency = str(product.get("currency"))
+            accounting_currency = str(company_currency.get(product["company_id"]))
+            if product_currency == accounting_currency:
+                conversion_factor = 1.0
+            else:
+                rates = pd.to_numeric(
+                    product_tx.loc[
+                        product_tx["date"].le(as_of)
+                        & pd.to_numeric(product_tx["exchange_rate"], errors="coerce").gt(0),
+                        "exchange_rate",
+                    ],
+                    errors="coerce",
+                ).tail(100)
+                conversion_factor = 1.0 / float(rates.median()) if not rates.empty else np.nan
+                if not np.isfinite(conversion_factor):
+                    reliability = 0.0
+                    method = "unavailable_fx"
+            rows.append(
+                {
+                    **product,
+                    "date": anchor_date,
+                    "balance": anchor_balance,
+                    "balance_native_as_of": balance_native,
+                    "balance_as_of": balance_native * conversion_factor,
+                    "reconstructable": reliability > 0,
+                    "reconstruction_method": method,
+                    "reconstruction_reliability": reliability,
+                }
+            )
+        return pd.DataFrame(rows)
 
     def _invoices_as_of(self, company_ids: tuple[str, ...], as_of: pd.Timestamp) -> pd.DataFrame:
-        inv = self.invoices
+        inv = self._company_rows(self.invoices, self._invoice_company_indices, company_ids)
         document_is_invoice = (
             inv["document_type"].isin({"invoice", "invoiceGroup"})
             if "document_type" in inv
             else pd.Series(True, index=inv.index)
         )
         result = inv.loc[
-            inv["company_id"].isin(company_ids)
-            & pd.to_datetime(inv["issuance_date"]).le(as_of)
+            pd.to_datetime(inv["issuance_date"]).le(as_of)
             & inv["date_plausible"].fillna(False)
             & document_is_invoice
         ].copy()
@@ -256,6 +342,8 @@ class Ledger:
             self.companies["company_id"].isin(company_ids), ["company_id", "currency"]
         ].copy()
         reporting_currency = str(companies["currency"].dropna().mode().iloc[0])
+        if companies["currency"].dropna().nunique() <= 1:
+            return reporting_currency, dict.fromkeys(companies["company_id"], 1.0)
         invoice_rates = self.invoices.loc[
             pd.to_datetime(self.invoices["issuance_date"]).le(as_of)
             & pd.to_numeric(self.invoices["exchange_rate"], errors="coerce").gt(0)
@@ -325,6 +413,11 @@ class Ledger:
             reconstructable_balance=bool(balances["reconstructable"].any())
             if not balances.empty
             else False,
+            balance_reliability=float(
+                balances.loc[balances["reconstructable"], "reconstruction_reliability"].mean()
+            )
+            if not balances.empty and balances["reconstructable"].any()
+            else 0.0,
             invoices=not invoices.empty
             or bool(
                 self.companies.loc[self.companies["company_id"].isin(company_ids), "erp"]
@@ -343,8 +436,11 @@ class Ledger:
             paid = invoices.loc[invoices["paid_as_of"], "payment_date"]
             if not paid.empty:
                 timestamps.append(paid.max())
-        if not balances.empty and balances["date"].notna().any():
-            timestamps.append(balances["date"].max())
+        observed_balance_dates = balances.loc[
+            balances["reconstruction_method"].eq("observed_anchor_forward"), "date"
+        ]
+        if not observed_balance_dates.empty:
+            timestamps.append(observed_balance_dates.max())
         max_source = max(
             (pd.Timestamp(value) for value in timestamps if pd.notna(value)), default=cutoff
         )
@@ -367,6 +463,15 @@ class Ledger:
                 "reconstructable_products": int(balances["reconstructable"].sum())
                 if not balances.empty
                 else 0,
+                "backward_reconstructed_products": int(
+                    balances["reconstruction_method"].eq("single_anchor_backward").sum()
+                )
+                if not balances.empty
+                else 0,
+                "balance_reconstruction_reliability": coverage.balance_reliability,
+                "balance_lineage_max_timestamp": balances["date"].max().isoformat()
+                if not balances.empty and balances["date"].notna().any()
+                else None,
                 "excluded_transfers": int((tx["transfer_classification"] != "not_transfer").sum())
                 if not tx.empty
                 else 0,

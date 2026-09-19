@@ -118,6 +118,22 @@ export interface ActionRecommendation {
   origin: DataOrigin;
 }
 
+/** Narrow DTO for the amortize impact dashboard (no marketplace). */
+export interface AmortizeContract {
+  product_id: string;
+  bank_name: string;
+  type: string;
+  outstanding: number;
+  annual_rate: number | null;
+  amortization_type: string | null;
+}
+
+export interface AmortizeContext {
+  company_id: string;
+  cash_balance: number | null;
+  contracts: AmortizeContract[];
+}
+
 export interface ProductTerms {
   rate_annual: number;
   term_months: number;
@@ -234,7 +250,42 @@ export interface ImportRequest {
   datasets: {
     kind: DatasetKind;
     fileName: string;
+    /** Full File for upload (wizard path). */
+    file?: File;
     mapping: ColumnMapping;
     selected_company_ids: string[];
   }[];
+  /** When set, every uploaded row is remapped onto this company (update-in-place). */
+  target_company_id?: string;
+}
+
+export interface UnifyCompanyCoverage {
+  company_id: string;
+  group_id: string | null;
+  row_counts: Record<string, number>;
+  months: string[];
+  missing_tables: string[];
+  scorable: boolean;
+  drop_reason: string | null;
+}
+
+export interface ImportResult {
+  companies: CompanyRef[];
+  summary?: {
+    companies: UnifyCompanyCoverage[];
+    groups: { group_id: string; n_companies: number; n_scorable: number; company_ids: string[] }[];
+    warnings: string[];
+    n_files: number;
+    topics_present: string[];
+  };
+  warnings?: string[];
+  watch?: {
+    alerts: {
+      company_id: string;
+      rule_id: string;
+      severity: string;
+      message: string;
+    }[];
+    triggered: boolean;
+  };
 }

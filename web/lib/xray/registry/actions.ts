@@ -3,7 +3,6 @@ import type {
   ActionKind,
   ScoreSnapshot,
 } from "../types";
-import { SCORE_BY_ID } from "./scores";
 import { radarUplift } from "../scoring";
 
 const TEMPLATES: Omit<ActionRecommendation, "id" | "uplift" | "origin">[] = [
@@ -57,7 +56,7 @@ const TEMPLATES: Omit<ActionRecommendation, "id" | "uplift" | "origin">[] = [
   },
 ];
 
-/** Rank action templates against a score snapshot (mock or dataset-backed). */
+/** Rank action templates against a score snapshot (dataset-backed). */
 export function actionsForSnapshot(
   snapshot: ScoreSnapshot
 ): ActionRecommendation[] {
@@ -78,38 +77,22 @@ export function actionsForSnapshot(
     ...t,
     id: `${companyId}-${t.kind}-${i}`,
     uplift: radarUplift(snapshot, t),
-    origin: (i === 0 ? "eve" : i === 1 ? "llm" : "deterministic") as ActionRecommendation["origin"],
+    origin: "deterministic" as const,
   }));
 }
 
-function actionsFor(companyId: string): ActionRecommendation[] {
-  const snapshot = SCORE_BY_ID[companyId];
-  if (!snapshot) return [];
-  return actionsForSnapshot(snapshot);
-}
-
-export const ACTIONS_BY_COMPANY: Record<string, ActionRecommendation[]> =
-  Object.fromEntries(
-    Object.keys(SCORE_BY_ID).map((id) => [id, actionsFor(id)])
-  );
-
-export function findAction(
-  companyId: string,
-  actionId: string
-): ActionRecommendation | undefined {
-  return ACTIONS_BY_COMPANY[companyId]?.find((a) => a.id === actionId);
-}
-
-/** Resolve an action for any company — mock registry first, else derive from snapshot. */
+/** Resolve an action from the live snapshot (no mock registry). */
 export function resolveAction(
-  companyId: string,
+  _companyId: string,
   actionId: string,
   snapshot?: ScoreSnapshot | null
 ): ActionRecommendation | undefined {
-  const cached = findAction(companyId, actionId);
-  if (cached) return cached;
   if (!snapshot) return undefined;
-  return actionsForSnapshot(snapshot).find((a) => a.id === actionId);
+  const list = actionsForSnapshot(snapshot);
+  return (
+    list.find((a) => a.id === actionId) ??
+    list.find((a) => actionId.includes(`-${a.kind}-`) || actionId.endsWith(`-${a.kind}`))
+  );
 }
 
 export function actionKindLabel(kind: ActionKind): string {

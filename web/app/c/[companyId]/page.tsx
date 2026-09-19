@@ -1,7 +1,8 @@
 "use client";
 
-import { use, useMemo } from "react";
+import { use, useMemo, useState } from "react";
 import Link from "next/link";
+import { UploadIcon } from "lucide-react";
 import { AppShell } from "@/components/xray/app-shell";
 import { ScoreGauge } from "@/components/xray/score-gauge";
 import { ScoreBandBadge, OutlookBadge } from "@/components/xray/score-band-badge";
@@ -11,6 +12,7 @@ import { DriverList } from "@/components/xray/driver-list";
 import { ActionCard } from "@/components/xray/action-card";
 import { OriginChip } from "@/components/xray/origin-chip";
 import { ScoreUplift } from "@/components/xray/score-uplift";
+import { ImportDialog } from "@/components/xray/import/import-dialog";
 import {
   Card,
   CardContent,
@@ -19,6 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCompanyScore } from "@/hooks/xray/use-company-score";
@@ -37,10 +40,11 @@ export default function ScorePage({
   const { companyId } = use(params);
   const { data: score, loading } = useCompanyScore(companyId);
   const { data: actions, loading: actionsLoading } = useActions(companyId);
-  const { data: companies } = useCompanies();
+  const { data: companies, addImported } = useCompanies();
   const company = companies.find((c) => c.company_id === companyId);
   const selection = useSelection<string>();
   const selectedIds = selection.values;
+  const [importOpen, setImportOpen] = useState(false);
 
   const combined = useMemo(() => {
     if (!score) return null;
@@ -59,6 +63,12 @@ export default function ScorePage({
           href: `/c/${companyId}`,
         },
       ]}
+      trailing={
+        <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
+          <UploadIcon data-icon="inline-start" />
+          Actualizar datos
+        </Button>
+      }
     >
       {loading || !score ? (
         <div className="space-y-4">
@@ -223,13 +233,26 @@ export default function ScorePage({
                   href={`/c/${companyId}/a/${selection.values[0]}`}
                   className="font-medium underline-offset-4 hover:underline"
                 >
-                  Abrir marketplace de la acción seleccionada →
+                  {actions.find((a) => a.id === selection.values[0])?.kind ===
+                  "amortize"
+                    ? "Abrir impacto de la acción seleccionada →"
+                    : "Abrir marketplace de la acción seleccionada →"}
                 </Link>
               </p>
             ) : null}
           </section>
         </div>
       )}
+      <ImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImported={(imported) => {
+          addImported(imported);
+          selection.clear();
+        }}
+        targetCompanyId={companyId}
+        companies={companies}
+      />
     </AppShell>
   );
 }

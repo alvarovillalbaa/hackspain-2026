@@ -1,6 +1,6 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { num, opportunities, percentile, percentileRank, requireCompany } from "../lib/data";
+import { num, opportunities, percentile, percentileRank, requireCompanyLive } from "../lib/data";
 
 export default defineTool({
   description:
@@ -14,7 +14,7 @@ export default defineTool({
   }),
   label: { start: ({ company_id }) => `Benchmark de tipos de ${company_id}` },
   async execute({ company_id, currency }) {
-    const cur = currency ?? requireCompany(company_id)[0].company_currency;
+    const cur = currency ?? (await requireCompanyLive(company_id))[0].company_currency;
     const screens = opportunities().filter(o => o.opportunity_type === "refinancing_screen" && o.currency === cur);
     const pool = { fixed: [] as number[], variable: [] as number[] };
     for (const s of screens) for (const p of s.product_evidence ?? []) {

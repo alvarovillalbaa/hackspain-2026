@@ -10,6 +10,10 @@ and the Eve agent tools. The LLM never computes these figures.
 Dimensions keep the same mapping the TS radar/what-if already expect
 (liquidity←rank_balance, collections←rank_overdue, debt←rank_dscr, activity←rank_inflows,
 payments←0.4·overdue+0.6·inflows) so the UI seam does not change.
+
+`records_from_scored` is the shared seam: the CLI and the ingest API both emit the same
+record shape. Pass `peer_ref` (month → sorted reference scores) when ranking uploaded
+companies against the reference population instead of their own batch.
 """
 
 from __future__ import annotations
@@ -68,11 +72,48 @@ def _projection_6m(history: list[dict], score_now: float) -> dict:
     }
 
 
-def _peer_percentile(scored: pd.DataFrame) -> pd.Series:
+def peer_ref_from_scores(scored: pd.DataFrame) -> dict[str, list[float]]:
+    """month → sorted scores of the reference population (for peer_percentile of uploads)."""
+    out: dict[str, list[float]] = {}
+    ok = scored[scored["score"].notna()]
+    for month, g in ok.groupby(ok["month"].astype(str), sort=True):
+        out[str(month)] = sorted(float(x) for x in g["score"].to_numpy())
+    return out
+
+
+def _peer_percentile_batch(scored: pd.DataFrame) -> pd.Series:
     def pct(s: pd.Series) -> pd.Series:
         return s.rank(method="average", pct=True) * 100.0
 
     return scored.groupby("month", sort=False)["score"].transform(pct)
+
+
+def _peer_percentile_against_ref(
+    scored: pd.DataFrame, peer_ref: dict[str, list[float]]
+) -> pd.Series:
+    """Percentile of each row's score against the reference month's sorted scores."""
+    months = scored["month"].astype(str).to_numpy()
+    scores = scored["score"].to_numpy(dtype=float)
+    out = np.full(len(scored), np.nan)
+    ref_months = sorted(peer_ref.keys())
+    for i, (m, s) in enumerate(zip(months, scores)):
+        if not np.isfinite(s):
+            continue
+        keys = peer_ref.get(m)
+        if keys is None and ref_months:
+            target = pd.Period(m, freq="M")
+            nearest = min(
+                ref_months,
+                key=lambda x: (abs((pd.Period(x, freq="M") - target).n), x),
+            )
+            keys = peer_ref[nearest]
+        if not keys:
+            continue
+        arr = np.asarray(keys, dtype=float)
+        lo = int(np.searchsorted(arr, s, side="left"))
+        hi = int(np.searchsorted(arr, s, side="right"))
+        out[i] = min((lo + hi + 1) / (2.0 * len(arr)), 1.0) * 100.0
+    return pd.Series(out, index=scored.index)
 
 
 def _f(row: object, name: str, default: float | None = None) -> float | None:
@@ -87,18 +128,25 @@ def _f(row: object, name: str, default: float | None = None) -> float | None:
     return float(v)
 
 
-def build_scores(data_dir_arg: str | Path | None = None) -> list[dict]:
-    """features → rules.run → explain → one record per company (latest month with a score)."""
-    feats = features.build(data_dir=data_dir_arg)
-    # rules.run needs derived signal columns; build() already includes them for the real dataset.
-    if "cash_buffer_days" not in feats.columns:
-        feats = features.derive(feats)
-    scored = rules.run(feats)
+def records_from_scored(
+    scored: pd.DataFrame,
+    peer_ref: dict[str, list[float]] | None = None,
+) -> list[dict]:
+    """Shape a scored features table into one JSON record per company (latest scored month).
+
+    When `peer_ref` is set, peer_percentile is computed against that reference population
+    (upload path). Otherwise it is the within-batch percentile (full export path).
+    """
     drv = explain.drivers_json(scored)
     scored = scored.merge(drv, on=KEYS, how="left")
-    scored["peer_percentile"] = _peer_percentile(scored)
+    if peer_ref is not None:
+        scored["peer_percentile"] = _peer_percentile_against_ref(scored, peer_ref)
+    else:
+        scored["peer_percentile"] = _peer_percentile_batch(scored)
 
     with_score = scored[scored["score"].notna()].copy().sort_values(KEYS)
+    if len(with_score) == 0:
+        return []
     last = with_score.groupby("company_id", sort=False).tail(1).reset_index(drop=True)
 
     hist = (
@@ -179,6 +227,15 @@ def build_scores(data_dir_arg: str | Path | None = None) -> list[dict]:
 
     records.sort(key=lambda r: r["company_id"])
     return records
+
+
+def build_scores(data_dir_arg: str | Path | None = None) -> list[dict]:
+    """features → rules.run → explain → one record per company (latest month with a score)."""
+    feats = features.build(data_dir=data_dir_arg)
+    if "cash_buffer_days" not in feats.columns:
+        feats = features.derive(feats)
+    scored = rules.run(feats)
+    return records_from_scored(scored)
 
 
 def main(argv: list[str] | None = None) -> int:

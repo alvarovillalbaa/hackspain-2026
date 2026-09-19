@@ -1,6 +1,6 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { getFacts, getScore, getDimensions } from "#lib/facts";
+import { getLiveFacts, getLiveScore, getLiveDimensions } from "#lib/facts";
 
 export default defineTool({
   description:
@@ -8,9 +8,9 @@ export default defineTool({
   inputSchema: z.object({ company_id: z.string() }),
   label: { start: ({ company_id }) => `Rate context ${company_id}` },
   async execute({ company_id }) {
-    const facts = getFacts(company_id);
-    const score = getScore(company_id);
-    const dim = getDimensions(company_id);
+    const facts = await getLiveFacts(company_id);
+    const score = await getLiveScore(company_id);
+    const dim = await getLiveDimensions(company_id);
     if (!facts || !score) return { error: `Unknown company ${company_id}` };
 
     const bandFairRate: Record<string, number> = {

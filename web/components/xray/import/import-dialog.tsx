@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { UploadIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,43 +25,152 @@ import { useCsvPreview } from "@/hooks/xray/use-csv-preview";
 import { useColumnMapping } from "@/hooks/xray/use-column-mapping";
 import { useSelection } from "@/hooks/xray/use-selection";
 import { DATASET_SPECS, getDatasetSpec, missingRequired } from "@/lib/xray/mapping";
+import { parseCsvText } from "@/lib/xray/facts-builder";
 import { provider } from "@/lib/xray/provider";
-import type { CompanyRef, DatasetKind, ImportRequest } from "@/lib/xray/types";
+import type { CompanyRef, ColumnMapping, DatasetKind, ImportRequest } from "@/lib/xray/types";
 
 type Step = "drop" | "map" | "pick" | "confirm";
+
+const MAX_UPLOAD_BYTES = 4.5 * 1024 * 1024;
+
+const PREV_STEP_CREATE: Record<Step, Step | null> = {
+  drop: null,
+  map: "drop",
+  pick: "map",
+  confirm: "pick",
+};
+
+const PREV_STEP_UPDATE: Record<Step, Step | null> = {
+  drop: null,
+  map: "drop",
+  pick: "map",
+  confirm: "map",
+};
+
+function formatKb(n: number): string {
+  return `${Math.round(n / 1024)} KB`;
+}
+
+/** Resolve a canonical field from mapped headers, falling back to the canonical key. */
+function mappedField(
+  row: Record<string, string>,
+  map: Record<string, string | null>,
+  field: string
+): string {
+  let mapped = "";
+  for (const [src, dst] of Object.entries(map)) {
+    if (dst === field) mapped = row[src] ?? "";
+  }
+  return mapped || (row[field] ?? "");
+}
 
 export function ImportDialog({
   open,
   onOpenChange,
   onImported,
+  targetCompanyId,
+  companies = [],
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   onImported: (companies: CompanyRef[]) => void;
+  /** When set (company page), the upload remaps onto this company. */
+  targetCompanyId?: string;
+  companies?: CompanyRef[];
 }) {
   const [step, setStep] = useState<Step>("drop");
   const { files, addFiles, removeFile, clear, setKind, setMapping } = useCsvPreview();
   const companySel = useSelection<string>();
-  const [importable, setImportable] = useState<CompanyRef[]>([]);
+  const [discovered, setDiscovered] = useState<CompanyRef[]>([]);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const [mode, setMode] = useState<"create" | "update">(
+    targetCompanyId ? "update" : "create"
+  );
+  const [pickedTarget, setPickedTarget] = useState<string>(targetCompanyId ?? "");
 
+  const lockedTarget = Boolean(targetCompanyId);
+  const isUpdate = lockedTarget || mode === "update";
+  const prevStep = isUpdate ? PREV_STEP_UPDATE : PREV_STEP_CREATE;
+  const effectiveTarget = targetCompanyId ?? (isUpdate ? pickedTarget : "");
+
+  const totalBytes = useMemo(
+    () => files.reduce((s, f) => s + f.file.size, 0),
+    [files]
+  );
+  const overLimit = totalBytes > MAX_UPLOAD_BYTES;
+
+  // Discover company_ids from uploaded companies.csv (or any file with company_id)
   useEffect(() => {
     if (step !== "pick") return;
     let cancelled = false;
-    provider.listImportable?.().then((list) => {
-      if (!cancelled) setImportable(list);
+    (async () => {
+      const companiesFile = files.find((f) => f.kind === "companies");
+      const ids = new Set<string>();
+      const groupOf = new Map<string, string>();
+
+      if (companiesFile) {
+        const text = await companiesFile.file.text();
+        const rows = parseCsvText(text);
+        const map = companiesFile.mapping.map;
+        for (const row of rows) {
+          const cid = mappedField(row, map, "company_id");
+          const gid = mappedField(row, map, "group_id");
+          if (cid) {
+            ids.add(cid);
+            if (gid) groupOf.set(cid, gid);
+          }
+        }
+      } else {
+        for (const f of files) {
+          if (!f.kind) continue;
+          const text = await f.file.slice(0, 256 * 1024).text();
+          const rows = parseCsvText(text);
+          for (const row of rows) {
+            const cid = mappedField(row, f.mapping.map, "company_id");
+            if (cid) ids.add(cid);
+          }
+        }
+      }
+
+      if (cancelled) return;
+      const list: CompanyRef[] = [...ids].sort().map((id) => ({
+        company_id: id,
+        group_id: groupOf.get(id) ?? "GROUP_IMPORT",
+        name: id,
+        country: null,
+        currency: "EUR",
+        n_companies_in_group: 1,
+        imported: true,
+      }));
+      setDiscovered(list);
+      companySel.setAll(list.map((c) => c.company_id));
+    })().catch((e) => {
+      if (!cancelled) setError(e instanceof Error ? e.message : String(e));
     });
     return () => {
       cancelled = true;
     };
-  }, [step]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when entering pick
+  }, [step, files]);
 
-  // Reset wizard when closed via key on Dialog — handled by remounting state when opening
+  useEffect(() => {
+    if (!open) return;
+    setMode(targetCompanyId ? "update" : "create");
+    setPickedTarget(targetCompanyId ?? "");
+  }, [open, targetCompanyId]);
+
   const handleOpenChange = (o: boolean) => {
     if (!o) {
       setStep("drop");
       clear();
       companySel.clear();
+      setDiscovered([]);
+      setError(null);
+      setWarnings([]);
+      setMode(targetCompanyId ? "update" : "create");
+      setPickedTarget(targetCompanyId ?? "");
     }
     onOpenChange(o);
   };
@@ -80,22 +189,31 @@ export function ImportDialog({
 
   const submit = async () => {
     setBusy(true);
+    setError(null);
     try {
+      if (overLimit) {
+        throw new Error(
+          `Los ficheros suman ${formatKb(totalBytes)} (límite 4,5 MB). Usa un slice más pequeño (p. ej. docs/data/raw/tests/single_company).`
+        );
+      }
       const req: ImportRequest = {
         datasets: files
           .filter((f) => f.kind)
           .map((f) => ({
             kind: f.kind!,
             fileName: f.preview.fileName,
+            file: f.file,
             mapping: f.mapping,
-            selected_company_ids: companySel.values,
+            selected_company_ids: isUpdate ? [] : companySel.values,
           })),
+        ...(effectiveTarget ? { target_company_id: effectiveTarget } : {}),
       };
-      const added = await provider.importCompanies(req);
-      onImported(added);
-      onOpenChange(false);
+      const result = await provider.importCompanies(req);
+      setWarnings(result.warnings ?? result.summary?.warnings ?? []);
+      onImported(result.companies);
+      handleOpenChange(false);
     } catch (e) {
-      console.error(e);
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
@@ -105,11 +223,21 @@ export function ImportDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Importar empresas</DialogTitle>
+          <DialogTitle>
+            {lockedTarget ? "Actualizar datos" : "Importar empresas"}
+          </DialogTitle>
           <DialogDescription>
-            Arrastra CSVs del dataset (cabecera + muestra; no se parsea el fichero entero).
+            {lockedTarget
+              ? `Los CSV se asignan a ${targetCompanyId}. Se recalcula el score, las acciones y el marketplace, y se avisa al watcher.`
+              : "Sube uno o varios CSV del dataset Embat. Empresas nuevas, o datos nuevos de una empresa que ya está en el portfolio."}
           </DialogDescription>
         </DialogHeader>
+
+        {error ? (
+          <p className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </p>
+        ) : null}
 
         {step === "drop" && (
           <div className="space-y-4">
@@ -120,7 +248,7 @@ export function ImportDialog({
             >
               <UploadIcon className="size-6 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
-                Suelta uno o varios CSV · se leen solo los primeros 64 KB
+                Suelta uno o varios CSV · se sube el fichero entero (máx. 4,5 MB)
               </p>
               <label className="inline-flex cursor-pointer">
                 <input
@@ -144,7 +272,7 @@ export function ImportDialog({
                   <div>
                     <div className="font-medium">{f.preview.fileName}</div>
                     <div className="text-xs text-muted-foreground">
-                      {f.preview.headers.length} cols ·{" "}
+                      {formatKb(f.file.size)} · {f.preview.headers.length} cols ·{" "}
                       {f.kind ? getDatasetSpec(f.kind).label : "tipo desconocido"}
                     </div>
                   </div>
@@ -158,6 +286,59 @@ export function ImportDialog({
                 </li>
               ))}
             </ul>
+            {files.length > 0 ? (
+              <p
+                className={`text-xs ${overLimit ? "text-destructive" : "text-muted-foreground"}`}
+              >
+                Total {formatKb(totalBytes)}
+                {overLimit ? " — supera 4,5 MB" : " / 4,5 MB"}
+              </p>
+            ) : null}
+            {!lockedTarget ? (
+              <div className="space-y-3 rounded-2xl border border-border p-3">
+                <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                  Destino
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={mode === "create" ? "default" : "outline"}
+                    onClick={() => setMode("create")}
+                  >
+                    Empresas nuevas
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={mode === "update" ? "default" : "outline"}
+                    disabled={companies.length === 0}
+                    onClick={() => setMode("update")}
+                  >
+                    Actualizar existente
+                  </Button>
+                </div>
+                {mode === "update" ? (
+                  <Select
+                    value={pickedTarget || undefined}
+                    onValueChange={(v) => {
+                      if (v) setPickedTarget(v);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Elige la empresa del portfolio" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companies.map((c) => (
+                        <SelectItem key={c.company_id} value={c.company_id}>
+                          {c.name} · {c.company_id}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         )}
 
@@ -181,9 +362,9 @@ export function ImportDialog({
         {step === "pick" && (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Selecciona empresas a incorporar al portfolio (mock catalog).
+              Empresas detectadas en los CSV subidos. Selecciona cuáles incorporar.
             </p>
-            {importable.map((c) => (
+            {discovered.map((c) => (
               <label
                 key={c.company_id}
                 className="flex cursor-pointer items-center gap-3 rounded-xl border border-border px-3 py-2.5"
@@ -193,15 +374,16 @@ export function ImportDialog({
                   onCheckedChange={() => companySel.toggle(c.company_id)}
                 />
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium">{c.name}</div>
-                  <div className="font-mono text-xs text-muted-foreground">
-                    {c.company_id}
-                  </div>
+                  <div className="font-mono text-sm font-medium">{c.company_id}</div>
+                  <div className="text-xs text-muted-foreground">{c.group_id}</div>
                 </div>
               </label>
             ))}
-            {importable.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No quedan empresas importables.</p>
+            {discovered.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No se detectaron company_id. ¿Incluye companies.csv o una columna
+                company_id?
+              </p>
             ) : null}
           </div>
         )}
@@ -209,7 +391,11 @@ export function ImportDialog({
         {step === "confirm" && (
           <div className="space-y-3 text-sm">
             <p>
-              {files.length} dataset(s) · {companySel.count} empresa(s) seleccionadas
+              {files.length} dataset(s) ·{" "}
+              {isUpdate
+                ? `actualizar ${effectiveTarget}`
+                : `${companySel.count} empresa(s)`}{" "}
+              · {formatKb(totalBytes)}
             </p>
             <ul className="space-y-1 text-muted-foreground">
               {files.map((f) => (
@@ -218,12 +404,27 @@ export function ImportDialog({
                 </li>
               ))}
             </ul>
+            <p className="text-xs text-muted-foreground">
+              {isUpdate
+                ? "Se recalcula el Health Score, las acciones recomendadas y el marketplace. El watcher evalúa si hay que alertar."
+                : "Se unificarán por empresa, se puntuarán contra la población de referencia y quedarán en el portfolio. El watcher revisará alertas."}
+            </p>
+            {warnings.length > 0 ? (
+              <ul className="space-y-1 text-xs text-amber-600">
+                {warnings.map((w) => (
+                  <li key={w}>⚠ {w}</li>
+                ))}
+              </ul>
+            ) : null}
           </div>
         )}
 
         <DialogFooter className="gap-2 sm:justify-between">
           <div className="flex gap-1">
-            {(["drop", "map", "pick", "confirm"] as Step[]).map((s) => (
+            {(isUpdate
+              ? (["drop", "map", "confirm"] as Step[])
+              : (["drop", "map", "pick", "confirm"] as Step[])
+            ).map((s) => (
               <Badge
                 key={s}
                 variant={s === step ? "default" : "outline"}
@@ -237,23 +438,32 @@ export function ImportDialog({
             {step !== "drop" ? (
               <Button
                 variant="ghost"
-                onClick={() =>
-                  setStep(
-                    step === "map" ? "drop" : step === "pick" ? "map" : "pick"
-                  )
-                }
+                onClick={() => {
+                  const prev = prevStep[step];
+                  if (prev) setStep(prev);
+                }}
               >
                 Atrás
               </Button>
             ) : null}
             {step === "drop" ? (
-              <Button disabled={files.length === 0} onClick={() => setStep("map")}>
+              <Button
+                disabled={
+                  files.length === 0 ||
+                  overLimit ||
+                  (isUpdate && !effectiveTarget)
+                }
+                onClick={() => setStep("map")}
+              >
                 Mapear columnas
               </Button>
             ) : null}
             {step === "map" ? (
-              <Button disabled={!allMapped} onClick={() => setStep("pick")}>
-                Elegir empresas
+              <Button
+                disabled={!allMapped}
+                onClick={() => setStep(isUpdate ? "confirm" : "pick")}
+              >
+                {isUpdate ? "Revisar" : "Elegir empresas"}
               </Button>
             ) : null}
             {step === "pick" ? (
@@ -265,8 +475,8 @@ export function ImportDialog({
               </Button>
             ) : null}
             {step === "confirm" ? (
-              <Button disabled={busy} onClick={() => void submit()}>
-                {busy ? "Importando…" : "Confirmar importación"}
+              <Button disabled={busy || overLimit} onClick={() => void submit()}>
+                {busy ? "Puntuando…" : "Confirmar importación"}
               </Button>
             ) : null}
           </div>
@@ -288,10 +498,10 @@ function MappingBlock({
   fileName: string;
   headers: string[];
   kind: DatasetKind | null;
-  mapping: import("@/lib/xray/types").ColumnMapping;
+  mapping: ColumnMapping;
   traps: string[];
   onKind: (k: DatasetKind) => void;
-  onMapping: (m: import("@/lib/xray/types").ColumnMapping) => void;
+  onMapping: (m: ColumnMapping) => void;
 }) {
   const { missing, setField } = useColumnMapping(mapping, kind, onMapping);
   const fields = kind ? getDatasetSpec(kind).fields : [];

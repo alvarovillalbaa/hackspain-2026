@@ -5,21 +5,26 @@ import { getVercelOidcToken } from "@vercel/oidc";
 import { RecommendationDecisionSchema } from "@/agent/lib/schemas";
 import { reassembleMatches } from "@/lib/xray/reassemble";
 import {
-  buildScoreSnapshot,
   getCompanyFacts,
   getDatasetCompany,
   getExportedScore,
-  hasDataset,
 } from "@/lib/xray/dataset";
-import { SCORE_BY_ID } from "@/lib/xray/registry/scores";
 import {
   actionsForSnapshot,
   resolveAction,
 } from "@/lib/xray/registry/actions";
 import { findRecommended, listCompanyActions } from "@/lib/xray/recommend-actions";
-import { mockProvider } from "@/lib/xray/registry/mock-provider";
-import { readDecision, writeDecision } from "@/lib/xray/store";
-import type { ProductMatch, ScoreSnapshot } from "@/lib/xray/types";
+import { resolveLiveSnapshot } from "@/lib/xray/live-snapshot";
+import { readImportedPack, readDecision, writeDecision } from "@/lib/xray/store";
+import {
+  getRecommendCache,
+  recommendCacheKey,
+  setRecommendCache,
+  type RecommendCacheEntry,
+} from "@/lib/xray/recommend-cache";
+import { deterministicMarketplace } from "@/lib/xray/deterministic-marketplace";
+import type { ScoreSnapshot } from "@/lib/xray/types";
+import type { CompanyFacts, ExportedScore } from "@/lib/xray/dataset/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -30,51 +35,61 @@ const RequestSchema = z.object({
   amount: z.number().positive().optional(),
 });
 
-type CacheEntry = {
-  matches: ProductMatch[];
-  headline: string;
-  source: "eve" | "warm" | "blob" | "fallback";
-};
+type CacheEntry = RecommendCacheEntry;
 
-const memoryCache = new Map<string, CacheEntry>();
-
-function cacheKey(companyId: string, actionId: string, amount?: number) {
-  return `${companyId}:${actionId}:${amount ?? "auto"}`;
+async function resolveFacts(companyId: string): Promise<{
+  facts: CompanyFacts | null;
+  exported: ExportedScore | null;
+  currency?: string;
+}> {
+  const imported = await readImportedPack(companyId);
+  if (imported) {
+    return {
+      facts: imported.facts,
+      exported: imported.score,
+      currency: imported.company.currency,
+    };
+  }
+  return {
+    facts: getCompanyFacts(companyId),
+    exported: getExportedScore(companyId),
+    currency: getDatasetCompany(companyId)?.currency,
+  };
 }
 
-function resolveSnapshot(companyId: string): ScoreSnapshot | null {
-  if (hasDataset()) return buildScoreSnapshot(companyId);
-  return SCORE_BY_ID[companyId] ?? null;
-}
-
-function actionsFor(snapshot: ScoreSnapshot) {
+async function actionsFor(snapshot: ScoreSnapshot) {
+  const { facts, exported, currency } = await resolveFacts(snapshot.company_id);
   return listCompanyActions(
     snapshot,
-    getCompanyFacts(snapshot.company_id),
-    getExportedScore(snapshot.company_id),
-    getDatasetCompany(snapshot.company_id)?.currency,
+    facts,
+    exported,
+    currency,
     actionsForSnapshot
   );
 }
 
-function actionFor(companyId: string, actionId: string, snapshot: ScoreSnapshot) {
+async function actionFor(
+  companyId: string,
+  actionId: string,
+  snapshot: ScoreSnapshot
+) {
+  const list = await actionsFor(snapshot);
   return (
-    findRecommended(actionsFor(snapshot), actionId) ??
+    findRecommended(list, actionId) ??
     resolveAction(companyId, actionId, snapshot) ??
-    actionsFor(snapshot)[0]
+    list[0]
   );
 }
 
-function entryFromDecision(
+async function entryFromDecision(
   companyId: string,
   actionId: string,
+  snapshot: ScoreSnapshot,
   decisionRaw: unknown,
   headline: string | undefined,
   source: CacheEntry["source"]
-): CacheEntry | null {
-  const snapshot = resolveSnapshot(companyId);
-  if (!snapshot) return null;
-  const action = actionFor(companyId, actionId, snapshot);
+): Promise<CacheEntry | null> {
+  const action = await actionFor(companyId, actionId, snapshot);
   if (!action) return null;
   const decision = RecommendationDecisionSchema.parse(decisionRaw);
   return {
@@ -86,7 +101,8 @@ function entryFromDecision(
 
 async function loadWarm(
   companyId: string,
-  actionId: string
+  actionId: string,
+  snapshot: ScoreSnapshot
 ): Promise<CacheEntry | null> {
   try {
     const warm = await import("@/lib/xray/dataset/recommendations.json");
@@ -99,6 +115,7 @@ async function loadWarm(
     return entryFromDecision(
       companyId,
       actionId,
+      snapshot,
       hit.decision,
       hit.headline,
       "warm"
@@ -110,7 +127,8 @@ async function loadWarm(
 
 async function loadBlob(
   companyId: string,
-  actionId: string
+  actionId: string,
+  snapshot: ScoreSnapshot
 ): Promise<CacheEntry | null> {
   const stored = await readDecision(`${companyId}:${actionId}`);
   if (!stored?.decision) return null;
@@ -118,6 +136,7 @@ async function loadBlob(
     return entryFromDecision(
       companyId,
       actionId,
+      snapshot,
       stored.decision,
       stored.headline,
       "blob"
@@ -157,8 +176,10 @@ async function runEveRecommendation(input: {
 }): Promise<
   CacheEntry & { decision: z.infer<typeof RecommendationDecisionSchema> }
 > {
-  const actions = actionsFor(input.snapshot);
-  const action = actionFor(input.company_id, input.action_id, input.snapshot) ?? actions[0];
+  const actions = await actionsFor(input.snapshot);
+  const action =
+    (await actionFor(input.company_id, input.action_id, input.snapshot)) ??
+    actions[0];
   if (!action) {
     throw new Error(`No action for ${input.company_id}/${input.action_id}`);
   }
@@ -224,8 +245,8 @@ export async function POST(req: Request) {
     );
   }
 
-  const key = cacheKey(body.company_id, body.action_id, body.amount);
-  const cached = memoryCache.get(key);
+  const key = recommendCacheKey(body.company_id, body.action_id, body.amount);
+  const cached = getRecommendCache(key);
   if (cached) {
     return NextResponse.json({
       matches: cached.matches,
@@ -235,11 +256,20 @@ export async function POST(req: Request) {
     });
   }
 
-  // Resolution: memory → Blob → committed seed → live Eve → mock.
-  if (body.amount == null) {
-    const fromBlob = await loadBlob(body.company_id, body.action_id);
+  const snapshot = await resolveLiveSnapshot(body.company_id);
+  if (!snapshot) {
+    return NextResponse.json(
+      { error: `Company not found: ${body.company_id}` },
+      { status: 404 }
+    );
+  }
+
+  const imported = await readImportedPack(body.company_id);
+  // Imported/re-scored companies must not reuse the committed warm seed.
+  if (body.amount == null && !imported) {
+    const fromBlob = await loadBlob(body.company_id, body.action_id, snapshot);
     if (fromBlob) {
-      memoryCache.set(key, fromBlob);
+      setRecommendCache(key, fromBlob);
       return NextResponse.json({
         matches: fromBlob.matches,
         headline: fromBlob.headline,
@@ -248,9 +278,9 @@ export async function POST(req: Request) {
       });
     }
 
-    const warm = await loadWarm(body.company_id, body.action_id);
+    const warm = await loadWarm(body.company_id, body.action_id, snapshot);
     if (warm) {
-      memoryCache.set(key, warm);
+      setRecommendCache(key, warm);
       return NextResponse.json({
         matches: warm.matches,
         headline: warm.headline,
@@ -260,14 +290,6 @@ export async function POST(req: Request) {
     }
   }
 
-  const snapshot = resolveSnapshot(body.company_id);
-  if (!snapshot) {
-    return NextResponse.json(
-      { error: `Company not found: ${body.company_id}` },
-      { status: 404 }
-    );
-  }
-
   try {
     const entry = await runEveRecommendation({
       company_id: body.company_id,
@@ -275,7 +297,7 @@ export async function POST(req: Request) {
       amount: body.amount,
       snapshot,
     });
-    memoryCache.set(key, entry);
+    setRecommendCache(key, entry);
     if (body.amount == null) {
       void writeDecision(`${body.company_id}:${body.action_id}`, {
         decision: entry.decision,
@@ -289,18 +311,28 @@ export async function POST(req: Request) {
       cached: false,
     });
   } catch (err) {
-    console.error("[recommend] eve failed, falling back:", err);
-    const matches = await mockProvider.listProducts(
+    console.error("[recommend] eve failed, engine fallback:", err);
+    const action = await actionFor(
       body.company_id,
       body.action_id,
-      body.amount
+      snapshot
     );
+    if (!action) {
+      return NextResponse.json(
+        {
+          error: "No action available for marketplace",
+          detail: err instanceof Error ? err.message : String(err),
+        },
+        { status: 502 }
+      );
+    }
+    const matches = deterministicMarketplace(snapshot, action, body.amount);
     const entry: CacheEntry = {
       matches,
-      headline: "Recomendación determinista (fallback)",
-      source: "fallback",
+      headline: "Marketplace determinista (motor de match)",
+      source: "engine",
     };
-    memoryCache.set(key, entry);
+    setRecommendCache(key, entry);
     return NextResponse.json({
       matches: entry.matches,
       headline: entry.headline,

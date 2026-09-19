@@ -1,0 +1,67 @@
+import { describe, expect, it } from "vitest";
+import { deterministicMarketplace } from "./deterministic-marketplace";
+import { leversFromMatch } from "./negotiation";
+import type { ActionRecommendation, ScoreSnapshot } from "./types";
+
+const snapshot: ScoreSnapshot = {
+  company_id: "COMP_0001",
+  month: "2026-08",
+  score: 55,
+  band: "BB",
+  outlook: "stable",
+  trend: "flat",
+  watch: null,
+  confidence: "high",
+  sub_scores: { bankability: 50, business_profile: 55 },
+  dimensions: {
+    liquidity: 0.4,
+    collections: 0.5,
+    payments: 0.5,
+    debt: 0.35,
+    activity: 0.6,
+  },
+  peer_percentile: 40,
+  projection_6m: { p10: 48, p50: 55, p90: 62 },
+  history: [{ month: "2026-08", score: 55 }],
+  drivers: [],
+  alerts: [],
+  explanation: null,
+  origin: "ml",
+};
+
+const action: ActionRecommendation = {
+  id: "COMP_0001-refinance-0",
+  kind: "refinance",
+  title: "Refinanciar",
+  rationale: "test",
+  recommended_amount: 200_000,
+  dimension_deltas: { debt: 0.1, liquidity: 0.02 },
+  uplift: 3,
+  origin: "deterministic",
+};
+
+describe("deterministicMarketplace", () => {
+  it("returns ranked products with deterministic origin", () => {
+    const matches = deterministicMarketplace(snapshot, action);
+    expect(matches.length).toBeGreaterThan(0);
+    expect(matches.every((m) => m.origin === "deterministic")).toBe(true);
+    expect(matches[0]!.breakdown.match).toBeGreaterThanOrEqual(
+      matches[matches.length - 1]!.breakdown.match
+    );
+  });
+
+  it("respects custom amount", () => {
+    const matches = deterministicMarketplace(snapshot, action, 150_000);
+    expect(matches.every((m) => m.amount === 150_000 || m.amount >= m.product.amount_min)).toBe(
+      true
+    );
+  });
+});
+
+describe("leversFromMatch", () => {
+  it("builds levers from term gap", () => {
+    const [match] = deterministicMarketplace(snapshot, action);
+    const levers = leversFromMatch(match!);
+    expect(levers.every((l) => l.origin === "deterministic")).toBe(true);
+  });
+});

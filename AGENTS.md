@@ -18,7 +18,7 @@ Score de financiabilidad a 6 meses para pymes a partir de tesorería, y encima u
 | `web/` | Next.js + agente Eve + Supabase. **Tiene su propio `AGENTS.md`: léelo antes de tocar nada ahí** | TypeScript |
 | `notebooks/` | Experimentos compartidos; importan `xray`, sin outputs en git | — |
 | `tests/` | pytest con fixtures de 3 filas; no necesita el dataset | Python |
-| `input_data/`, `artifacts/` | Dataset (645 MB) y caché parquet. Fuera de git, siempre | — |
+| `docs/data/raw/`, `artifacts/` | Dataset crudo (645 MB, gitignored) y caché parquet. Fact pack derivado en `web/lib/xray/dataset/*.json` (sí en git) | — |
 
 ## Comandos
 
@@ -30,7 +30,8 @@ uv run xray-evals           # métricas del score → artifacts/evals/metrics.js
 uv run xray-score           # scores de todas las empresas → artifacts/scores/scores.parquet
 uv run pytest               # verde antes de cada commit en xray/ api/ tests/
 cd web && npm run typecheck # limpio desde el 19 sep; no añadas ningún error
-cd web && npm test          # vitest sobre la lógica pura de lib/xray y hooks/xray
+cd web && npm test          # vitest sobre la lógica pura de lib/xray, hooks/xray y evals/lib
+cd web && npm run calibrate # calibración agéntica Eve (N reps, CV/fidelidad ≤2 %; docs/calibration.md)
 ```
 
 `npm run lint` arrastra 18 errores de `react-hooks/set-state-in-effect`, todos en
@@ -69,7 +70,8 @@ en código nuestro.
 
 - Código, identificadores y nombres de columna en **inglés**; docs, issues y mensajes de commit en **español**.
 - Commits en imperativo, primera línea < 72 caracteres, cuerpo con el porqué. Cita el slice (`#4`) cuando aplique.
-- Rutas con `pathlib` y a través de `XRAY_DATA_DIR` / `XRAY_ARTIFACTS_DIR`; el equipo mezcla Windows y macOS.
+- Rutas con `pathlib` y a través de `XRAY_DATA_DIR` / `XRAY_ARTIFACTS_DIR`; el equipo mezcla Windows y macOS. Por defecto `xray.data` lee `docs/data/raw` si existe; si no, `input_data/`.
+- Persistencia demo: JSON en git (`web/lib/xray/dataset/`) + Vercel Blob para imports/recomendaciones. Sin Postgres para el score.
 - Tests al seam, no a la implementación: dada una tabla de features fixture, el resultado esperado; sin tests de parseo interno.
 - Una decisión que cambie `docs/plan.md` o `docs/tech_stack.md` se anota allí con fecha en el mismo PR.
 
@@ -81,4 +83,5 @@ en código nuestro.
 - Tienes que explicarlo sin tecnicismos → `docs/MODEL_toni.md` y `docs/sistema_en_cinco_figuras.html`.
 - Vas a elegir una librería o desplegar algo → `docs/tech_stack.md` §5 y §9 (riesgos) antes de añadir dependencias.
 - Vas a tocar `web/` → `web/AGENTS.md` y los docs de Eve que indica.
+- Vas a medir varianza / fidelidad del agente Eve (no el AUC del score) → `docs/calibration.md` y `web/evals/calibration/`.
 - No sabes qué hacer → el slice abierto de tu área en GitHub; si no hay, pregunta antes de abrir uno nuevo.

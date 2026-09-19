@@ -1,6 +1,6 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { companyMetrics, num, percentile, percentileRank, requireCompany } from "../lib/data";
+import { companyMetrics, num, percentile, percentileRank, requireCompanyLive } from "../lib/data";
 
 const METRICS = [
   "cash_balance", "debt_outstanding_abs_proxy", "idle_cash_vs_debt", "implied_debt_rate", "idle_cash_savings_proxy",
@@ -27,7 +27,7 @@ export default defineTool({
   }),
   label: { start: ({ company_id, metric, divide_by }) => `Percentil de ${metric}${divide_by ? `/${divide_by}` : ""} para ${company_id}` },
   async execute({ company_id, metric, divide_by, currency, exclude_zero_peers }) {
-    const cur = currency ?? requireCompany(company_id)[0].company_currency;
+    const cur = currency ?? (await requireCompanyLive(company_id))[0].company_currency;
     const value = (r: Record<string, string>) => {
       const a = num(r[metric]);
       if (a === null) return null;

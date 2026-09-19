@@ -1,10 +1,12 @@
 /**
  * Fact-pack accessors for eve tools.
  * Prefer relative imports of the JSON so the eve bundler resolves them.
- * Score figures come only from the Python export (scores.json).
+ * Score figures come only from the Python export (scores.json), unless an
+ * imported pack overlays them (re-score after CSV upload).
  */
-import { scoreToBand } from "../../lib/xray/bands";
-import type { CompanyRef, ScoreSnapshot, Trend } from "../../lib/xray/types";
+import { snapshotFromExported } from "../../lib/xray/snapshot";
+import { readImportedPack } from "../../lib/xray/store";
+import type { CompanyRef, ScoreSnapshot } from "../../lib/xray/types";
 import type {
   CompanyFacts,
   DatasetCompany,
@@ -23,9 +25,7 @@ const factsById = new Map(factsList.map((f) => [f.company_id, f] as const));
 const companyById = new Map(companies.map((c) => [c.company_id, c] as const));
 const scoresById = new Map(scoresList.map((s) => [s.company_id, s] as const));
 
-export function getCompany(companyId: string): CompanyRef | null {
-  const c = companyById.get(companyId);
-  if (!c) return null;
+function companyRefFromDataset(c: DatasetCompany): CompanyRef {
   return {
     company_id: c.company_id,
     group_id: c.group_id,
@@ -34,6 +34,20 @@ export function getCompany(companyId: string): CompanyRef | null {
     currency: c.currency,
     n_companies_in_group: c.n_companies_in_group,
   };
+}
+
+export function getCompany(companyId: string): CompanyRef | null {
+  const c = companyById.get(companyId);
+  if (!c) return null;
+  return companyRefFromDataset(c);
+}
+
+export async function getLiveCompany(
+  companyId: string
+): Promise<CompanyRef | null> {
+  const pack = await readImportedPack(companyId);
+  if (pack?.company) return pack.company;
+  return getCompany(companyId);
 }
 
 export function getFacts(companyId: string): CompanyFacts | null {
@@ -45,10 +59,23 @@ export function getExportedScore(companyId: string): ExportedScore | null {
   return scoresById.get(companyId) ?? null;
 }
 
-/** Dimensions for radar / offering tools — from the Python export. */
-export function getDimensions(companyId: string) {
-  const row = scoresById.get(companyId);
-  if (!row) return null;
+export async function getLiveExportedScore(
+  companyId: string
+): Promise<ExportedScore | null> {
+  const pack = await readImportedPack(companyId);
+  if (pack?.score) return pack.score;
+  return getExportedScore(companyId);
+}
+
+export async function getLiveFacts(
+  companyId: string
+): Promise<CompanyFacts | null> {
+  const pack = await readImportedPack(companyId);
+  if (pack?.facts) return pack.facts;
+  return getFacts(companyId);
+}
+
+function dimensionsFromRow(companyId: string, row: ExportedScore) {
   return {
     company_id: companyId,
     month: row.month,
@@ -68,60 +95,30 @@ export function getDimensions(companyId: string) {
   };
 }
 
+/** Dimensions for radar / offering tools — from the Python export. */
+export function getDimensions(companyId: string) {
+  const row = scoresById.get(companyId);
+  if (!row) return null;
+  return dimensionsFromRow(companyId, row);
+}
+
+export async function getLiveDimensions(companyId: string) {
+  const row = await getLiveExportedScore(companyId);
+  if (!row) return null;
+  return dimensionsFromRow(companyId, row);
+}
+
 /** ScoreSnapshot from the Python Health Scorer — never recomputed here. */
 export function getScore(companyId: string): ScoreSnapshot | null {
   const row = scoresById.get(companyId);
   if (!row) return null;
+  return snapshotFromExported(row);
+}
 
-  const score = row.score;
-  const band = scoreToBand(score);
-  const dims = row.dimensions;
-  const bankability = Math.round(
-    (dims.liquidity * 0.4 + dims.debt * 0.35 + dims.payments * 0.25) * 100
-  );
-  const business_profile = Math.round(
-    (dims.collections * 0.45 + dims.activity * 0.55) * 100
-  );
-
-  const alerts: ScoreSnapshot["alerts"] = [];
-  if (row.watch) {
-    alerts.push({
-      id: `${companyId}-watch`,
-      severity: "warning",
-      message: row.watch,
-    });
-  }
-  const dscr = row.signals.dscr_6m;
-  if (dscr != null && dscr > 0 && dscr < 1.2) {
-    alerts.push({
-      id: `${companyId}-dscr`,
-      severity: "critical",
-      message: `DSCR 6m = ${dscr.toFixed(2)} por debajo del suelo 1,2`,
-    });
-  }
-
-  const trend: Trend =
-    row.trend === "improving" || row.trend === "worsening" || row.trend === "flat"
-      ? row.trend
-      : "flat";
-
-  return {
-    company_id: companyId,
-    month: row.month,
-    score,
-    band,
-    outlook: row.outlook,
-    trend,
-    watch: row.watch,
-    confidence: row.confidence,
-    sub_scores: { bankability, business_profile },
-    dimensions: dims,
-    peer_percentile: row.peer_percentile,
-    projection_6m: row.projection_6m,
-    history: row.history,
-    drivers: row.drivers,
-    alerts,
-    explanation: null,
-    origin: row.origin ?? "ml",
-  };
+export async function getLiveScore(
+  companyId: string
+): Promise<ScoreSnapshot | null> {
+  const row = await getLiveExportedScore(companyId);
+  if (!row) return null;
+  return snapshotFromExported(row);
 }

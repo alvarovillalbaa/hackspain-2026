@@ -27,7 +27,9 @@ Cinco personas, tres runtimes (Python, Node, navegador) y 48 horas. Sin un stack
 ## 4. Vista general
 
 ```
-input_data/ (9 CSV)  ──►  xray (Python)  ──►  api (FastAPI)  ──►  web (Next.js + Eve + Supabase)  ──►  asesor
+docs/data/raw/ (CSV)  ──►  xray (Python)  ──►  api (FastAPI)  ──►  web (Next.js + Eve)  ──►  asesor
+                              │
+                              └──►  web/lib/xray/dataset/*.json (fact pack en git) + Blob (imports/recs)
                               │
                               └──►  score.py  ──►  leaderboard de Embat
 ```
@@ -50,7 +52,7 @@ Dos *seams* mantienen las piezas desacopladas: la tabla `features(company_id, mo
 | Tests | **pytest** con fixtures mínimas en `tests/` (CSV de 3 filas) | Corren sin el dataset; validan los hechos del dataset (dirección de factura, fechas basura, caché) | — |
 | Lint | ruff | Un binario, sin configuración | black + flake8 + isort |
 
-**Caché de datos.** `xray.data.load()` resuelve `XRAY_DATA_DIR` → `input_data/`, convierte a parquet en `artifacts/raw/` y aplica la limpieza documentada en `plan.md` §5. `uv run xray-cache` la construye de una vez. `artifacts/` está fuera de git.
+**Caché de datos.** `xray.data.load()` resuelve `XRAY_DATA_DIR` → `docs/data/raw/` (si existe) → `input_data/`, convierte a parquet en `artifacts/raw/` y aplica la limpieza documentada en `plan.md` §5. `uv run xray-cache` la construye de una vez. `artifacts/` está fuera de git. Persistencia mutable en Vercel: Blob (`BLOB_READ_WRITE_TOKEN`), no reescritura del fact pack ni Postgres.
 
 ### 5.2 API — `api/` (slice #8)
 
@@ -59,9 +61,10 @@ Dos *seams* mantienen las piezas desacopladas: la tabla `features(company_id, mo
 | Framework | **FastAPI + uvicorn** | Pydantic valida el contrato JSON en ambos sentidos; OpenAPI gratis para que el front y el agente Eve vean el esquema; async para no bloquear con el LLM |
 | Esquemas | **pydantic v2** | Los mismos modelos sirven de contrato, de validación de tests y de documentación |
 | Modo stub | Flag `XRAY_STUB=1` devuelve datos ficticios que cumplen el contrato | Front y agente arrancan el viernes sin esperar al modelo |
-| Servido | Local durante el hackathon (`uv run uvicorn api.main:app`); túnel o Render/Fly si la demo lo necesita público | Desplegar Python en Vercel es posible pero añade riesgo; decidir el sábado 18:00 |
+| Servido | Local durante el hackathon (`uv run xray-api` / `uvicorn api.main:app`); túnel (ngrok/cloudflared) para que el deploy de Vercel alcance `XRAY_API_URL` | Desplegar Python en Vercel es posible pero añade riesgo; decisión 19 sep: local + túnel |
+| Ingest | `POST /ingest` (multipart CSVs + mappings) unifica por empresa, puntúa con `rules_model.json` + `rank_against=profile`, devuelve el mismo shape que `scores.json` | Wizard de importación en `web/`; persistencia en Vercel Blob (`xray/imports/`) |
 
-La API **importa** `xray`; nunca al revés. `score.py` no importa `api`.
+La API **importa** `xray`; nunca al revés. `score.py` no importa `api`. Arranque: `uv run xray-score` una vez para generar `artifacts/scores/rules_model.json`, luego `uv run xray-api`. Datasets de QA: `uv run xray-testsets` → `docs/data/raw/tests/`.
 
 ### 5.3 Web — `web/` (slices #9, #10)
 
@@ -151,7 +154,7 @@ Reglas: pydantic lo valida al salir, zod al entrar; `explanation` llega por `/ex
 
 | Variable | Dónde | Para qué |
 |---|---|---|
-| `XRAY_DATA_DIR` | shell (Python) | Carpeta con los 9 CSV; por defecto `input_data/` |
+| `XRAY_DATA_DIR` | shell (Python) | Carpeta con los CSV; por defecto `docs/data/raw/` si existe, si no `input_data/` |
 | `XRAY_ARTIFACTS_DIR` | shell (Python) | Caché parquet y modelos; por defecto `artifacts/` |
 | `XRAY_STUB` | API | `1` → respuestas ficticias con el contrato |
 | `ANTHROPIC_API_KEY` | shell (Python, slice #1) | Extracción de perfil público |

@@ -1,6 +1,6 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { compact, companyMetrics, groupMetrics, requireCompany } from "../lib/data";
+import { compact, companyMetrics, groupMetrics, requireCompanyLive } from "../lib/data";
 
 export default defineTool({
   description:
@@ -10,7 +10,7 @@ export default defineTool({
   inputSchema: z.object({ company_id: z.string().regex(/^COMP_\d{4}$/) }),
   label: { start: ({ company_id }) => `Netting del grupo de ${company_id}` },
   async execute({ company_id }) {
-    const groupId = requireCompany(company_id)[0].group_id;
+    const groupId = (await requireCompanyLive(company_id))[0].group_id;
     const siblings = companyMetrics()
       .filter(r => r.group_id === groupId)
       .map(r => ({ company_id: r.company_id, currency: r.metric_currency, cash_balance: r.cash_balance, debt_outstanding_abs_proxy: r.debt_outstanding_abs_proxy, implied_debt_rate: r.implied_debt_rate }))

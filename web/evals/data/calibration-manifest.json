@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "description": "Immutable sample for agentic calibration. Demo companies from recommendations.json warm cache.",
+  "reps_default": 8,
+  "cases": [
+    {
+      "row_id": "cal-0001-new_debt",
+      "company_id": "COMP_0001",
+      "action_id": "COMP_0001-new_debt-0",
+      "action_kind": "new_debt",
+      "modes": ["orchestrator", "analyst"]
+    },
+    {
+      "row_id": "cal-0047-refinance",
+      "company_id": "COMP_0047",
+      "action_id": "COMP_0047-refinance-0",
+      "action_kind": "refinance",
+      "modes": ["orchestrator", "analyst"]
+    },
+    {
+      "row_id": "cal-0203-new_debt",
+      "company_id": "COMP_0203",
+      "action_id": "COMP_0203-new_debt-0",
+      "action_kind": "new_debt",
+      "modes": ["orchestrator", "analyst"]
+    }
+  ]
+}

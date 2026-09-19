@@ -1,6 +1,6 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { opportunities, requireCompany } from "../lib/data";
+import { opportunities, requireCompanyLive } from "../lib/data";
 
 const TYPES = [
   "idle_cash_review", "interest_cost_review", "refinancing_screen", "bank_fee_review", "overdue_invoice_review",
@@ -19,7 +19,7 @@ export default defineTool({
   }),
   label: { start: ({ company_id, opportunity_type }) => `Oportunidades de ${company_id}${opportunity_type ? ` (${opportunity_type})` : ""}` },
   async execute({ company_id, opportunity_type }) {
-    requireCompany(company_id);
+    await requireCompanyLive(company_id);
     const rows = opportunities().filter(o => o.company_id === company_id && (!opportunity_type || o.opportunity_type === opportunity_type));
     const totalByType = new Map<string, number>();
     for (const o of opportunities()) if (o.currency_rank !== null) totalByType.set(`${o.currency}|${o.opportunity_type}`, (totalByType.get(`${o.currency}|${o.opportunity_type}`) ?? 0) + 1);

@@ -114,7 +114,7 @@ export function ActionCard({
             className="inline-flex text-sm font-medium underline-offset-4 hover:underline"
             onClick={(e) => e.stopPropagation()}
           >
-            Ver productos →
+            {action.kind === "amortize" ? "Ver impacto →" : "Ver productos →"}
           </a>
         ) : null}
       </CardContent>

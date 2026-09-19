@@ -1,6 +1,6 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { compact, requireCompany, workingCapital } from "../lib/data";
+import { compact, requireCompanyLive, workingCapital } from "../lib/data";
 
 export default defineTool({
   description:
@@ -15,7 +15,7 @@ export default defineTool({
   }),
   label: { start: ({ company_id, months }) => `Serie de circulante de ${company_id} (${months} meses)` },
   async execute({ company_id, currency, months }) {
-    const cur = currency ?? requireCompany(company_id)[0].company_currency;
+    const cur = currency ?? (await requireCompanyLive(company_id))[0].company_currency;
     const rows = workingCapital().filter(r => r.company_id === company_id && r.currency === cur);
     if (!rows.length) return { company_id, currency: cur, months: [], note: "No transactions or invoices observed in this currency." };
     return {

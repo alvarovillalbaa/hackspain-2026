@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { provider } from "@/lib/xray/provider";
+import { onDataImported } from "@/lib/xray/import-events";
 import type { ProductMatch } from "@/lib/xray/types";
 
 export type RecommendPhase =
@@ -26,11 +27,20 @@ export function useProductMatches(
   const [error, setError] = useState<Error | null>(null);
   const [fetchedFor, setFetchedFor] = useState<string | null>(null);
   const [phase, setPhase] = useState<RecommendPhase>("idle");
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    return onDataImported((ids) => {
+      if (!companyId) return;
+      if (ids.length === 0 || ids.includes(companyId)) setTick((t) => t + 1);
+    });
+  }, [companyId]);
 
   useEffect(() => {
     if (!companyId || !actionId || !key) return;
     let cancelled = false;
     setPhase("queued");
+    setFetchedFor(null);
 
     const es = new EventSource(
       `/api/xray/recommend/stream?company_id=${encodeURIComponent(companyId)}&action_id=${encodeURIComponent(actionId)}`
@@ -53,14 +63,14 @@ export function useProductMatches(
         if (cancelled) return;
         setData(p);
         setError(null);
-        setFetchedFor(key);
+        setFetchedFor(`${key}:${tick}`);
         setPhase((prev) => (prev === "done" ? prev : "done"));
         es.close();
       })
       .catch((e) => {
         if (cancelled) return;
         setError(e instanceof Error ? e : new Error(String(e)));
-        setFetchedFor(key);
+        setFetchedFor(`${key}:${tick}`);
         setPhase("fallback");
         es.close();
       });
@@ -69,7 +79,7 @@ export function useProductMatches(
       cancelled = true;
       es.close();
     };
-  }, [companyId, actionId, amount, key]);
+  }, [companyId, actionId, amount, key, tick]);
 
   if (!key) {
     return {
@@ -80,10 +90,11 @@ export function useProductMatches(
     };
   }
 
+  const token = `${key}:${tick}`;
   return {
-    data: fetchedFor === key ? data : [],
-    loading: fetchedFor !== key,
-    error: fetchedFor === key ? error : null,
-    phase: fetchedFor === key ? phase : ("queued" as RecommendPhase),
+    data: fetchedFor === token ? data : [],
+    loading: fetchedFor !== token,
+    error: fetchedFor === token ? error : null,
+    phase: fetchedFor === token ? phase : ("queued" as RecommendPhase),
   };
 }

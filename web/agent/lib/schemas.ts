@@ -120,3 +120,31 @@ export const IssuerProfileSchema = z.object({
   margin_target_bps: z.number(),
   incumbent: z.boolean().optional(),
 });
+
+/** Structured watcher alert — must match evaluateWatch() output, never invented. */
+export const WatchRuleIdSchema = z.enum([
+  "outlook_negative_worsening",
+  "watch_event",
+  "dscr_floor",
+]);
+
+export const WatchAlertSchema = z.object({
+  company_id: z.string(),
+  month: z.string(),
+  rule_id: WatchRuleIdSchema,
+  severity: z.enum(["warning", "critical"]),
+  message: z.string().min(4),
+  evidence: z.record(z.string(), z.union([z.string(), z.number(), z.null()])),
+});
+
+export const NotifyChannelSchema = z.enum(["slack", "email"]);
+
+export const SubmitAlertsSchema = z.object({
+  company_id: z.string().regex(/^COMP_\d{4}$/).optional(),
+  alerts: z.array(WatchAlertSchema).min(1),
+  notify: z.array(NotifyChannelSchema).min(1).default(["slack", "email"]),
+  /** Short Spanish copy for the channel message body (figures must match alerts). */
+  copy: z.string().min(8).optional(),
+});
+
+export type SubmitAlertsInput = z.infer<typeof SubmitAlertsSchema>;

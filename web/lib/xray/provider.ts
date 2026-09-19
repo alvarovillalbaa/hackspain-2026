@@ -1,7 +1,9 @@
 import type {
   ActionRecommendation,
+  AmortizeContext,
   CompanyRef,
   ImportRequest,
+  ImportResult,
   NegotiationContext,
   NegotiationLever,
   ProductMatch,
@@ -27,7 +29,9 @@ export interface XrayProvider {
     productId: string,
     ctx: NegotiationContext
   ): Promise<NegotiationLever[]>;
-  importCompanies(req: ImportRequest): Promise<CompanyRef[]>;
+  /** Cash + debt contracts for the amortize impact dashboard. */
+  getAmortizeContext(companyId: string): Promise<AmortizeContext>;
+  importCompanies(req: ImportRequest): Promise<ImportResult>;
   listImportable?(): Promise<CompanyRef[]>;
 }
 

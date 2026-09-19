@@ -1,6 +1,6 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { getScore } from "#lib/facts";
+import { getLiveScore } from "#lib/facts";
 import { applyAction, upliftPoints } from "#lib/engine";
 import { ActionKindSchema } from "#lib/schemas";
 
@@ -27,7 +27,7 @@ export default defineTool({
       `Uplift ${company_id} @ €${Math.round(amount)}`,
   },
   async execute(input) {
-    const snapshot = getScore(input.company_id);
+    const snapshot = await getLiveScore(input.company_id);
     if (!snapshot) return { error: `Unknown company ${input.company_id}` };
     const action = {
       dimension_deltas: input.dimension_deltas,

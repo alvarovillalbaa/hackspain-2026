@@ -1,6 +1,6 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { getFacts, getScore } from "#lib/facts";
+import { getLiveFacts, getLiveScore } from "#lib/facts";
 
 const ISSUERS = [
   {
@@ -66,8 +66,8 @@ export default defineTool({
   inputSchema: z.object({ company_id: z.string() }),
   label: { start: ({ company_id }) => `Issuer catalog ${company_id}` },
   async execute({ company_id }) {
-    const facts = getFacts(company_id);
-    const score = getScore(company_id);
+    const facts = await getLiveFacts(company_id);
+    const score = await getLiveScore(company_id);
     const banks = facts?.incumbent_banks ?? [];
     return {
       company_id,

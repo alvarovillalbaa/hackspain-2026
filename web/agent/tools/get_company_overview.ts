@@ -1,6 +1,6 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { compact, dataQuality, requireCompany } from "../lib/data";
+import { compact, dataQuality, requireCompanyLive } from "../lib/data";
 
 export default defineTool({
   description:
@@ -10,7 +10,7 @@ export default defineTool({
   inputSchema: z.object({ company_id: z.string().regex(/^COMP_\d{4}$/, "e.g. COMP_0058") }),
   label: { start: ({ company_id }) => `Leer métricas de ${company_id}` },
   async execute({ company_id }) {
-    const rows = requireCompany(company_id);
+    const rows = await requireCompanyLive(company_id);
     const q = dataQuality();
     return {
       company_id,

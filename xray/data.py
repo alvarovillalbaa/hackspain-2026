@@ -9,7 +9,8 @@ Uso desde un notebook (en este repo o en cualquier otro con `xray` instalado):
 El directorio de datos se resuelve, por orden:
   1. argumento `data_dir`
   2. variable de entorno XRAY_DATA_DIR
-  3. <raíz del repo>/input_data
+  3. <raíz del repo>/docs/data/raw (si existe companies.csv)
+  4. <raíz del repo>/input_data
 
 La primera llamada convierte cada CSV a parquet en <XRAY_ARTIFACTS_DIR | raíz/artifacts>/raw/;
 las siguientes cargan el parquet (transactions.csv pasa de ~40 s a ~2 s). `xray-cache` en la
@@ -57,11 +58,17 @@ def repo_root() -> Path:
 
 
 def data_dir(data_dir: str | os.PathLike | None = None) -> Path:
-    p = Path(data_dir or os.environ.get("XRAY_DATA_DIR") or repo_root() / "input_data")
+    if data_dir is not None:
+        p = Path(data_dir)
+    elif os.environ.get("XRAY_DATA_DIR"):
+        p = Path(os.environ["XRAY_DATA_DIR"])
+    else:
+        raw = repo_root() / "docs" / "data" / "raw"
+        p = raw if (raw / "companies.csv").exists() else repo_root() / "input_data"
     if not p.exists():
         raise FileNotFoundError(
-            f"No encuentro el dataset en {p}. Descárgalo del reto y colócalo en input_data/, "
-            "o exporta XRAY_DATA_DIR apuntando a la carpeta con los 9 CSV."
+            f"No encuentro el dataset en {p}. Colócalo en docs/data/raw/ o input_data/, "
+            "o exporta XRAY_DATA_DIR apuntando a la carpeta con los CSV."
         )
     return p
 

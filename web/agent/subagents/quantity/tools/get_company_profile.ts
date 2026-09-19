@@ -1,6 +1,6 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { getCompany, getFacts, getDimensions } from "#lib/facts";
+import { getLiveCompany, getLiveFacts, getLiveDimensions } from "#lib/facts";
 
 export default defineTool({
   description:
@@ -8,9 +8,9 @@ export default defineTool({
   inputSchema: z.object({ company_id: z.string() }),
   label: { start: ({ company_id }) => `Profile ${company_id}` },
   async execute({ company_id }) {
-    const company = getCompany(company_id);
-    const facts = getFacts(company_id);
-    const dim = getDimensions(company_id);
+    const company = await getLiveCompany(company_id);
+    const facts = await getLiveFacts(company_id);
+    const dim = await getLiveDimensions(company_id);
     if (!company || !facts) return { error: `Unknown company ${company_id}` };
     return {
       company,

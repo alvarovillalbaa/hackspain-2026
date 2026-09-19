@@ -3,20 +3,19 @@ import { Client } from "eve/client";
 import { getVercelOidcToken } from "@vercel/oidc";
 import { FichaActionsDecisionSchema } from "@/agent/lib/schemas";
 import {
-  buildScoreSnapshot,
   getCompanyFacts,
   getDatasetCompany,
   getExportedScore,
-  hasDataset,
 } from "@/lib/xray/dataset";
 import {
   applyAgentCopy,
   listCompanyActions,
 } from "@/lib/xray/recommend-actions";
 import { actionsForSnapshot } from "@/lib/xray/registry/actions";
-import { SCORE_BY_ID } from "@/lib/xray/registry/scores";
-import { mockProvider } from "@/lib/xray/registry/mock-provider";
+import { resolveLiveSnapshot } from "@/lib/xray/live-snapshot";
+import { readImportedPack } from "@/lib/xray/store";
 import type { ActionRecommendation, ScoreSnapshot } from "@/lib/xray/types";
+import type { CompanyFacts, ExportedScore } from "@/lib/xray/dataset/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -25,7 +24,7 @@ type Ctx = { params: Promise<{ companyId: string }> };
 
 const cache = new Map<string, ActionRecommendation[]>();
 const inflight = new Map<string, Promise<ActionRecommendation[]>>();
-const CACHE_VER = "v4";
+const CACHE_VER = "v5";
 
 function eveHost(): string {
   if (process.env.EVE_HOST) return process.env.EVE_HOST;
@@ -44,21 +43,45 @@ async function createEveClient(): Promise<Client> {
   return new Client({ host });
 }
 
-function groundActions(companyId: string, snapshot: ScoreSnapshot) {
+async function resolveFacts(
+  companyId: string
+): Promise<{
+  facts: CompanyFacts | null;
+  exported: ExportedScore | null;
+  currency?: string;
+}> {
+  const imported = await readImportedPack(companyId);
+  if (imported) {
+    return {
+      facts: imported.facts,
+      exported: imported.score,
+      currency: imported.company.currency,
+    };
+  }
+  return {
+    facts: getCompanyFacts(companyId),
+    exported: getExportedScore(companyId),
+    currency: getDatasetCompany(companyId)?.currency,
+  };
+}
+
+async function groundActions(companyId: string, snapshot: ScoreSnapshot) {
+  const { facts, exported, currency } = await resolveFacts(companyId);
   return listCompanyActions(
     snapshot,
-    getCompanyFacts(companyId),
-    getExportedScore(companyId),
-    getDatasetCompany(companyId)?.currency,
+    facts,
+    exported,
+    currency,
     actionsForSnapshot
   );
 }
 
 async function runEveFicha(
   companyId: string,
-  snapshot: ScoreSnapshot
+  snapshot: ScoreSnapshot,
+  facts: CompanyFacts | null,
+  currency?: string
 ): Promise<{ kind: ActionRecommendation["kind"]; title: string }[]> {
-  const facts = getCompanyFacts(companyId);
   const aging = facts?.invoice_aging;
   const invoices = aging
     ? aging.issued_pending +
@@ -84,7 +107,7 @@ async function runEveFicha(
       trend: snapshot.trend,
       drivers: snapshot.drivers,
       facts: facts && {
-        currency: getDatasetCompany(companyId)?.currency,
+        currency,
         cash_balance: facts.cash_balance,
         monthly_outflow_avg_3m: facts.monthly_outflow_avg_3m,
         has_invoices: invoices > 0,
@@ -125,9 +148,10 @@ async function runEveFicha(
 }
 
 async function compute(companyId: string, snapshot: ScoreSnapshot) {
-  const ground = groundActions(companyId, snapshot);
+  const { facts, currency } = await resolveFacts(companyId);
+  const ground = await groundActions(companyId, snapshot);
   try {
-    const picks = await runEveFicha(companyId, snapshot);
+    const picks = await runEveFicha(companyId, snapshot, facts, currency);
     const merged = applyAgentCopy(ground, picks);
     if (merged.length) return merged;
   } catch (err) {
@@ -154,20 +178,12 @@ function resolve(companyId: string, snapshot: ScoreSnapshot) {
 
 export async function GET(_req: Request, ctx: Ctx) {
   const { companyId } = await ctx.params;
-  const snapshot = hasDataset()
-    ? buildScoreSnapshot(companyId)
-    : (SCORE_BY_ID[companyId] ?? null);
+  const snapshot = await resolveLiveSnapshot(companyId);
   if (!snapshot) {
     return NextResponse.json({ error: "company not found" }, { status: 404 });
   }
-  try {
-    const actions = await resolve(companyId, snapshot);
-    return NextResponse.json(actions, {
-      headers: { "Cache-Control": "no-store" },
-    });
-  } catch (err) {
-    console.warn("[actions] fallback to mock:", err);
-    const actions = await mockProvider.listActions(companyId);
-    return NextResponse.json(actions);
-  }
+  const actions = await resolve(companyId, snapshot);
+  return NextResponse.json(actions, {
+    headers: { "Cache-Control": "no-store" },
+  });
 }

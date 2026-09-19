@@ -1,12 +1,14 @@
 import "server-only";
 
-import { scoreToBand } from "../bands";
-import type { CompanyRef, ScoreSnapshot, Trend } from "../types";
+import type { CompanyRef, ScoreSnapshot } from "../types";
+import { snapshotFromExported } from "../snapshot";
 import type {
   CompanyFacts,
   DatasetCompany,
   ExportedScore,
 } from "./types";
+
+export { snapshotFromExported } from "../snapshot";
 
 import companiesJson from "./companies.json";
 import factsJson from "./facts.json";
@@ -55,63 +57,11 @@ export function getCompanyFacts(companyId: string): CompanyFacts | null {
 
 /**
  * ScoreSnapshot from the Python Health Scorer export (`xray-export-web`).
- * Band letter is applied here; all other figures come from scores.json.
  */
 export function buildScoreSnapshot(companyId: string): ScoreSnapshot | null {
   const row = scoresById.get(companyId);
   if (!row) return null;
-
-  const score = row.score;
-  const band = scoreToBand(score);
-  const dims = row.dimensions;
-  const bankability = Math.round(
-    (dims.liquidity * 0.4 + dims.debt * 0.35 + dims.payments * 0.25) * 100
-  );
-  const business_profile = Math.round(
-    (dims.collections * 0.45 + dims.activity * 0.55) * 100
-  );
-
-  const alerts: ScoreSnapshot["alerts"] = [];
-  if (row.watch) {
-    alerts.push({
-      id: `${companyId}-watch`,
-      severity: "warning",
-      message: row.watch,
-    });
-  }
-  const dscr = row.signals.dscr_6m;
-  if (dscr != null && dscr > 0 && dscr < 1.2) {
-    alerts.push({
-      id: `${companyId}-dscr`,
-      severity: "critical",
-      message: `DSCR 6m = ${dscr.toFixed(2)} por debajo del suelo 1,2`,
-    });
-  }
-
-  const trend: Trend =
-    row.trend === "improving" || row.trend === "worsening" || row.trend === "flat"
-      ? row.trend
-      : "flat";
-
-  return {
-    company_id: companyId,
-    month: row.month,
-    score,
-    band,
-    outlook: row.outlook,
-    trend,
-    watch: row.watch,
-    confidence: row.confidence,
-    sub_scores: { bankability, business_profile },
-    dimensions: dims,
-    peer_percentile: row.peer_percentile,
-    projection_6m: row.projection_6m,
-    history: row.history,
-    drivers: row.drivers,
-    alerts,
-    explanation: null,
-    origin: row.origin ?? "ml",
-  };
+  return snapshotFromExported(row);
 }
 
 export function hasDataset(): boolean {

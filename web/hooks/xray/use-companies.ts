@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { provider } from "@/lib/xray/provider";
+import { emitDataImported } from "@/lib/xray/import-events";
 import type { CompanyRef } from "@/lib/xray/types";
 
 const STORAGE_KEY = "xray.imported.v0";
@@ -56,16 +57,19 @@ export function useCompanies() {
 
   const addImported = useCallback((companies: CompanyRef[]) => {
     const existing = loadImported();
-    const ids = new Set(existing.map((c) => c.company_id));
-    const next = [
-      ...existing,
-      ...companies.filter((c) => !ids.has(c.company_id)),
-    ];
+    const byId = new Map(existing.map((c) => [c.company_id, c]));
+    for (const c of companies) byId.set(c.company_id, { ...c, imported: true });
+    const next = [...byId.values()];
     saveImported(next);
     setData((prev) => {
-      const pids = new Set(prev.map((c) => c.company_id));
-      return [...prev, ...companies.filter((c) => !pids.has(c.company_id))];
+      const map = new Map(prev.map((c) => [c.company_id, c]));
+      for (const c of companies) {
+        const prevRow = map.get(c.company_id);
+        map.set(c.company_id, { ...prevRow, ...c, imported: true });
+      }
+      return [...map.values()];
     });
+    emitDataImported(companies.map((c) => c.company_id));
   }, []);
 
   return { data, loading, error, refresh, addImported };

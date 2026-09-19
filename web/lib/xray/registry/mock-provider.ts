@@ -1,5 +1,6 @@
 import type {
   ActionRecommendation,
+  AmortizeContext,
   CompanyRef,
   ImportRequest,
   NegotiationContext,
@@ -9,7 +10,7 @@ import type {
 } from "../types";
 import { DEMO_COMPANIES, IMPORTABLE_COMPANIES } from "./companies";
 import { SCORE_BY_ID } from "./scores";
-import { ACTIONS_BY_COMPANY, findAction } from "./actions";
+import { actionsForSnapshot, resolveAction } from "./actions";
 import { productsForKind } from "./products";
 import {
   computeMatch,
@@ -40,7 +41,9 @@ export const mockProvider = {
 
   async listActions(companyId: string): Promise<ActionRecommendation[]> {
     await delay();
-    return ACTIONS_BY_COMPANY[companyId] ?? [];
+    const snapshot = SCORE_BY_ID[companyId];
+    if (!snapshot) return [];
+    return actionsForSnapshot(snapshot);
   },
 
   async listProducts(
@@ -50,7 +53,7 @@ export const mockProvider = {
   ): Promise<ProductMatch[]> {
     await delay(60);
     const snapshot = SCORE_BY_ID[companyId];
-    const action = findAction(companyId, actionId);
+    const action = resolveAction(companyId, actionId, snapshot);
     if (!snapshot || !action) return [];
 
     const catalog = productsForKind(action.kind, companyId);
@@ -88,6 +91,32 @@ export const mockProvider = {
     return matches.sort((a, b) => b.breakdown.match - a.breakdown.match);
   },
 
+  async getAmortizeContext(companyId: string): Promise<AmortizeContext> {
+    await delay();
+    return {
+      company_id: companyId,
+      cash_balance: 180_000,
+      contracts: [
+        {
+          product_id: `MOCK_${companyId}_loan_1`,
+          bank_name: "BBVA Empresas",
+          type: "loan",
+          outstanding: 95_000,
+          annual_rate: 0.065,
+          amortization_type: "constant quote",
+        },
+        {
+          product_id: `MOCK_${companyId}_loan_2`,
+          bank_name: "Santander Empresas",
+          type: "loan",
+          outstanding: 60_000,
+          annual_rate: 0.042,
+          amortization_type: "constant quote",
+        },
+      ],
+    };
+  },
+
   async getNegotiation(
     productId: string,
     ctx: NegotiationContext
@@ -100,49 +129,8 @@ export const mockProvider = {
     );
     const match = matches.find((m) => m.product.product_id === productId);
     if (!match) return [];
-
-    const { product } = match;
-    const issuer = product.issuer_terms;
-    const ideal = product.client_ideal_terms;
-
-    return [
-      {
-        id: "rate",
-        label: "Bajar tipo",
-        description: `Desde ${issuer.rate_annual} hacia ${ideal.rate_annual} (ideal cliente)`,
-        field: "rate_annual",
-        suggested: ideal.rate_annual,
-        match_delta: 0.08,
-        origin: "llm",
-      },
-      {
-        id: "fees",
-        label: "Reducir comisiones",
-        description: `Desde ${issuer.fees_bps} bps hacia ${ideal.fees_bps} bps`,
-        field: "fees_bps",
-        suggested: ideal.fees_bps,
-        match_delta: 0.04,
-        origin: "deterministic",
-      },
-      {
-        id: "term",
-        label: "Alargar plazo",
-        description: `Desde ${issuer.term_months}m hacia ${ideal.term_months}m`,
-        field: "term_months",
-        suggested: ideal.term_months,
-        match_delta: 0.05,
-        origin: "eve",
-      },
-      {
-        id: "collateral",
-        label: "Suavizar colateral",
-        description: `Desde ${issuer.collateral} hacia ${ideal.collateral}`,
-        field: "collateral",
-        suggested: ideal.collateral,
-        match_delta: 0.06,
-        origin: "llm",
-      },
-    ];
+    const { leversFromMatch } = await import("../negotiation");
+    return leversFromMatch(match);
   },
 
   async importCompanies(req: ImportRequest): Promise<CompanyRef[]> {

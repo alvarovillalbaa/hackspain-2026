@@ -2,6 +2,7 @@
 
 import { Suspense, use, useMemo, useState } from "react";
 import { LayoutGroup } from "motion/react";
+import { AmortizeDashboard } from "@/components/xray/amortize-dashboard";
 import { AppShell } from "@/components/xray/app-shell";
 import { ProductMatchCard } from "@/components/xray/product-match-card";
 import { ProductDetail } from "@/components/xray/product-detail";
@@ -29,6 +30,63 @@ function MarketplaceInner({
 }: {
   companyId: string;
   actionId: string;
+}) {
+  const { data: companies } = useCompanies();
+  const company = companies.find((c) => c.company_id === companyId);
+  const { data: actions, loading: actionsLoading } = useActions(companyId);
+  const action = actions.find((a) => a.id === actionId);
+  const { data: score, loading: scoreLoading } = useCompanyScore(companyId);
+
+  const isAmortize = action?.kind === "amortize";
+
+  const crumbs = [
+    {
+      label: company?.name ?? companyId,
+      href: `/c/${companyId}`,
+    },
+    { label: action?.title ?? actionId },
+  ];
+
+  if (actionsLoading || scoreLoading || !action || !score) {
+    return (
+      <AppShell crumbs={crumbs}>
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-48 w-full rounded-2xl" />
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (isAmortize) {
+    return (
+      <AppShell crumbs={crumbs}>
+        <AmortizeDashboard
+          companyId={companyId}
+          action={action}
+          score={score}
+        />
+      </AppShell>
+    );
+  }
+
+  return (
+    <MarketplaceBody
+      companyId={companyId}
+      actionId={actionId}
+      crumbs={crumbs}
+    />
+  );
+}
+
+function MarketplaceBody({
+  companyId,
+  actionId,
+  crumbs,
+}: {
+  companyId: string;
+  actionId: string;
+  crumbs: { label: string; href?: string }[];
 }) {
   const { data: companies } = useCompanies();
   const company = companies.find((c) => c.company_id === companyId);
@@ -76,15 +134,7 @@ function MarketplaceInner({
   }, [score, action, effectiveAmount]);
 
   return (
-    <AppShell
-      crumbs={[
-        {
-          label: company?.name ?? companyId,
-          href: `/c/${companyId}`,
-        },
-        { label: action?.title ?? actionId },
-      ]}
-    >
+    <AppShell crumbs={crumbs}>
       <div className="mb-8 space-y-2">
         <div className="flex items-center gap-2">
           {action ? <OriginChip origin={action.origin} /> : null}

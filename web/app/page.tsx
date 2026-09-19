@@ -55,8 +55,8 @@ export default function PortfolioPage() {
           Portfolio
         </h1>
         <p className="max-w-xl text-sm text-muted-foreground">
-          Selecciona una empresa del grupo o importa datasets CSV para añadir
-          nuevas al demo.
+          Selecciona una empresa del grupo o importa CSV: empresas nuevas, o
+          datos nuevos de una que ya está en el portfolio.
         </p>
         <div className="relative max-w-md">
           <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -114,6 +114,7 @@ export default function PortfolioPage() {
         open={importOpen}
         onOpenChange={setImportOpen}
         onImported={addImported}
+        companies={data}
       />
     </AppShell>
   );

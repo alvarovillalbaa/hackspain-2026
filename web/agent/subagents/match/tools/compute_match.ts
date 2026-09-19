@@ -1,6 +1,6 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { getScore } from "#lib/facts";
+import { getLiveScore } from "#lib/facts";
 import { computeMatch, defaultFitContext } from "#lib/engine";
 import { ActionKindSchema, ProductTermsSchema } from "#lib/schemas";
 import type { Band } from "../../../../lib/xray/types";
@@ -30,7 +30,7 @@ export default defineTool({
     start: ({ product_id }) => `Match ${product_id}`,
   },
   async execute(input) {
-    const snapshot = getScore(input.company_id);
+    const snapshot = await getLiveScore(input.company_id);
     if (!snapshot) return { error: `Unknown company ${input.company_id}` };
 
     const product = {

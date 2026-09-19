@@ -358,6 +358,78 @@ export function requireCompany(companyId: string): Row[] {
   return rows;
 }
 
+/**
+ * Prefer imported pack (re-score after CSV upload) over the committed fact pack.
+ */
+export async function requireCompanyLive(companyId: string): Promise<Row[]> {
+  const { readImportedPack } = await import("../../lib/xray/store");
+  const pack = await readImportedPack(companyId);
+  if (pack?.facts) {
+    const c = pack.company;
+    const f = pack.facts;
+    const sc = pack.score;
+    const cash = f.cash_balance ?? 0;
+    const debt = Object.values(f.debt_by_type ?? {}).reduce(
+      (a, v) => a + Math.abs(v.outstanding),
+      0
+    );
+    const rate = f.implied_debt_rate ?? 0;
+    const idle = Math.min(Math.max(cash, 0), debt);
+    const overduePos = f.invoice_aging.issued_overdue ?? 0;
+    const overdueNeg = f.invoice_aging.received_overdue ?? 0;
+    const history = sc?.months_of_history ?? f.cash_series.length ?? 0;
+    const refinancing = (f.contracts ?? [])
+      .filter((x) => x.annual_rate != null && x.annual_rate > 0)
+      .reduce((a, x) => a + Math.abs(x.outstanding ?? 0), 0);
+    const annualInterest = (f.contracts ?? []).reduce((a, x) => {
+      if (x.annual_rate == null || x.outstanding == null) return a;
+      return a + Math.abs(x.outstanding) * x.annual_rate;
+    }, 0);
+    return [
+      {
+        company_id: c.company_id,
+        group_id: c.group_id,
+        company_currency: c.currency || "EUR",
+        metric_currency: c.currency || "EUR",
+        booked_transaction_count: s(
+          f.cash_series.reduce((a, m) => a + m.tx_count, 0)
+        ),
+        fee_transaction_count: "0",
+        history_months: s(history),
+        booked_outflow: s(f.monthly_outflow_avg_3m ?? 0),
+        booked_inflow: s(f.monthly_inflow_avg_3m ?? 0),
+        interest_charge_outflow: s(annualInterest / 4),
+        fee_outflow: "0",
+        debt_repayment_outflow: "0",
+        cash_balance: s(cash),
+        debt_outstanding_abs_proxy: s(debt),
+        idle_cash_vs_debt: s(idle),
+        implied_debt_rate_raw: s(rate),
+        implied_debt_rate: s(Math.min(rate, 0.25)),
+        idle_cash_savings_proxy: s(idle * Math.min(rate, 0.25)),
+        loc_granted: "0",
+        loc_drawn: "0",
+        loc_undrawn: "0",
+        overdue_invoice_abs_exposure: s(overduePos + overdueNeg),
+        overdue_pending_positive: s(overduePos),
+        overdue_pending_negative: s(overdueNeg),
+        overdue_invoice_count: "0",
+        duplicate_candidate_abs_amount: "0",
+        duplicate_candidate_count: "0",
+        reconciliation_pending_abs_amount: "0",
+        reconciliation_discarded_abs_amount: "0",
+        collection_refund_outflow: "0",
+        annual_interest_cost_proxy: s(annualInterest),
+        refinancing_outstanding: s(refinancing),
+        debt_product_count: s(f.contracts.length ?? 0),
+        debt_sign_warning:
+          debt > 0 ? "absolute values from imported pack" : "no debt observed",
+      },
+    ];
+  }
+  return requireCompany(companyId);
+}
+
 export const num = (v: string | undefined) =>
   v === undefined || v === "" ? null : Number(v);
 

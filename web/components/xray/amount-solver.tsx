@@ -10,14 +10,20 @@ export function AmountSolver({
   min,
   max,
   uplift,
+  from,
+  to,
   toBand,
+  currency = "EUR",
   onChange,
 }: {
   value: number;
   min: number;
   max: number;
   uplift: number;
+  from?: number;
+  to?: number;
   toBand?: Band;
+  currency?: string;
   onChange: (v: number) => void;
 }) {
   return (
@@ -26,10 +32,10 @@ export function AmountSolver({
         <div>
           <div className="text-xs text-muted-foreground">Importe ideal</div>
           <div className="font-mono text-lg tabular-nums">
-            {formatCurrency(value)}
+            {formatCurrency(value, currency)}
           </div>
         </div>
-        <ScoreUplift uplift={uplift} toBand={toBand} />
+        <ScoreUplift uplift={uplift} from={from} to={to} toBand={toBand} />
       </div>
       <Slider
         value={[value]}
@@ -43,8 +49,8 @@ export function AmountSolver({
         }}
       />
       <div className="flex justify-between text-[11px] text-muted-foreground tabular-nums">
-        <span>{formatCurrency(min)}</span>
-        <span>{formatCurrency(max)}</span>
+        <span>{formatCurrency(min, currency)}</span>
+        <span>{formatCurrency(max, currency)}</span>
       </div>
     </div>
   );

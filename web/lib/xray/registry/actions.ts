@@ -4,7 +4,7 @@ import type {
   ScoreSnapshot,
 } from "../types";
 import { SCORE_BY_ID } from "./scores";
-import { applyAction, upliftPoints } from "../scoring";
+import { radarUplift } from "../scoring";
 
 const TEMPLATES: Omit<ActionRecommendation, "id" | "uplift" | "origin">[] = [
   {
@@ -25,9 +25,9 @@ const TEMPLATES: Omit<ActionRecommendation, "id" | "uplift" | "origin">[] = [
   },
   {
     kind: "new_debt",
-    title: "Nueva financiación de circulante",
+    title: "Reconstruir colchón de caja",
     rationale:
-      "Inyectar liquidez estructural para absorber un bache de cobros sin disparar el uso de la línea.",
+      "El colchón de caja está por debajo de 15 días. Inyectar liquidez cubre el hueco de tesorería; no es financiación de facturas.",
     recommended_amount: 200_000,
     dimension_deltas: { liquidity: 0.14, debt: -0.04, activity: 0.03 },
   },
@@ -74,15 +74,12 @@ export function actionsForSnapshot(
     return scoreB - scoreA;
   });
 
-  return ranked.slice(0, 4).map((t, i) => {
-    const after = applyAction(snapshot, t, t.recommended_amount);
-    return {
-      ...t,
-      id: `${companyId}-${t.kind}-${i}`,
-      uplift: upliftPoints(snapshot, after),
-      origin: (i === 0 ? "eve" : i === 1 ? "llm" : "deterministic") as ActionRecommendation["origin"],
-    };
-  });
+  return ranked.slice(0, 4).map((t, i) => ({
+    ...t,
+    id: `${companyId}-${t.kind}-${i}`,
+    uplift: radarUplift(snapshot, t),
+    origin: (i === 0 ? "eve" : i === 1 ? "llm" : "deterministic") as ActionRecommendation["origin"],
+  }));
 }
 
 function actionsFor(companyId: string): ActionRecommendation[] {

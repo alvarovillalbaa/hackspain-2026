@@ -6,6 +6,9 @@ import { RecommendationDecisionSchema } from "@/agent/lib/schemas";
 import { reassembleMatches } from "@/lib/xray/reassemble";
 import {
   buildScoreSnapshot,
+  getCompanyFacts,
+  getDatasetCompany,
+  getExportedScore,
   hasDataset,
 } from "@/lib/xray/dataset";
 import { SCORE_BY_ID } from "@/lib/xray/registry/scores";
@@ -13,6 +16,7 @@ import {
   actionsForSnapshot,
   resolveAction,
 } from "@/lib/xray/registry/actions";
+import { findRecommended, listCompanyActions } from "@/lib/xray/recommend-actions";
 import { mockProvider } from "@/lib/xray/registry/mock-provider";
 import { readDecision, writeDecision } from "@/lib/xray/store";
 import type { ProductMatch, ScoreSnapshot } from "@/lib/xray/types";
@@ -43,6 +47,24 @@ function resolveSnapshot(companyId: string): ScoreSnapshot | null {
   return SCORE_BY_ID[companyId] ?? null;
 }
 
+function actionsFor(snapshot: ScoreSnapshot) {
+  return listCompanyActions(
+    snapshot,
+    getCompanyFacts(snapshot.company_id),
+    getExportedScore(snapshot.company_id),
+    getDatasetCompany(snapshot.company_id)?.currency,
+    actionsForSnapshot
+  );
+}
+
+function actionFor(companyId: string, actionId: string, snapshot: ScoreSnapshot) {
+  return (
+    findRecommended(actionsFor(snapshot), actionId) ??
+    resolveAction(companyId, actionId, snapshot) ??
+    actionsFor(snapshot)[0]
+  );
+}
+
 function entryFromDecision(
   companyId: string,
   actionId: string,
@@ -52,9 +74,7 @@ function entryFromDecision(
 ): CacheEntry | null {
   const snapshot = resolveSnapshot(companyId);
   if (!snapshot) return null;
-  const action =
-    resolveAction(companyId, actionId, snapshot) ??
-    actionsForSnapshot(snapshot)[0];
+  const action = actionFor(companyId, actionId, snapshot);
   if (!action) return null;
   const decision = RecommendationDecisionSchema.parse(decisionRaw);
   return {
@@ -137,10 +157,8 @@ async function runEveRecommendation(input: {
 }): Promise<
   CacheEntry & { decision: z.infer<typeof RecommendationDecisionSchema> }
 > {
-  const actions = actionsForSnapshot(input.snapshot);
-  const action =
-    resolveAction(input.company_id, input.action_id, input.snapshot) ??
-    actions[0];
+  const actions = actionsFor(input.snapshot);
+  const action = actionFor(input.company_id, input.action_id, input.snapshot) ?? actions[0];
   if (!action) {
     throw new Error(`No action for ${input.company_id}/${input.action_id}`);
   }

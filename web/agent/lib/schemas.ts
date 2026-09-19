@@ -94,6 +94,20 @@ export type RecommendationDecision = z.infer<
   typeof RecommendationDecisionSchema
 >;
 
+/** Ficha actions: agent writes copy; server keeps amounts/uplift from the tool. */
+export const FichaActionPickSchema = z.object({
+  kind: ActionKindSchema,
+  title: z.string().min(4),
+  rationale: z.string().min(8).optional(),
+});
+
+export const FichaActionsDecisionSchema = z.object({
+  company_id: z.string(),
+  actions: z.array(FichaActionPickSchema).max(4),
+});
+
+export type FichaActionsDecision = z.infer<typeof FichaActionsDecisionSchema>;
+
 export const IssuerProfileSchema = z.object({
   id: z.string(),
   name: z.string(),

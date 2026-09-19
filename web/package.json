@@ -26,6 +26,7 @@
     "warm:recommendations": "npx tsx scripts/warm-recommendations.mts"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^4.0.71",
     "@base-ui/react": "^1.8.0",
     "@hookform/resolvers": "5.9.1",
     "@radix-ui/react-use-controllable-state": "^1.2.6",

@@ -179,6 +179,119 @@ def persistence_horizon(p: pd.DataFrame, min_lift: float = 2.0) -> int:
     return int(ok.max()) if len(ok) else 0
 
 
+# --- proyección a 6 meses (slice 14) --------------------------------------------------------
+
+
+def _pinball(y: np.ndarray, q: np.ndarray, tau: float) -> float:
+    d = y - q
+    return float(np.mean(np.maximum(tau * d, (tau - 1.0) * d)))
+
+
+def projection_metrics(
+    scored: pd.DataFrame,
+    test_months: list[str] | None = TEST_MONTHS,
+    train_until: str = TRAIN_UNTIL,
+    horizon: int = 6,
+    n_bins: int = 20,
+) -> dict:
+    """Cobertura, anchura, MAE de p50 y pinball del abanico `proj_p10/p50/p90` frente al score
+    realizado a t+6, en test; y la base martingala (centro = score de hoy, cuantiles del cambio a
+    6 meses por tramo de score ajustados en train), que cualquier proyección tiene que batir."""
+    o = _sorted(scored)
+    cols = rules.PROJECTION_COLUMNS
+    if not set(cols) <= set(o.columns):
+        return {"n": 0}
+    g = o.groupby("company_id", sort=False)
+    future = g["score"].shift(-horizon)
+    has = o["score"].notna() & future.notna() & o[cols].notna().all(axis=1)
+    month = o["month"].astype(str)
+    train = has & (month <= train_until)
+    test = (has & month.isin(test_months)) if test_months is not None else has
+    if int(test.sum()) == 0:
+        return {"n": 0}
+    y = future[test].to_numpy(dtype=float)
+    p10, p50, p90 = (o.loc[test, c].to_numpy(dtype=float) for c in cols)
+
+    def table(lo: np.ndarray, mid: np.ndarray, hi: np.ndarray) -> dict:
+        return {
+            "coverage_80": float(np.mean((y >= lo) & (y <= hi))),
+            "mean_width": float(np.mean(hi - lo)),
+            "mae_p50": float(np.mean(np.abs(y - mid))),
+            "pinball": float(np.mean([_pinball(y, lo, 0.1), _pinball(y, mid, 0.5), _pinball(y, hi, 0.9)])),
+        }
+
+    now = o.loc[test, "score"].to_numpy(dtype=float)
+    base: dict = {"coverage_80": None, "mean_width": None, "mae_p50": None, "pinball": None}
+    if int(train.sum()) >= 2:
+        edges = np.unique(np.quantile(o.loc[train, "score"].to_numpy(dtype=float), np.linspace(0, 1, n_bins + 1)))
+        n_tramos = max(len(edges) - 1, 1)
+
+        def bin_of(s: np.ndarray) -> np.ndarray:
+            return np.clip(np.searchsorted(edges[1:-1], s, side="right"), 0, n_tramos - 1)
+
+        d_train = pd.DataFrame({
+            "bin": bin_of(o.loc[train, "score"].to_numpy(dtype=float)),
+            "d": (future - o["score"])[train].to_numpy(dtype=float),
+        })
+        q = d_train.groupby("bin")["d"].quantile([0.1, 0.9]).unstack().reindex(range(n_tramos)).ffill().bfill()
+        b = bin_of(now)
+        lo = np.clip(now + q[0.1].to_numpy()[b], 0.0, 100.0)
+        hi = np.clip(now + q[0.9].to_numpy()[b], 0.0, 100.0)
+        base = table(lo, now, hi)
+
+    out = {"n": int(test.sum()), "horizon": horizon, **table(p10, p50, p90), "martingale_baseline": base}
+    sub = o.loc[test]
+    inside = (y >= p10) & (y <= p90)
+    if "outlook" in sub.columns:
+        out["coverage_80_by_outlook"] = {
+            v: (float(inside[(sub["outlook"] == v).to_numpy()].mean()) if (sub["outlook"] == v).any() else None)
+            for v in ("negative", "stable", "positive")
+        }
+    if "months_of_history" in sub.columns:
+        h = sub["months_of_history"]
+        tranches = {"lt_6": h < 6, "6_11": (h >= 6) & (h < 12), "ge_12": h >= 12}
+        out["coverage_80_by_history"] = {
+            k: (float(inside[m.to_numpy()].mean()) if m.any() else None) for k, m in tranches.items()
+        }
+    return out
+
+
+# --- watch (slice 14) ---------------------------------------------------------------------
+
+
+def watch_metrics(
+    scored: pd.DataFrame,
+    test_months: list[str] | None = TEST_MONTHS,
+    cfg: RulesConfig | None = None,
+    months_ahead: int = 3,
+) -> dict:
+    """Cuota de filas con watch y P(mes rojo en (t, t+3]) con watch activo frente a sin watch, en
+    test, entre filas que no están en rojo en t y tienen los tres meses siguientes."""
+    cfg = cfg or RulesConfig()
+    o = _sorted(scored)
+    empty = {"share_rows_with_watch": 0.0, "n_watch": 0, "p_red_3m_given_watch": None,
+             "p_red_3m_given_no_watch": None, "kinds": {}}
+    if "watch" not in o.columns:
+        return empty
+    red = o["n_red"] >= cfg.red_month_min
+    g = red.astype(float).groupby(o["company_id"], sort=False)
+    fut = pd.concat([g.shift(-k) for k in range(1, months_ahead + 1)], axis=1)
+    has_future = fut.notna().all(axis=1)
+    red_ahead = fut.max(axis=1) >= 1
+    active = o["watch"].notna() & o["watch"].astype(str).ne("")
+    m = has_future & ~red
+    if test_months is not None:
+        m &= o["month"].astype(str).isin(test_months)
+    with_w, without = m & active, m & ~active
+    return {
+        "share_rows_with_watch": float(active.mean()),
+        "n_watch": int(with_w.sum()),
+        "p_red_3m_given_watch": float(red_ahead[with_w].mean()) if with_w.any() else None,
+        "p_red_3m_given_no_watch": float(red_ahead[without].mean()) if without.any() else None,
+        "kinds": {str(k): int(v) for k, v in o.loc[active, "watch"].value_counts().items()},
+    }
+
+
 # --- direccionalidad ----------------------------------------------------------------------
 
 
@@ -364,6 +477,8 @@ def run_all(
         },
         "directionality": directionality(scored, test_months, cfg),
         "reliability": reliability(scored, test_months),
+        "projection": projection_metrics(scored, test_months, train_until),
+        "watch": watch_metrics(scored, test_months, cfg),
         "outlook_share": scored["outlook"].value_counts(normalize=True).to_dict(),
         "trend_share": scored["trend"].value_counts(normalize=True).to_dict(),
         "confidence_share": scored["confidence"].value_counts(normalize=True).to_dict(),
@@ -426,6 +541,16 @@ def _print_summary(name: str, m: dict) -> None:
         print(f"fiabilidad (test, n={r['n']:,}): desvío medio score-etiqueta por decil {r['mean_abs_gap']:.1f} pts · "
               f"bajadas crudas de la etiqueta por decil de nivel {r['dips']}/{len(r['by_level_decile']) - 1}"
               f" (mayor {r['largest_dip']:+.1f} pts)")
+    p = m.get("projection") or {}
+    if p.get("n"):
+        b = p.get("martingale_baseline") or {}
+        print(f"proyección a 6 m (test, n={p['n']:,}): cobertura 80 % {p['coverage_80']:.0%} · anchura {p['mean_width']:.1f} "
+              f"· MAE p50 {p['mae_p50']:.1f} · pinball {p['pinball']:.2f} "
+              f"(base martingala: cobertura {b.get('coverage_80')} · pinball {b.get('pinball')})")
+    w = m.get("watch") or {}
+    if w:
+        print(f"watch: {w['share_rows_with_watch']:.1%} de las filas · P(rojo en ≤ 3 m | watch) {w['p_red_3m_given_watch']} "
+              f"frente a {w['p_red_3m_given_no_watch']} sin watch (n={w['n_watch']}) · {w.get('kinds')}")
     print(f"outlook: {m['outlook_share']} · trend: {m['trend_share']} · confidence: {m['confidence_share']}")
     if m.get("auc6_group_dispersion"):
         g = m["auc6_group_dispersion"]
@@ -440,6 +565,9 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="xray-evals", description="Evals del score por reglas (docs/rules_spec.md §8)")
     ap.add_argument("--features", default=str(artifacts_dir() / "features.parquet"), help="tabla del contrato (parquet o csv)")
     ap.add_argument("--events", default=None, help="events_ext csv (company_id, month, kind); opcional")
+    ap.add_argument("--events-from-data", action="store_true",
+                    help="construye events_ext con xray.events desde la caché de xray.data.load() "
+                         "(solo para la tabla de referencia; ignorado si se pasa --events)")
     ap.add_argument("--companies", default=None, help="companies.parquet/csv para GroupKFold; por defecto artifacts/raw/companies.parquet si existe")
     ap.add_argument("--out-dir", default=str(artifacts_dir() / "evals"))
     ap.add_argument("--name", default="rules")
@@ -455,6 +583,12 @@ def main(argv: list[str] | None = None) -> int:
         if c.kind == "flag":
             feats[c.name] = feats[c.name].astype(bool)
     events_ext = _read_table(Path(args.events)) if args.events else None
+    if events_ext is None and args.events_from_data:
+        from xray import events as events_mod
+        from xray.data import load
+
+        events_ext = events_mod.build(load(), feats)
+        print(f"{len(events_ext):,} eventos de watch desde los CSV")
 
     groups = None
     companies_path = Path(args.companies) if args.companies else artifacts_dir() / "raw" / "companies.parquet"

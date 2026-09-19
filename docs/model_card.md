@@ -64,6 +64,8 @@ Desvío medio 0,9 puntos por decil; el mayor, 3,1 en el decil más sano, donde e
 
 **Una identidad que conviene conocer.** Como el nivel promedia los mismos seis meses que la etiqueta, el nivel en t+6 **es** la etiqueta de t, y por tanto el score de dentro de seis meses es exactamente el mapa aplicado a `label_t6` (comprobado: diferencia 0,000 en las 13.682 filas que tienen ambos). Consecuencias: (i) la proyección del score a 6 meses se puede leer de los cuantiles de la etiqueta condicionados al nivel, sin simular nada, y hereda esta misma calibración; (ii) la identidad depende de que `level_window == horizon`; `tests/test_rules.py` lo afirma para que un cambio en uno de los dos no pase en silencio.
 
+**Abanico a 6 meses** (19 sep, noche, #31). `RulesModel` guarda además 20 tramos del nivel (cortes por cuantiles en train) con los cuantiles p10/p50/p90 de la etiqueta de cada tramo, pasados por el mapa y forzados no decrecientes entre tramos. `projection_6m` de la ficha es la interpolación por tramo del nivel de hoy: mismo abanico en cartera, ingest y packs, sin reajustar nada. En test: cobertura del abanico 80 % = **82,8 %**, anchura media 17,5 pts, MAE de la mediana 5,8 pts y pinball 1,845 frente a 1,853 de la base martingala (n = 5.907): el abanico calibra bien y gana a la base por muy poco, porque el centro ya se movía a la etiqueta esperada.
+
 ## 5. Supuestos, con su justificación y su chequeo
 
 | # | Supuesto | Por qué lo creemos | Cómo se comprueba | Qué lo rompería |
@@ -91,6 +93,8 @@ Desvío medio 0,9 puntos por decil; el mayor, 3,1 en el decil más sano, donde e
 | Direccionalidad | P(rojo t+6 \| outlook negativo / estable / positivo) 66 / 8 / 16 %; \| trend empeora / plano / mejora 12 / 12 / 8 % | El outlook afirma persistencia; la mejora casi no se predice |
 | Dispersión por grupos (AUC(6), 5 pliegues por `group_id`) | 0,69 ± 0,05 | Variabilidad entre subpoblaciones, no generalización (mapa monótono) |
 | Fiabilidad del mapa | desvío medio 0,9 pts por decil; 0 bajadas crudas en 9 escalones | §4 |
+| Abanico a 6 meses | cobertura 80 %: 82,8 % · anchura 17,5 pts · MAE p50 5,8 · pinball 1,845 (martingala 1,853) | Calibrado; ventaja sobre la base mínima (§4) |
+| Watch (eventos de `xray/events.py`) | P(rojo en ≤ 3 m \| watch) 15,2 % frente a 7,8 % sin watch (46 filas, 1,2 % de cuota) | El evento discreto añade señal pero resuelve poco: se dice así |
 | Reparto | outlook 90 / 6 / 4 % · trend 87 / 6 / 6 % · confidence alta 31 %, media 38 %, baja 31 % · 4 señales 25 %, 3: 50 %, 2: 24 % | Cobertura que explica `confidence` |
 
 Fuente: `artifacts/evals/metrics.json` (`uv run xray-evals`). Lo que sale mal se cuenta igual: la mejora no se predice (`trend = improving` acierta como una moneda para salir del rojo) y la mitad de los eventos se detectan con menos de dos meses de margen.
@@ -100,7 +104,7 @@ Fuente: `artifacts/evals/metrics.json` (`uv run xray-evals`). Lo que sale mal se
 - **Circularidad**: etiqueta y score son el mismo objeto de rangos, suavizado. Contar las banderas de hoy da la misma AUC que el score (0,71), y la curva AUC(h) no decae con el horizonte. [revision_objetivo_score.md](revision_objetivo_score.md) propone calibrar a la probabilidad de rotura de caja en euros (PD a 6 meses) y anclar las bandas a ella. Pendiente del equipo; si se acepta cambian §1 y §4 de esta ficha, no los pasos 1–5.
 - **Relativo por construcción**: no puede decir que toda la cartera empeora.
 - **Primer mes de historia**: suele ser parcial y produce el 26 % de los eventos, no anticipables. Pendiente: empezar la tabla en el primer mes completo, como ya termina en el último.
-- **Bandas** (slice #5) y **watch desde los CSV** aún no existen; `watch` se lee de una tabla externa.
+- **Bandas** (slice #5) aún no existen; el watch ya sale de `xray/events.py` pero solo cubre lo que los CSV ven: `large_maturity` necesita cuadro de amortización (87 contratos) y `expensive_new_debt` necesita contrato con tipo.
 - **Cobertura**: sin facturas no hay señal de vencidas, sin deuda no hay DSCR; el 31 % de las filas tiene `confidence = low`.
 - **Un solo mapa global**: no hay mapas por tamaño ni por grupo; la dispersión 0,69 ± 0,05 dice cuánto varía el acierto entre subpoblaciones.
 

@@ -13,7 +13,7 @@ Score de financiabilidad a 6 meses para pymes a partir de tesorería, y encima u
 
 | Ruta | Qué es | Lenguaje |
 |---|---|---|
-| `xray/` | El motor: `data` (carga + caché), `features` (contrato y `build()`), `profile`, `labels`, `rules`, `explain`, `evals`, `score`; pendientes `bands`, `projection`, `rates` | Python 3.12, uv |
+| `xray/` | El motor: `data` (carga + caché), `features` (contrato y `build()`), `profile`, `labels`, `rules`, `events`, `explain`, `evals`, `score`; pendientes `bands`, `rates` | Python 3.12, uv |
 | `api/` | FastAPI de ingest (`GET /health`, `POST /ingest`); importa `xray`. El score de la demo es el fact pack, no `/score` | Python |
 | `web/` | Next.js + agente Eve (fact pack + Blob). **Tiene su propio `AGENTS.md`: léelo antes de tocar nada ahí** | TypeScript |
 | `notebooks/` | Experimentos compartidos; importan `xray`, sin outputs en git | — |

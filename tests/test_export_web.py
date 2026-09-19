@@ -153,3 +153,55 @@ def test_peer_ref_percentile_stable_for_copy():
     peer = peer_ref_from_scores(scored)
     records = records_from_scored(scored, peer_ref=peer)
     assert all(0 <= r["peer_percentile"] <= 100 for r in records)
+
+
+def test_projection_6m_comes_from_the_model_bins_not_from_history_deltas():
+    scored = rules.run(features.load_fixture())
+    records = records_from_scored(scored)
+    last = (
+        scored[scored["score"].notna()].sort_values(["company_id", "month"])
+        .groupby("company_id").tail(1).set_index("company_id")
+    )
+    for r in records:
+        row = last.loc[r["company_id"]]
+        assert r["projection_6m"] == {
+            "p10": round(float(row["proj_p10"]), 1),
+            "p50": round(float(row["proj_p50"]), 1),
+            "p90": round(float(row["proj_p90"]), 1),
+        }
+        assert r["projection_6m"]["p10"] <= r["projection_6m"]["p50"] <= r["projection_6m"]["p90"]
+    with pytest.raises(ValueError, match="proj_p10"):  # sin las columnas del modelo no hay stub que las sustituya
+        records_from_scored(scored.drop(columns=["proj_p10", "proj_p50", "proj_p90"]))
+
+
+def test_watch_from_events_reaches_the_record_and_expires():
+    feats = features.load_fixture()
+    ev = pd.DataFrame({"company_id": ["MOCK_DIP"], "month": ["2026-07"], "kind": ["large_maturity"]})
+    by_id = {r["company_id"]: r for r in records_from_scored(rules.run(feats, events_ext=ev))}
+    assert by_id["MOCK_DIP"]["watch"] == "large_maturity"  # 2026-07 y 2026-08 caen en los tres meses del watch
+    assert by_id["MOCK_DETERIORATION"]["watch"] is None
+    old = pd.DataFrame({"company_id": ["MOCK_DIP"], "month": ["2026-04"], "kind": ["large_maturity"]})
+    expired = {r["company_id"]: r["watch"] for r in records_from_scored(rules.run(feats, events_ext=old))}
+    assert expired["MOCK_DIP"] is None
+
+
+def test_method_metrics_publish_the_fixed_subset_and_skip_when_evals_are_missing(tmp_path):
+    from xray import evals
+    from xray.export_web import write_method_metrics
+
+    metrics, _, _ = evals.run_all(features.load_fixture())
+    src = tmp_path / "metrics.json"
+    evals.write_metrics(metrics, "rules", src)
+    dst = tmp_path / "pack" / "metrics.json"
+    assert write_method_metrics(src, dst) is True
+    doc = json.loads(dst.read_text(encoding="utf-8"))
+    assert doc["score_model"] == "rules" and doc["train_until"] == "2025-08"
+    assert doc["n_companies"] == 3 and doc["n_rows"] == 41
+    assert set(doc["lead_time"]) >= {"n_events", "share_crossing", "share_chronic", "share_late",
+                                     "share_no_history", "median_crossing", "cutoff"}
+    assert list(doc["persistence"]["p_red_given_red"]) == ["1", "2", "3", "4", "5", "6"]
+    assert set(doc["directionality"]) >= {"p_red_t6_given_negative", "p_red_t6_given_stable", "p_red_t6_given_positive"}
+    assert "projection" in doc and "watch" in doc and "auc6_external" in doc
+    assert "reliability" not in doc and "auc_by_horizon" not in doc  # subconjunto fijo, no el volcado entero
+    assert write_method_metrics(tmp_path / "missing.json", tmp_path / "other.json") is False
+    assert not (tmp_path / "other.json").exists()

@@ -13,8 +13,9 @@ import {
   type CompanySummary,
 } from "../company-summary";
 import { buildGroupSummaries, type GroupSummary } from "../group-summary";
-import type { CompanyRef, ScoreSnapshot } from "../types";
+import type { CompanyRef, MethodMetrics, ScoreSnapshot } from "../types";
 import { snapshotFromExported } from "../snapshot";
+import { parseMethodMetrics } from "../method-metrics";
 import type {
   CompanyFacts,
   DatasetCompany,
@@ -26,6 +27,7 @@ export { snapshotFromExported } from "../snapshot";
 import companiesJson from "./companies.json";
 import factsJson from "./facts.json";
 import scoresJson from "./scores.json";
+import metricsJson from "./metrics.json";
 
 const companies = companiesJson as DatasetCompany[];
 const factsList = factsJson as CompanyFacts[];
@@ -116,6 +118,11 @@ export function buildScoreSnapshot(companyId: string): ScoreSnapshot | null {
 
 export function hasDataset(): boolean {
   return companies.length > 0 && scoresList.length > 0;
+}
+
+/** Métricas del método (anticipación, persistencia, abanico, watch) escritas por `xray-export-web`. */
+export function getMethodMetrics(): MethodMetrics | null {
+  return parseMethodMetrics(metricsJson);
 }
 
 let peerUniverseCache: PeerCompany[] | null = null;

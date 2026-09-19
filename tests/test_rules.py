@@ -1,6 +1,7 @@
 """Tests de xray.rules al seam (docs/rules_spec.md §3, §5, §6)."""
 
 import json
+from dataclasses import asdict
 
 import numpy as np
 import pandas as pd
@@ -92,6 +93,8 @@ def test_model_roundtrips_through_json(tmp_path):
     grid = np.linspace(0, 1, 20)
     np.testing.assert_allclose(loaded.predict(grid), m.predict(grid))
     assert loaded.train_until == "2025-08" and loaded.lead_cutoff == m.lead_cutoff
+    assert loaded.projection_edges == m.projection_edges
+    assert loaded.projection_points == m.projection_points
     assert json.loads(path.read_text())["knots_x"]  # legible sin Python
 
 
@@ -220,7 +223,8 @@ def _fixture_events() -> pd.DataFrame:
 def test_run_on_fixture_smoke():
     out = rules.run(features.load_fixture(), events_ext=_fixture_events())
     assert len(out) == 41
-    for col in ("state_index", "level", "score", "outlook", "trend", "watch", "confidence", "event", "label_t6"):
+    for col in ("state_index", "level", "score", "outlook", "trend", "watch", "confidence", "event", "label_t6",
+                "proj_p10", "proj_p50", "proj_p90"):
         assert col in out.columns, col
     has_index = out["state_index"].notna()
     assert out.loc[has_index, "score"].between(0, 100).all()
@@ -269,8 +273,10 @@ def _ranked_series(company: str, ranks: list[float], months_of_history: int | No
 def _score_ranked(df: pd.DataFrame) -> pd.DataFrame:
     idx = labels.label_t6(labels.events(labels.state_index(df)))
     lvl = rules.level(idx)
-    # mapa identidad: score = 100 × nivel, para que los tests hablen de nivel sin ruido de ajuste
-    model = RulesModel(knots_x=[0.0, 1.0], knots_y=[0.0, 100.0], train_until="x", lead_cutoff=20.0, n_train=0)
+    # mapa identidad: score = 100 × nivel, para que los tests hablen de nivel sin ruido de ajuste;
+    # un solo tramo de proyección, que aquí no se mira, porque `score` siempre calcula el abanico
+    model = RulesModel(knots_x=[0.0, 1.0], knots_y=[0.0, 100.0], train_until="x", lead_cutoff=20.0, n_train=0,
+                       projection_edges=[0.0, 1.0], projection_points=[[0.0, 50.0, 100.0]])
     return rules.score(lvl, model)
 
 
@@ -290,3 +296,55 @@ def test_persistent_deterioration_lowers_level_and_turns_negative_on_third_red()
     assert out.loc["2026-04", "outlook"] == "stable"
     assert out.loc["2026-05", "outlook"] == "negative"  # tercer rojo
     assert out.loc["2026-03", "event"]
+
+
+# --- proyección a t+6 (slice 14, #31) -----------------------------------------------------
+
+
+def test_fit_projection_quantiles_are_ordered_in_range_and_rise_with_level():
+    m = rules.fit(_train_table(n=600), RulesConfig(), train_until="2025-08")
+    assert m.projection_edges is not None and m.projection_points is not None
+    assert len(m.projection_points) == len(m.projection_edges) - 1 >= 2
+    for p10, p50, p90 in m.projection_points:
+        assert 0 <= p10 <= p50 <= p90 <= 100
+    p50s = [p[1] for p in m.projection_points]
+    assert p50s[-1] > p50s[0]  # la etiqueta sube con el nivel: el centro del abanico también
+    proj = m.project(np.array([0.05, 0.5, 0.95, np.nan]))
+    assert proj.shape == (4, 3)
+    assert proj[2, 1] >= proj[0, 1]
+    assert np.isnan(proj[3]).all()
+
+
+def test_projection_depends_on_the_level_bin_not_on_recent_score_history():
+    m = rules.fit(_train_table(n=600), RulesConfig(), train_until="2025-08")
+    rising = _series("a", [0.2, 0.3, 0.4, 0.5, 0.6, 0.7], "state_index", n_red=0, months_of_history=6, n_signals=4)
+    falling = _series("b", [0.7, 0.6, 0.5, 0.4, 0.3, 0.2], "state_index", n_red=0, months_of_history=6, n_signals=4)
+    out = rules.score(pd.concat([rising, falling], ignore_index=True), m)
+    last = out.groupby("company_id").tail(1).set_index("company_id")
+    assert last.loc["a", "level"] == pytest.approx(last.loc["b", "level"])  # mismo nivel, historial opuesto
+    for col in rules.PROJECTION_COLUMNS:
+        assert last.loc["a", col] == pytest.approx(last.loc["b", col])
+    assert (out["proj_p10"] <= out["proj_p50"]).all() and (out["proj_p50"] <= out["proj_p90"]).all()
+
+
+def test_projection_quantiles_never_fall_as_the_level_rises():
+    """El mapa isotónico existe para que más nivel no dé menos score; el abanico, que se dibuja al
+    lado del score, hereda la regla aunque la etiqueta de un tramo se hunda."""
+    dipped = _train_table(n=600)
+    dip = dipped["level"].between(0.5, 0.6)
+    dipped.loc[dip, "label_t6"] = dipped.loc[dip, "label_t6"] - 0.3  # un tramo con la etiqueta baja
+    for train in (dipped, _train_table(n=600)):
+        pts = np.asarray(rules.fit(train, RulesConfig(), train_until="2025-08").projection_points)
+        for col, name in enumerate(rules.PROJECTION_COLUMNS):
+            assert np.all(np.diff(pts[:, col]) >= 0), name
+
+
+def test_model_without_projection_does_not_load_silently(tmp_path):
+    m = rules.fit(_train_table(), RulesConfig(), train_until="2025-08")
+    raw = json.loads(json.dumps(asdict(m)))
+    raw.pop("projection_edges")
+    raw.pop("projection_points")
+    path = tmp_path / "old_model.json"
+    path.write_text(json.dumps(raw), encoding="utf-8")
+    with pytest.raises(ValueError, match="proyección"):
+        RulesModel.load(path)

@@ -29,7 +29,7 @@ from typing import Any
 
 import pandas as pd
 
-from xray import features, rules
+from xray import events, features, rules
 from xray.data import artifacts_dir, repo_root
 from xray.export_web import peer_ref_from_scores, records_from_scored
 from xray.rules import RulesModel
@@ -120,7 +120,8 @@ def score_pack(
     if "cash_buffer_days" not in feats.columns:
         feats = features.derive(feats)
 
-    scored = rules.run(feats, model=model, rank_against=model.profile())
+    events_ext = events.build(tables, feats)
+    scored = rules.run(feats, model=model, rank_against=model.profile(), events_ext=events_ext)
     records = records_from_scored(scored, peer_ref=peer_ref or None, tables=tables)
     if not records:
         return None

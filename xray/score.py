@@ -25,12 +25,13 @@ import pandas as pd
 from xray import explain, features as features_mod
 from xray import labels, rules
 from xray.data import artifacts_dir
-from xray.rules import RulesConfig, RulesModel
+from xray.rules import PROJECTION_COLUMNS, RulesConfig, RulesModel
 
 KEYS = ["company_id", "month"]
 TRAIN_UNTIL = "2025-08"
 OUTPUT_COLUMNS: list[str] = KEYS + [
     "score", "level", "state_index", "outlook", "trend", "watch", "confidence",
+    *PROJECTION_COLUMNS,
     "n_signals", "n_red", "event", "months_of_history",
 ] + labels.RANK_COLS + features_mod.SIGNAL_COLUMNS
 
@@ -90,6 +91,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--model", default=None,
                     help="RulesModel JSON; si falta se ajusta sobre la unión y se guarda junto a --out")
     ap.add_argument("--events", default=None, help="events_ext csv (company_id, month, kind); opcional")
+    ap.add_argument("--events-from-data", action="store_true",
+                    help="construye events_ext con xray.events desde la caché de xray.data.load() "
+                         "(solo para la tabla de referencia; ignorado si se pasa --events)")
     ap.add_argument("--out", default=str(artifacts_dir() / "scores" / "scores.parquet"))
     ap.add_argument("--groups", default=None,
                     help="vista por grupo (group_rollup); por defecto groups.* al lado de --out. Solo en la pasada completa")
@@ -101,6 +105,12 @@ def main(argv: list[str] | None = None) -> int:
     feats = _read_table(Path(args.features))
     extra = _read_table(Path(args.extra)) if args.extra else None
     events_ext = _read_table(Path(args.events)) if args.events else None
+    if events_ext is None and args.events_from_data:
+        from xray import events as events_mod
+        from xray.data import load
+
+        events_ext = events_mod.build(load(), feats)
+        print(f"{len(events_ext):,} eventos de watch desde los CSV")
     model = RulesModel.load(args.model) if args.model else None
     table, fitted = score_table(feats, extra=extra, events_ext=events_ext, model=model, train_until=args.train_until)
     out = Path(args.out)

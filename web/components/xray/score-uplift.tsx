@@ -5,10 +5,14 @@ import { cn } from "@/lib/utils";
 
 export function ScoreUplift({
   uplift,
+  from,
+  to,
   toBand,
   className,
 }: {
   uplift: number;
+  from?: number;
+  to?: number;
   toBand?: Band;
   className?: string;
 }) {
@@ -21,6 +25,12 @@ export function ScoreUplift({
         className
       )}
     >
+      {from != null && to != null ? (
+        <span>
+          {from.toLocaleString("es-ES", { maximumFractionDigits: 1 })} →{" "}
+          {to.toLocaleString("es-ES", { maximumFractionDigits: 1 })}
+        </span>
+      ) : null}
       <span className="font-medium">{formatDelta(uplift)}</span>
       {toBand ? (
         <>

@@ -39,7 +39,7 @@ function finish(
         ...action,
         id: `${companyId}-${action.kind}-${i}`,
         uplift: radarUplift(snapshot, action),
-        origin: "eve" as const,
+        origin: "deterministic" as const,
       };
     });
 }
@@ -68,7 +68,7 @@ export function recommendActions(input: {
     drafts.push({
       kind: "amortize",
       title: "Amortizar con caja ociosa",
-      rationale: `cash_balance = ${money(cash, currency)} y deuda viva ${money(debt, currency)}. idle_cash_vs_debt = ${money(idle, currency)} × implied_debt_rate ${ (rate * 100).toFixed(1) } % ≈ ${money(yearly, currency)}/año. Comprobar comisiones de cancelación y caja operativa mínima.`,
+      rationale: `Hay ${money(idle, currency)} de caja frente a deuda viva. Amortizar ahorra unos ${money(yearly, currency)} al año al ${(rate * 100).toFixed(1)} %.`,
       recommended_amount: ticket(idle),
       dimension_deltas: { debt: 0.1, liquidity: -0.04, payments: 0.02 },
       weight: yearly,
@@ -87,7 +87,7 @@ export function recommendActions(input: {
     drafts.push({
       kind: "refinance",
       title: "Refinanciar deuda cara",
-      rationale: `${expensive.length} contrato(s) con tipo > 4,5 % (${names}). outstanding ${money(amt, currency)}. El tipo contractual no es interest_charge.`,
+      rationale: `${expensive.length} préstamo(s) por encima del 4,5 % (${names}). Refinanciar ${money(amt, currency)} abarata el servicio.`,
       recommended_amount: ticket(amt),
       dimension_deltas: { debt: 0.12, liquidity: 0.03, payments: 0.03 },
       weight: amt,
@@ -96,7 +96,7 @@ export function recommendActions(input: {
     drafts.push({
       kind: "refinance",
       title: "Revisar coste implícito de la deuda",
-      rationale: `implied_debt_rate = ${(rate * 100).toFixed(1)} % sobre ${money(debt, currency)} (incluye comisiones; cota 25 %). No hay calendario formal; contrastar con el banco.`,
+      rationale: `El coste implícito de la deuda está en ${(rate * 100).toFixed(1)} % sobre ${money(debt, currency)}. Conviene contrastar con el banco.`,
       recommended_amount: ticket(debt),
       dimension_deltas: { debt: 0.1, payments: 0.02 },
       weight: debt * rate,
@@ -108,7 +108,7 @@ export function recommendActions(input: {
     drafts.push({
       kind: "factoring",
       title: "Anticipar cobros vencidos",
-      rationale: `issued_overdue = ${money(issued, currency)} (facturas emitidas, amount > 0). overdue_flow_rate_3m = ${exported?.signals.overdue_flow_rate_3m ?? facts.invoice_aging.overdue_flow_rate_3m}.`,
+      rationale: `Hay ${money(issued, currency)} en facturas emitidas vencidas. Anticiparlas acelera cobros y sube liquidez.`,
       recommended_amount: ticket(issued),
       dimension_deltas: { collections: 0.1, liquidity: 0.08 },
       weight: issued,
@@ -120,7 +120,7 @@ export function recommendActions(input: {
     drafts.push({
       kind: "confirming",
       title: "Estirar pagos a proveedores",
-      rationale: `received_overdue = ${money(received, currency)} (facturas recibidas, amount < 0). Confirming no borra la deuda comercial; alarga caja.`,
+      rationale: `Hay ${money(received, currency)} en facturas a proveedores vencidas. El confirming alarga caja sin borrar la deuda comercial.`,
       recommended_amount: ticket(received),
       dimension_deltas: { payments: 0.09, liquidity: 0.05 },
       weight: received,
@@ -134,7 +134,7 @@ export function recommendActions(input: {
       drafts.push({
         kind: "extend_line",
         title: "Ampliar línea de crédito",
-        rationale: `lineofcredit dispuesto ${money(Math.abs(loc.outstanding), currency)} / concedido ${money(loc.granted, currency)} (uso ${(usage * 100).toFixed(0)} %).`,
+        rationale: `La línea está al ${(usage * 100).toFixed(0)} % (${money(Math.abs(loc.outstanding), currency)} de ${money(loc.granted, currency)}). Ampliarla evita el overdraft.`,
         recommended_amount: ticket(extra),
         dimension_deltas: { liquidity: 0.1, debt: 0.02 },
         weight: Math.abs(loc.outstanding),
@@ -148,8 +148,13 @@ export function recommendActions(input: {
     const gap = Math.max(outflow, outflow * ((15 - buffer) / 30));
     drafts.push({
       kind: "new_debt",
-      title: "Financiación de circulante",
-      rationale: `cash_buffer_days = ${buffer.toFixed(1)} (rojo bajo 15). net_cash_flow_ratio_3m = ${exported?.signals.net_cash_flow_ratio_3m ?? "n/d"}. Importe ≈ un mes de outflow (${money(outflow, currency)}).`,
+      title: "Reconstruir colchón de caja",
+      rationale: `El colchón de caja es de ${buffer.toFixed(0)} días (objetivo 15)${
+        exported?.signals.net_cash_flow_ratio_3m != null &&
+        exported.signals.net_cash_flow_ratio_3m < 0
+          ? " y el flujo a 3 meses es negativo"
+          : ""
+      }. Cubrir un mes de pagos (${money(outflow, currency)}) cierra el hueco.`,
       recommended_amount: ticket(gap),
       dimension_deltas: { liquidity: 0.14, debt: -0.03, activity: 0.02 },
       weight: outflow * Math.max(1, 15 - buffer),
@@ -161,7 +166,7 @@ export function recommendActions(input: {
     drafts.push({
       kind: "refinance",
       title: "Aliviar servicio de deuda (DSCR < 1,2)",
-      rationale: `dscr_6m = ${dscr.toFixed(2)} (suelo 1,2). Deuda viva ${money(debt, currency)}.`,
+      rationale: `El DSCR a 6 meses está en ${dscr.toFixed(2)} (suelo 1,2). Reestructurar ${money(debt, currency)} alivia el servicio.`,
       recommended_amount: ticket(debt),
       dimension_deltas: { debt: 0.12, payments: 0.04 },
       weight: debt,
@@ -199,4 +204,27 @@ export function findRecommended(
   actionId: string
 ): ActionRecommendation | undefined {
   return actions.find((a) => a.id === actionId);
+}
+
+/** Eve writes the title; amounts, rationale and score stay grounded. */
+export function applyAgentCopy(
+  ground: ActionRecommendation[],
+  picks: { kind: ActionKind; title: string; rationale?: string }[]
+): ActionRecommendation[] {
+  const byKind = new Map(ground.map((a) => [a.kind, a] as const));
+  const seen = new Set<ActionKind>();
+  const out: ActionRecommendation[] = [];
+  for (const p of picks) {
+    if (seen.has(p.kind)) continue;
+    const g = byKind.get(p.kind);
+    if (!g) continue;
+    seen.add(p.kind);
+    const title = p.title.trim();
+    out.push({
+      ...g,
+      title: title.length >= 4 ? title : g.title,
+      origin: "eve",
+    });
+  }
+  return out;
 }

@@ -95,19 +95,68 @@ export function upliftPoints(
   return Math.round((after.score - before.score) * 10) / 10;
 }
 
-/**
- * Uplift of the radar what-if, not vs the Health Scorer number.
- * Dataset snapshots have score from xray (0–100 isotonic) while applyAction
- * recomposes from dimensions; subtracting those two produced fake negative pts.
- */
+export function radarBaseline(snapshot: ScoreSnapshot): ScoreSnapshot {
+  return { ...snapshot, score: scoreFromDimensions(snapshot.dimensions) };
+}
+
+/** Radar what-if: before/after 0–100 from dimensions, not vs the Health Scorer. */
+export function radarProjection(
+  snapshot: ScoreSnapshot,
+  action: Pick<ActionRecommendation, "dimension_deltas" | "recommended_amount">,
+  amount?: number
+): { before: number; after: number; uplift: number; toBand: ScoreSnapshot["band"] } {
+  const baseline = radarBaseline(snapshot);
+  const next = applyAction(baseline, action, amount);
+  return {
+    before: baseline.score,
+    after: next.score,
+    uplift: upliftPoints(baseline, next),
+    toBand: next.band,
+  };
+}
+
 export function radarUplift(
   snapshot: ScoreSnapshot,
   action: Pick<ActionRecommendation, "dimension_deltas" | "recommended_amount">,
   amount?: number
 ): number {
-  const baseline: ScoreSnapshot = {
-    ...snapshot,
-    score: scoreFromDimensions(snapshot.dimensions),
-  };
-  return upliftPoints(baseline, applyAction(baseline, action, amount));
+  return radarProjection(snapshot, action, amount).uplift;
+}
+
+export type ScoreProjection = {
+  before: number;
+  after: number;
+  uplift: number;
+  toBand: ScoreSnapshot["band"];
+};
+
+/**
+ * What-if on the published Health Score.
+ * ponytail: ceiling = add radar dimension-points onto the isotonic 0–100;
+ * upgrade = re-run xray.score with shocked facts.
+ */
+export function publishedProjection(
+  snapshot: ScoreSnapshot,
+  action: Pick<ActionRecommendation, "dimension_deltas" | "recommended_amount">,
+  amount?: number
+): ScoreProjection {
+  return shiftPublished(snapshot, radarUplift(snapshot, action, amount));
+}
+
+export function publishedProjectionMany(
+  snapshot: ScoreSnapshot,
+  actions: Pick<ActionRecommendation, "dimension_deltas" | "recommended_amount">[]
+): ScoreProjection {
+  let radar = radarBaseline(snapshot);
+  const start = radar.score;
+  for (const a of actions) {
+    radar = applyAction(radar, a, a.recommended_amount);
+  }
+  return shiftPublished(snapshot, Math.round((radar.score - start) * 10) / 10);
+}
+
+function shiftPublished(snapshot: ScoreSnapshot, uplift: number): ScoreProjection {
+  const before = snapshot.score;
+  const after = clampScore(before + uplift);
+  return { before, after, uplift, toBand: scoreToBand(after) };
 }

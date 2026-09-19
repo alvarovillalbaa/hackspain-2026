@@ -25,7 +25,7 @@ import { useCompanyScore } from "@/hooks/xray/use-company-score";
 import { useActions } from "@/hooks/xray/use-actions";
 import { useCompanies } from "@/hooks/xray/use-companies";
 import { useSelection } from "@/hooks/xray/use-selection";
-import { applyAction, upliftPoints } from "@/lib/xray/scoring";
+import { publishedProjectionMany } from "@/lib/xray/scoring";
 import { watchMeta } from "@/lib/xray/bands";
 import { formatMonth } from "@/lib/xray/format";
 
@@ -36,7 +36,7 @@ export default function ScorePage({
 }) {
   const { companyId } = use(params);
   const { data: score, loading } = useCompanyScore(companyId);
-  const { data: actions } = useActions(companyId);
+  const { data: actions, loading: actionsLoading } = useActions(companyId);
   const { data: companies } = useCompanies();
   const company = companies.find((c) => c.company_id === companyId);
   const selection = useSelection<string>();
@@ -46,14 +46,7 @@ export default function ScorePage({
     if (!score) return null;
     const selected = actions.filter((a) => selectedIds.includes(a.id));
     if (selected.length === 0) return null;
-    let snap = score;
-    for (const a of selected) {
-      snap = applyAction(snap, a, a.recommended_amount);
-    }
-    return {
-      after: snap,
-      uplift: upliftPoints(score, snap),
-    };
+    return publishedProjectionMany(score, selected);
   }, [score, actions, selectedIds]);
 
   const watch = watchMeta(score?.watch ?? null);
@@ -186,27 +179,43 @@ export default function ScorePage({
                   Acciones recomendadas
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Selecciona una o varias; el uplift se combina de forma
-                  determinista.
+                  {actionsLoading
+                    ? "El agente está calculando las acciones…"
+                    : "Selecciona una o varias; el score se recálcula con las mismas reglas."}
                 </p>
               </div>
               {combined ? (
                 <ScoreUplift
+                  from={combined.before}
+                  to={combined.after}
                   uplift={combined.uplift}
-                  toBand={combined.after.band}
+                  toBand={combined.toBand}
                 />
               ) : null}
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              {actions.map((a) => (
-                <ActionCard
-                  key={a.id}
-                  action={a}
-                  selected={selection.isSelected(a.id)}
-                  onToggle={() => selection.toggle(a.id)}
-                  href={`/c/${companyId}/a/${a.id}`}
-                />
-              ))}
+              {actionsLoading ? (
+                <>
+                  <Skeleton className="h-40 rounded-2xl" />
+                  <Skeleton className="h-40 rounded-2xl" />
+                </>
+              ) : actions.length === 0 ? (
+                <p className="text-sm text-muted-foreground md:col-span-2">
+                  Ninguna acción recomendada para esta empresa.
+                </p>
+              ) : (
+                actions.map((a) => (
+                  <ActionCard
+                    key={a.id}
+                    action={a}
+                    snapshot={score}
+                    currency={company?.currency ?? "EUR"}
+                    selected={selection.isSelected(a.id)}
+                    onToggle={() => selection.toggle(a.id)}
+                    href={`/c/${companyId}/a/${a.id}`}
+                  />
+                ))
+              )}
             </div>
             {selection.count === 1 ? (
               <p className="text-sm">

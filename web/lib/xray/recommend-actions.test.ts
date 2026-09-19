@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { scoreFromDimensions, radarUplift } from "./scoring";
-import { recommendActions } from "./recommend-actions";
+import { applyAgentCopy, recommendActions } from "./recommend-actions";
 import type { CompanyFacts, ExportedScore } from "./dataset/types";
 import type { ScoreSnapshot } from "./types";
 
@@ -60,7 +60,7 @@ describe("recommendActions", () => {
     ).toEqual([]);
   });
 
-  it("proposes factoring from issued overdue and citing the field", () => {
+  it("proposes factoring from issued overdue in plain language", () => {
     const facts: CompanyFacts = {
       ...emptyFacts,
       invoice_aging: { ...emptyFacts.invoice_aging, issued_overdue: 80_000 },
@@ -68,8 +68,25 @@ describe("recommendActions", () => {
     const [a] = recommendActions({ snapshot: snapshot(), facts, exported: null });
     expect(a.kind).toBe("factoring");
     expect(a.recommended_amount).toBe(80_000);
-    expect(a.rationale).toMatch(/issued_overdue/);
+    expect(a.rationale).toMatch(/facturas emitidas vencidas/);
+    expect(a.origin).toBe("deterministic");
+  });
+
+  it("lets the agent write the title without touching amounts or rationale", () => {
+    const facts: CompanyFacts = {
+      ...emptyFacts,
+      invoice_aging: { ...emptyFacts.invoice_aging, issued_overdue: 80_000 },
+    };
+    const ground = recommendActions({ snapshot: snapshot(), facts, exported: null });
+    const [a] = applyAgentCopy(ground, [
+      { kind: "factoring", title: "Cobrar ya lo vencido", rationale: "dump de campos" },
+      { kind: "new_debt", title: "Inventada", rationale: "esta kind no estaba en ground" },
+    ]);
+    expect(a.title).toBe("Cobrar ya lo vencido");
+    expect(a.rationale).toBe(ground[0]!.rationale);
+    expect(a.recommended_amount).toBe(80_000);
     expect(a.origin).toBe("eve");
+    expect(applyAgentCopy(ground, [{ kind: "new_debt", title: "x", rationale: "no existe aquí" }])).toEqual([]);
   });
 
   it("proposes amortizing idle cash at the implied rate", () => {
@@ -82,7 +99,7 @@ describe("recommendActions", () => {
     const [a] = recommendActions({ snapshot: snapshot(), facts, exported: null });
     expect(a.kind).toBe("amortize");
     expect(a.recommended_amount).toBe(150_000);
-    expect(a.rationale).toMatch(/idle_cash_vs_debt/);
+    expect(a.rationale).toMatch(/caja frente a deuda/);
   });
 
   it("does not mix Health Scorer points with radar what-if (uplift stays ≥ 0)", () => {
@@ -108,10 +125,10 @@ describe("recommendActions", () => {
     };
     const [a] = recommendActions({ snapshot: snapshot(), facts, exported: null });
     expect(a.kind).toBe("extend_line");
-    expect(a.rationale).toMatch(/lineofcredit/);
+    expect(a.rationale).toMatch(/línea está al 90/);
   });
 
-  it("sizes working-capital finance from cash_buffer_days and monthly outflow", () => {
+  it("sizes a cash-buffer refill from days of cash and monthly outflow", () => {
     const facts: CompanyFacts = {
       ...emptyFacts,
       monthly_outflow_avg_3m: 120_000,
@@ -121,7 +138,8 @@ describe("recommendActions", () => {
     } as ExportedScore;
     const [a] = recommendActions({ snapshot: snapshot(), facts, exported });
     expect(a.kind).toBe("new_debt");
+    expect(a.title).toBe("Reconstruir colchón de caja");
     expect(a.recommended_amount).toBeGreaterThanOrEqual(120_000);
-    expect(a.rationale).toMatch(/cash_buffer_days = 3/);
+    expect(a.rationale).toMatch(/colchón de caja es de 3 días/);
   });
 });

@@ -25,9 +25,9 @@ const TEMPLATES: Omit<ActionRecommendation, "id" | "uplift" | "origin">[] = [
   },
   {
     kind: "new_debt",
-    title: "Nueva financiación de circulante",
+    title: "Reconstruir colchón de caja",
     rationale:
-      "Inyectar liquidez estructural para absorber un bache de cobros sin disparar el uso de la línea.",
+      "El colchón de caja está por debajo de 15 días. Inyectar liquidez cubre el hueco de tesorería; no es financiación de facturas.",
     recommended_amount: 200_000,
     dimension_deltas: { liquidity: 0.14, debt: -0.04, activity: 0.03 },
   },

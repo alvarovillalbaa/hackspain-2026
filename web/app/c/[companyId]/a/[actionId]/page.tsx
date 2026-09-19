@@ -20,8 +20,8 @@ import { useExpandable, useNegotiation } from "@/hooks/xray/use-expandable";
 import { useActions } from "@/hooks/xray/use-actions";
 import { useCompanies } from "@/hooks/xray/use-companies";
 import { useCompanyScore } from "@/hooks/xray/use-company-score";
-import { applyAction, upliftPoints } from "@/lib/xray/scoring";
-import { actionKindLabel } from "@/lib/xray/format";
+import { publishedProjection } from "@/lib/xray/scoring";
+import { actionKindLabel, formatCurrency } from "@/lib/xray/format";
 
 function MarketplaceInner({
   companyId,
@@ -66,10 +66,12 @@ function MarketplaceInner({
 
   const liveUplift = useMemo(() => {
     if (!score || !action || effectiveAmount == null) return null;
-    const after = applyAction(score, action, effectiveAmount);
+    const p = publishedProjection(score, action, effectiveAmount);
     return {
-      uplift: upliftPoints(score, after),
-      band: after.band,
+      uplift: p.uplift,
+      band: p.toBand,
+      from: p.before,
+      to: p.after,
     };
   }, [score, action, effectiveAmount]);
 
@@ -107,7 +109,11 @@ function MarketplaceInner({
           <CardHeader>
             <CardTitle>Importe</CardTitle>
             <CardDescription>
-              Recomendado {action.recommended_amount.toLocaleString("es-ES")} €
+              Recomendado{" "}
+              {formatCurrency(
+                action.recommended_amount,
+                company?.currency ?? "EUR"
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -116,7 +122,10 @@ function MarketplaceInner({
               min={amountBounds.min}
               max={amountBounds.max}
               uplift={liveUplift.uplift}
+              from={liveUplift.from}
+              to={liveUplift.to}
               toBand={liveUplift.band}
+              currency={company?.currency ?? "EUR"}
               onChange={setAmount}
             />
           </CardContent>

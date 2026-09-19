@@ -1,17 +1,5 @@
 import type { ActionKind } from "./types";
 
-const currencyFmt = new Intl.NumberFormat("es-ES", {
-  style: "currency",
-  currency: "EUR",
-  maximumFractionDigits: 0,
-});
-
-const currencyPreciseFmt = new Intl.NumberFormat("es-ES", {
-  style: "currency",
-  currency: "EUR",
-  maximumFractionDigits: 2,
-});
-
 const percentFmt = new Intl.NumberFormat("es-ES", {
   style: "percent",
   maximumFractionDigits: 1,
@@ -21,8 +9,31 @@ const numberFmt = new Intl.NumberFormat("es-ES", {
   maximumFractionDigits: 1,
 });
 
-export function formatCurrency(value: number, precise = false): string {
-  return (precise ? currencyPreciseFmt : currencyFmt).format(value);
+const currencyFmtCache = new Map<string, Intl.NumberFormat>();
+
+function currencyFormatter(currency: string, precise: boolean): Intl.NumberFormat {
+  const key = `${currency}:${precise ? 2 : 0}`;
+  const hit = currencyFmtCache.get(key);
+  if (hit) return hit;
+  const fmt = new Intl.NumberFormat("es-ES", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: precise ? 2 : 0,
+  });
+  currencyFmtCache.set(key, fmt);
+  return fmt;
+}
+
+export function formatCurrency(
+  value: number,
+  currency = "EUR",
+  precise = false
+): string {
+  try {
+    return currencyFormatter(currency, precise).format(value);
+  } catch {
+    return `${numberFmt.format(value)} ${currency}`;
+  }
 }
 
 export function formatPercent(value: number): string {

@@ -36,17 +36,12 @@ export default function GroupScorePage({
         <div className="space-y-10">
           <ScoreOverview
             snapshot={group.snapshot}
-            title={groupId}
-            subtitle={`Financial Health Score · ${group.n_companies} empresa${
-              group.n_companies === 1 ? "" : "s"
-            } · más débil ${group.weakest_company_id} (${group.score_min.toFixed(1)}) · confianza ${group.snapshot.confidence}`}
           />
 
           <section className="space-y-3">
-            <h2 className="font-heading text-xl font-semibold">Empresas del grupo</h2>
-            <p className="text-sm text-muted-foreground">
-              Score de grupo ponderado por entradas. Sin acciones de agente.
-            </p>
+            <h2 className="font-heading text-sm font-medium">
+              Empresas del grupo
+            </h2>
             <div className="space-y-2">
               {(members.length ? members : group.members.map((m) => ({
                 company_id: m.company_id,

@@ -28,8 +28,6 @@ export function ProductDetail({
   termContext,
   companyId,
   actionId,
-  /** When true, render as page body (no overlay chrome). */
-  embedded = false,
 }: {
   match: ProductMatch;
   levers: NegotiationLever[];
@@ -37,7 +35,6 @@ export function ProductDetail({
   termContext: TermContext | null;
   companyId: string;
   actionId: string;
-  embedded?: boolean;
 }) {
   const router = useRouter();
 
@@ -70,7 +67,7 @@ export function ProductDetail({
   };
 
   return (
-    <div className={embedded ? "pb-8" : undefined}>
+    <div className="pb-8">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <div className="mb-1 flex items-center gap-2 font-mono text-xs text-muted-foreground">

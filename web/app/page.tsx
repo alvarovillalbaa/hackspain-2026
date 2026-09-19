@@ -183,16 +183,6 @@ export default function PortfolioPage() {
         </div>
       }
     >
-      <div className="mb-6 space-y-2">
-        <h1 className="font-heading text-3xl font-semibold tracking-tight">
-          Portfolio
-        </h1>
-        <p className="max-w-xl text-sm text-muted-foreground">
-          Abre una empresa del grupo, marca hasta {MAX_COMPARE} para compararlas
-          o importa un CSV.
-        </p>
-      </div>
-
       {loading ? (
         <div className="space-y-3">
           <Skeleton className="h-16 w-full rounded-2xl" />

@@ -77,7 +77,6 @@ function ProductPageInner({
           termContext={termContext}
           companyId={companyId}
           actionId={actionId}
-          embedded
         />
       )}
     </AppShell>

@@ -33,7 +33,7 @@ export function AppShell({
   return (
     <div className="flex min-h-full flex-col bg-background">
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-3 sm:px-4">
+        <div className="mx-auto flex h-14 max-w-[96rem] items-center gap-3 px-2 sm:px-3">
           <Link
             href="/"
             className="font-heading text-sm font-semibold tracking-tight text-foreground"
@@ -75,15 +75,9 @@ export function AppShell({
           >
             Ajustes
           </Link>
-          <Link
-            href="/chat"
-            className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Eve
-          </Link>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-7xl flex-1 px-3 py-6 sm:px-4">
+      <main className="mx-auto w-full max-w-[96rem] flex-1 px-2 py-6 sm:px-3">
         {children}
       </main>
     </div>

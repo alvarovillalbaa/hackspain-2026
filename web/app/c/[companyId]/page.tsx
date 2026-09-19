@@ -1,7 +1,6 @@
 "use client";
 
-import { Suspense, use, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { Suspense, use, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { UploadIcon } from "lucide-react";
 import { AppShell } from "@/components/xray/app-shell";
@@ -16,11 +15,9 @@ import { useCompanyScore } from "@/hooks/xray/use-company-score";
 import { useActions } from "@/hooks/xray/use-actions";
 import { useCompanies } from "@/hooks/xray/use-companies";
 import { usePeers } from "@/hooks/xray/use-peers";
-import { useSelection } from "@/hooks/xray/use-selection";
 import { formatCurrency } from "@/lib/xray/format";
 import { clearDealsForCompanies, fetchDeal } from "@/lib/xray/deals";
 import { onDataImported } from "@/lib/xray/import-events";
-import { publishedProjectionMany } from "@/lib/xray/scoring";
 import type { AcceptedDeal } from "@/lib/xray/types";
 
 function ScorePageInner({ companyId }: { companyId: string }) {
@@ -32,7 +29,6 @@ function ScorePageInner({ companyId }: { companyId: string }) {
   const company = companies.find((c) => c.company_id === companyId);
   const [importOpen, setImportOpen] = useState(false);
   const [deal, setDeal] = useState<AcceptedDeal | null>(null);
-  const selection = useSelection<string>();
 
   useEffect(() => {
     let cancelled = false;
@@ -56,12 +52,36 @@ function ScorePageInner({ companyId }: { companyId: string }) {
 
   const closed = Boolean(deal) || searchParams.get("closed") === "1";
 
-  const combined = useMemo(() => {
-    if (!score) return null;
-    const selected = actions.filter((a) => selection.values.includes(a.id));
-    if (selected.length === 0) return null;
-    return publishedProjectionMany(score, selected);
-  }, [score, actions, selection.values]);
+  const actionsPanel =
+    closed || loading || !score ? null : (
+      <section className="space-y-3">
+        <h2 className="font-heading text-sm font-medium">
+          Acciones recomendadas
+        </h2>
+        <div className="grid gap-3">
+          {actionsLoading ? (
+            <>
+              <Skeleton className="h-28 rounded-2xl" />
+              <Skeleton className="h-28 rounded-2xl" />
+            </>
+          ) : actions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Ninguna acción recomendada para esta empresa.
+            </p>
+          ) : (
+            actions.map((a) => (
+              <ActionCard
+                key={a.id}
+                action={a}
+                snapshot={score}
+                currency={company?.currency ?? "EUR"}
+                href={`/c/${companyId}/a/${a.id}`}
+              />
+            ))
+          )}
+        </div>
+      </section>
+    );
 
   return (
     <AppShell
@@ -87,9 +107,9 @@ function ScorePageInner({ companyId }: { companyId: string }) {
         <div className="space-y-10">
           <ScoreOverview
             snapshot={score}
-            title={company?.name ?? companyId}
             peers={peers}
             currency={company?.currency ?? "EUR"}
+            actions={actionsPanel}
             extras={
               deal ? (
                 <Alert className="sm:col-span-2">
@@ -121,67 +141,6 @@ function ScorePageInner({ companyId }: { companyId: string }) {
               ) : null
             }
           />
-          {closed ? null : (
-            <section className="space-y-4">
-              <div className="flex flex-wrap items-end justify-between gap-3">
-                <div>
-                  <h2 className="font-heading text-xl font-semibold">
-                    Acciones recomendadas
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    {actionsLoading
-                      ? "El agente está calculando las acciones…"
-                      : "Selecciona una o varias; el score se recálcula con las mismas reglas."}
-                  </p>
-                </div>
-                {combined ? (
-                  <ScoreUplift
-                    from={combined.before}
-                    to={combined.after}
-                    uplift={combined.uplift}
-                    toBand={combined.toBand}
-                  />
-                ) : null}
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                {actionsLoading ? (
-                  <>
-                    <Skeleton className="h-40 rounded-2xl" />
-                    <Skeleton className="h-40 rounded-2xl" />
-                  </>
-                ) : actions.length === 0 ? (
-                  <p className="text-sm text-muted-foreground md:col-span-2">
-                    Ninguna acción recomendada para esta empresa.
-                  </p>
-                ) : (
-                  actions.map((a) => (
-                    <ActionCard
-                      key={a.id}
-                      action={a}
-                      snapshot={score}
-                      currency={company?.currency ?? "EUR"}
-                      selected={selection.isSelected(a.id)}
-                      onToggle={() => selection.toggle(a.id)}
-                      href={`/c/${companyId}/a/${a.id}`}
-                    />
-                  ))
-                )}
-              </div>
-              {selection.count === 1 ? (
-                <p className="text-sm">
-                  <Link
-                    href={`/c/${companyId}/a/${selection.values[0]}`}
-                    className="font-medium underline-offset-4 hover:underline"
-                  >
-                    {actions.find((a) => a.id === selection.values[0])?.kind ===
-                    "amortize"
-                      ? "Abrir impacto de la acción seleccionada →"
-                      : "Abrir marketplace de la acción seleccionada →"}
-                  </Link>
-                </p>
-              ) : null}
-            </section>
-          )}
         </div>
       )}
       <ImportDialog

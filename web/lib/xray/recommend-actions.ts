@@ -210,7 +210,12 @@ export function findRecommended(
 /** Eve writes the title and optional reasoning; amounts and grounded rationale stay. */
 export function applyAgentCopy(
   ground: ActionRecommendation[],
-  picks: { kind: ActionKind; title: string; rationale?: string }[]
+  picks: {
+    kind: ActionKind;
+    title: string;
+    rationale?: string;
+    reasoning?: string;
+  }[]
 ): ActionRecommendation[] {
   const byKind = new Map(ground.map((a) => [a.kind, a] as const));
   const seen = new Set<ActionKind>();
@@ -221,7 +226,7 @@ export function applyAgentCopy(
     if (!g) continue;
     seen.add(p.kind);
     const title = p.title.trim();
-    const reasoning = p.rationale?.trim();
+    const reasoning = (p.reasoning ?? p.rationale)?.trim();
     out.push({
       ...g,
       title: title.length >= 4 ? title : g.title,

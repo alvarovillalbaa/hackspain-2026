@@ -104,8 +104,10 @@ export type RecommendationDecision = z.infer<
 export const FichaActionPickSchema = z.object({
   kind: ActionKindSchema,
   title: z.string().min(4),
-  /** Why this action for THIS company — no invented amounts. */
+  /** Why this action for THIS company — no invented amounts. Used as tooltip. */
   rationale: z.string().min(8),
+  /** Preferred tooltip copy when present; falls back to rationale. */
+  reasoning: z.string().min(8).optional(),
 });
 
 export const FichaActionsDecisionSchema = z.object({

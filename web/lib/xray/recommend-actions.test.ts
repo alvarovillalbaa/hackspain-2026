@@ -96,6 +96,16 @@ describe("recommendActions", () => {
         { kind: "new_debt", title: "x", rationale: "no existe aquí" },
       ])
     ).toEqual([]);
+
+    const [preferred] = applyAgentCopy(ground, [
+      {
+        kind: "factoring",
+        title: "Cobrar ya lo vencido",
+        rationale: "Texto largo de respaldo para rationale.",
+        reasoning: "Tooltip preferido del agente.",
+      },
+    ]);
+    expect(preferred.reasoning).toBe("Tooltip preferido del agente.");
   });
 
   it("proposes amortizing idle cash at the implied rate", () => {

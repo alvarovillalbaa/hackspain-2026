@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { snapshotFromExported, buildScoreExplanation } from "./snapshot";
 import { ScoreSnapshotSchema, TreasuryProjectionSchema } from "./schemas";
-import { TreasuryCard } from "@/components/xray/score-overview";
+import { ScoreHero, TreasuryCard } from "@/components/xray/score-overview";
 import type { TreasuryProjection } from "./types";
 import type { ExportedScore } from "./dataset/types";
 
@@ -68,6 +68,20 @@ it("shows no-action evidence, debt-service risk and the uncalibrated warning tog
   expect(markup).toContain("DSCR");
   expect(markup).toContain("no calibradas");
   expect(markup).toContain("no recalcula el Health Score");
+});
+
+it("keeps the MPC panel in the updated advisor layout without changing its controls", () => {
+  const markup = renderToStaticMarkup(createElement(ScoreHero, {
+    snapshot: snapshotFromExported(row({ treasury: treasury() })), showDrivers: true,
+  }));
+  expect(markup).toContain("Health Score");
+  expect(markup).toContain("Dimensiones");
+  expect(markup).toContain("Drivers");
+  expect(markup).toContain("Simulación de tesorería");
+  const legacy = renderToStaticMarkup(createElement(ScoreHero, {
+    snapshot: snapshotFromExported(row()), showDrivers: true,
+  }));
+  expect(legacy).not.toContain("Simulación de tesorería");
 });
 
 function row(over: Partial<ExportedScore> = {}): ExportedScore {

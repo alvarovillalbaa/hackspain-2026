@@ -137,6 +137,30 @@ def test_write_metrics_merges_by_model_name(tmp_path):
     assert data["rules"]["auc"]["6"] == 0.7
 
 
+# --- proyección a 6 meses -----------------------------------------------------------------
+
+
+def test_projection_metrics_coverage_and_martingale_baseline():
+    df = _scored("a", [50.0] * 12)  # score plano: el futuro cae siempre dentro de [40, 60]
+    df["proj_p10"], df["proj_p50"], df["proj_p90"] = 40.0, 50.0, 60.0
+    df["months_of_history"] = range(1, 13)
+    out = evals.projection_metrics(df, test_months=None, train_until="2025-06")
+    assert out["n"] == 6  # 12 filas − 6 sin t+6
+    assert out["coverage_80"] == 1.0 and out["mae_p50"] == 0.0 and out["mean_width"] == 20.0
+    assert out["pinball"] == pytest.approx((0.1 * 10 + 0.0 + 0.1 * 10) / 3)
+    assert out["martingale_baseline"]["coverage_80"] == 1.0  # Δ6 = 0 en train: el abanico base es el score de hoy
+    assert out["coverage_80_by_outlook"]["stable"] == 1.0
+    assert out["coverage_80_by_history"]["lt_6"] == 1.0
+
+
+def test_projection_metrics_report_misses_and_empty_test():
+    df = _scored("a", [50.0] * 8)
+    df["proj_p10"], df["proj_p50"], df["proj_p90"] = 60.0, 70.0, 80.0  # abanico por encima del futuro
+    out = evals.projection_metrics(df, test_months=None, train_until="2025-02")
+    assert out["coverage_80"] == 0.0 and out["mae_p50"] == 20.0
+    assert evals.projection_metrics(df, test_months=["2030-01"], train_until="2025-02") == {"n": 0}
+
+
 # --- CLI sobre la fixture -----------------------------------------------------------------
 
 
@@ -146,7 +170,7 @@ def test_cli_runs_on_fixture_and_writes_artifacts(tmp_path):
     assert rc == 0
     metrics = json.loads((out_dir / "metrics.json").read_text())["rules"]
     for key in ("auc_by_horizon", "auc_external_by_horizon", "lead_time", "persistence", "directionality",
-                "trend_share", "n_events", "n_rows"):
+                "projection", "trend_share", "n_events", "n_rows"):
         assert key in metrics, key
     assert set(metrics["lead_time"]) >= {"share_crossing", "share_chronic", "share_late", "median_crossing", "cutoff"}
     assert (out_dir / "rules_model.json").exists()

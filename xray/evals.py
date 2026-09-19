@@ -179,6 +179,81 @@ def persistence_horizon(p: pd.DataFrame, min_lift: float = 2.0) -> int:
     return int(ok.max()) if len(ok) else 0
 
 
+# --- proyección a 6 meses (slice 14) --------------------------------------------------------
+
+
+def _pinball(y: np.ndarray, q: np.ndarray, tau: float) -> float:
+    d = y - q
+    return float(np.mean(np.maximum(tau * d, (tau - 1.0) * d)))
+
+
+def projection_metrics(
+    scored: pd.DataFrame,
+    test_months: list[str] | None = TEST_MONTHS,
+    train_until: str = TRAIN_UNTIL,
+    horizon: int = 6,
+    n_bins: int = 20,
+) -> dict:
+    """Cobertura, anchura, MAE de p50 y pinball del abanico `proj_p10/p50/p90` frente al score
+    realizado a t+6, en test; y la base martingala (centro = score de hoy, cuantiles del cambio a
+    6 meses por tramo de score ajustados en train), que cualquier proyección tiene que batir."""
+    o = _sorted(scored)
+    g = o.groupby("company_id", sort=False)
+    future = g["score"].shift(-horizon)
+    cols = rules.PROJECTION_COLUMNS
+    has = o["score"].notna() & future.notna() & o[cols].notna().all(axis=1)
+    month = o["month"].astype(str)
+    train = has & (month <= train_until)
+    test = (has & month.isin(test_months)) if test_months is not None else has
+    if int(test.sum()) == 0:
+        return {"n": 0}
+    y = future[test].to_numpy(dtype=float)
+    p10, p50, p90 = (o.loc[test, c].to_numpy(dtype=float) for c in cols)
+
+    def table(lo: np.ndarray, mid: np.ndarray, hi: np.ndarray) -> dict:
+        return {
+            "coverage_80": float(np.mean((y >= lo) & (y <= hi))),
+            "mean_width": float(np.mean(hi - lo)),
+            "mae_p50": float(np.mean(np.abs(y - mid))),
+            "pinball": float(np.mean([_pinball(y, lo, 0.1), _pinball(y, mid, 0.5), _pinball(y, hi, 0.9)])),
+        }
+
+    now = o.loc[test, "score"].to_numpy(dtype=float)
+    base: dict = {"coverage_80": None, "mean_width": None, "mae_p50": None, "pinball": None}
+    if int(train.sum()) >= 2:
+        edges = np.unique(np.quantile(o.loc[train, "score"].to_numpy(dtype=float), np.linspace(0, 1, n_bins + 1)))
+        n_tramos = max(len(edges) - 1, 1)
+
+        def bin_of(s: np.ndarray) -> np.ndarray:
+            return np.clip(np.searchsorted(edges[1:-1], s, side="right"), 0, n_tramos - 1)
+
+        d_train = pd.DataFrame({
+            "bin": bin_of(o.loc[train, "score"].to_numpy(dtype=float)),
+            "d": (future - o["score"])[train].to_numpy(dtype=float),
+        })
+        q = d_train.groupby("bin")["d"].quantile([0.1, 0.9]).unstack().reindex(range(n_tramos)).ffill().bfill()
+        b = bin_of(now)
+        lo = np.clip(now + q[0.1].to_numpy()[b], 0.0, 100.0)
+        hi = np.clip(now + q[0.9].to_numpy()[b], 0.0, 100.0)
+        base = table(lo, now, hi)
+
+    out = {"n": int(test.sum()), "horizon": horizon, **table(p10, p50, p90), "martingale_baseline": base}
+    sub = o.loc[test]
+    inside = (y >= p10) & (y <= p90)
+    if "outlook" in sub.columns:
+        out["coverage_80_by_outlook"] = {
+            v: (float(inside[(sub["outlook"] == v).to_numpy()].mean()) if (sub["outlook"] == v).any() else None)
+            for v in ("negative", "stable", "positive")
+        }
+    if "months_of_history" in sub.columns:
+        h = sub["months_of_history"]
+        tranches = {"lt_6": h < 6, "6_11": (h >= 6) & (h < 12), "ge_12": h >= 12}
+        out["coverage_80_by_history"] = {
+            k: (float(inside[m.to_numpy()].mean()) if m.any() else None) for k, m in tranches.items()
+        }
+    return out
+
+
 # --- direccionalidad ----------------------------------------------------------------------
 
 
@@ -364,6 +439,7 @@ def run_all(
         },
         "directionality": directionality(scored, test_months, cfg),
         "reliability": reliability(scored, test_months),
+        "projection": projection_metrics(scored, test_months, train_until),
         "outlook_share": scored["outlook"].value_counts(normalize=True).to_dict(),
         "trend_share": scored["trend"].value_counts(normalize=True).to_dict(),
         "confidence_share": scored["confidence"].value_counts(normalize=True).to_dict(),
@@ -426,6 +502,12 @@ def _print_summary(name: str, m: dict) -> None:
         print(f"fiabilidad (test, n={r['n']:,}): desvío medio score-etiqueta por decil {r['mean_abs_gap']:.1f} pts · "
               f"bajadas crudas de la etiqueta por decil de nivel {r['dips']}/{len(r['by_level_decile']) - 1}"
               f" (mayor {r['largest_dip']:+.1f} pts)")
+    p = m.get("projection") or {}
+    if p.get("n"):
+        b = p.get("martingale_baseline") or {}
+        print(f"proyección a 6 m (test, n={p['n']:,}): cobertura 80 % {p['coverage_80']:.0%} · anchura {p['mean_width']:.1f} "
+              f"· MAE p50 {p['mae_p50']:.1f} · pinball {p['pinball']:.2f} "
+              f"(base martingala: cobertura {b.get('coverage_80')} · pinball {b.get('pinball')})")
     print(f"outlook: {m['outlook_share']} · trend: {m['trend_share']} · confidence: {m['confidence_share']}")
     if m.get("auc6_group_dispersion"):
         g = m["auc6_group_dispersion"]

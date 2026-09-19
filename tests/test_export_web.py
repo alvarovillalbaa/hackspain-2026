@@ -153,3 +153,22 @@ def test_peer_ref_percentile_stable_for_copy():
     peer = peer_ref_from_scores(scored)
     records = records_from_scored(scored, peer_ref=peer)
     assert all(0 <= r["peer_percentile"] <= 100 for r in records)
+
+
+def test_projection_6m_comes_from_the_model_bins_not_from_history_deltas():
+    scored = rules.run(features.load_fixture())
+    records = records_from_scored(scored)
+    last = (
+        scored[scored["score"].notna()].sort_values(["company_id", "month"])
+        .groupby("company_id").tail(1).set_index("company_id")
+    )
+    for r in records:
+        row = last.loc[r["company_id"]]
+        assert r["projection_6m"] == {
+            "p10": round(float(row["proj_p10"]), 1),
+            "p50": round(float(row["proj_p50"]), 1),
+            "p90": round(float(row["proj_p90"]), 1),
+        }
+        assert r["projection_6m"]["p10"] <= r["projection_6m"]["p50"] <= r["projection_6m"]["p90"]
+    with pytest.raises(ValueError, match="proj_p10"):  # sin las columnas del modelo no hay stub que las sustituya
+        records_from_scored(scored.drop(columns=["proj_p10", "proj_p50", "proj_p90"]))

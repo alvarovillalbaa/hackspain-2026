@@ -154,22 +154,15 @@ def _dimensions(rank_balance: float, rank_overdue: float, rank_dscr: float, rank
     }
 
 
-def _projection_6m(history: list[dict], score_now: float) -> dict:
-    """Deterministic approximation until Monte Carlo (slice #6) lands."""
-    if len(history) >= 2:
-        delta = history[-1]["score"] - history[-min(3, len(history))]["score"]
-    else:
-        delta = 0.0
-    spread = max(4.0, abs(delta) * 1.5 + 4.0)
-
-    def clip(v: float) -> float:
-        return round(max(0.0, min(100.0, v)), 1)
-
-    return {
-        "p10": clip(score_now + delta * 0.5 - spread),
-        "p50": clip(score_now + delta),
-        "p90": clip(score_now + delta * 1.2 + spread * 0.6),
-    }
+def _projection_from_row(row: object) -> dict:
+    """Abanico del score a t+6 calculado por `rules.score` (tramo de nivel del RulesModel)."""
+    vals = [_f(row, c) for c in rules.PROJECTION_COLUMNS]
+    if any(v is None for v in vals):
+        raise ValueError(
+            "records_from_scored: faltan proj_p10/proj_p50/proj_p90; puntúa con rules.run "
+            "y un RulesModel con proyección (slice 14)"
+        )
+    return {"p10": round(vals[0], 1), "p50": round(vals[1], 1), "p90": round(vals[2], 1)}
 
 
 def peer_ref_from_scores(scored: pd.DataFrame) -> dict[str, list[float]]:
@@ -324,7 +317,7 @@ def records_from_scored(
             "history": history,
             "drivers": card_drivers,
             "driver_detail": drivers,
-            "projection_6m": _projection_6m(history, score_now),
+            "projection_6m": _projection_from_row(row),
             "treasury": treasury.get(row.company_id),
             "origin": "ml",
         })

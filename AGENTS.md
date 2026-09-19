@@ -26,7 +26,7 @@ Score de financiabilidad a 6 meses para pymes a partir de tesorería, y encima u
 uv sync --all-extras        # entorno Python completo
 uv run xray-cache           # CSV → parquet (una vez; 30 s)
 uv run pytest               # verde antes de cada commit en xray/ api/ tests/
-cd web && npm run typecheck # 18 errores heredados de la plantilla en components/ai-elements; no añadas ninguno
+cd web && npm run typecheck # limpio desde el 19 sep; no añadas ningún error
 ```
 
 ## Los dos seams — no los rompas sin avisar

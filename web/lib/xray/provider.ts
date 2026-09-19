@@ -7,7 +7,7 @@ import type {
   ProductMatch,
   ScoreSnapshot,
 } from "./types";
-import { mockProvider } from "./registry/mock-provider";
+import { eveProvider } from "./registry/eve-provider";
 
 /**
  * Single seam between UI and data.
@@ -32,4 +32,4 @@ export interface XrayProvider {
 }
 
 /** ← única línea a cambiar al cablear sistemas reales */
-export const provider: XrayProvider = mockProvider;
+export const provider: XrayProvider = eveProvider;

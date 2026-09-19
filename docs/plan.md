@@ -125,6 +125,8 @@ SCORE_t    = 0–100 continuo = E[NIVEL_{t+6}]   ← leaderboard
 
 `drivers` (19 sep, tarde): los calcula `xray.explain.drivers_json` de forma exacta, sin SHAP: por señal, `delta` = peso × Δ(media móvil del rango entre t−3 y t) × pendiente del mapa, `since` = primer mes de la racha roja de esa señal, más el valor bruto y el rango. La suma de los `delta` es el cambio del score cuando las cuatro señales están presentes. `signal` lleva el nombre de la columna del contrato (`cash_buffer_days`, `overdue_flow_rate_3m`, `dscr_6m`, `net_cash_flow_ratio_3m`).
 
+**Marketplace multi-agente Eve (19 sep, tarde):** `POST /api/xray/recommend` orquesta quantity → offering → match. El JSON de decisión solo lleva ids, importes, términos y textos (`RecommendationDecisionSchema` en `web/agent/lib/schemas.ts`); el servidor **recomputa** match, uplift y banda con `lib/xray/match.ts` / `scoring.ts`. El LLM no inventa cifras. Fact pack offline en `web/lib/xray/dataset/` (derivado de `docs/data/raw`, no en git el CSV). Fallback determinista si falta clave, timeout o Zod.
+
 Front y back arrancan el viernes sobre stubs con datos ficticios. `score.py` produce el CSV del leaderboard sin tocar la web.
 
 ## 7. Reparto y calendario

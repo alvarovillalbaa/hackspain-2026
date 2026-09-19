@@ -167,6 +167,10 @@ export interface ProductMatch {
   projected_score: number;
   projected_band: Band;
   origin: DataOrigin;
+  /** Agent-authored rationale (eve path only). */
+  rationale?: string;
+  /** Agent-authored risks (eve path only). */
+  risks?: string[];
 }
 
 export interface NegotiationLever {

@@ -21,7 +21,9 @@
     "build:eve": "eve build",
     "start:eve": "eve start",
     "eval": "eve eval",
-    "deploy": "eve deploy"
+    "deploy": "eve deploy",
+    "build:facts": "node --experimental-strip-types scripts/build-facts.mts",
+    "warm:recommendations": "npx tsx scripts/warm-recommendations.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

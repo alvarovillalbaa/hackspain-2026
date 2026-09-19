@@ -1,4 +1,8 @@
-import type { ActionRecommendation, ActionKind } from "../types";
+import type {
+  ActionRecommendation,
+  ActionKind,
+  ScoreSnapshot,
+} from "../types";
 import { SCORE_BY_ID } from "./scores";
 import { applyAction, upliftPoints } from "../scoring";
 
@@ -53,11 +57,11 @@ const TEMPLATES: Omit<ActionRecommendation, "id" | "uplift" | "origin">[] = [
   },
 ];
 
-function actionsFor(companyId: string): ActionRecommendation[] {
-  const snapshot = SCORE_BY_ID[companyId];
-  if (!snapshot) return [];
-
-  // Pick 3–4 most relevant by current weak dimensions
+/** Rank action templates against a score snapshot (mock or dataset-backed). */
+export function actionsForSnapshot(
+  snapshot: ScoreSnapshot
+): ActionRecommendation[] {
+  const companyId = snapshot.company_id;
   const ranked = [...TEMPLATES].sort((a, b) => {
     const scoreA = Object.entries(a.dimension_deltas).reduce((s, [k, v]) => {
       const dim = snapshot.dimensions[k as keyof typeof snapshot.dimensions];
@@ -76,9 +80,15 @@ function actionsFor(companyId: string): ActionRecommendation[] {
       ...t,
       id: `${companyId}-${t.kind}-${i}`,
       uplift: upliftPoints(snapshot, after),
-      origin: i === 0 ? "eve" : i === 1 ? "llm" : "deterministic",
+      origin: (i === 0 ? "eve" : i === 1 ? "llm" : "deterministic") as ActionRecommendation["origin"],
     };
   });
+}
+
+function actionsFor(companyId: string): ActionRecommendation[] {
+  const snapshot = SCORE_BY_ID[companyId];
+  if (!snapshot) return [];
+  return actionsForSnapshot(snapshot);
 }
 
 export const ACTIONS_BY_COMPANY: Record<string, ActionRecommendation[]> =
@@ -93,6 +103,18 @@ export function findAction(
   return ACTIONS_BY_COMPANY[companyId]?.find((a) => a.id === actionId);
 }
 
+/** Resolve an action for any company — mock registry first, else derive from snapshot. */
+export function resolveAction(
+  companyId: string,
+  actionId: string,
+  snapshot?: ScoreSnapshot | null
+): ActionRecommendation | undefined {
+  const cached = findAction(companyId, actionId);
+  if (cached) return cached;
+  if (!snapshot) return undefined;
+  return actionsForSnapshot(snapshot).find((a) => a.id === actionId);
+}
+
 export function actionKindLabel(kind: ActionKind): string {
   const map: Record<ActionKind, string> = {
     refinance: "Refinanciación",
@@ -104,3 +126,5 @@ export function actionKindLabel(kind: ActionKind): string {
   };
   return map[kind];
 }
+
+export { TEMPLATES };

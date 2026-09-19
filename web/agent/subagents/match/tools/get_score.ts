@@ -1,0 +1,14 @@
+import { defineTool } from "eve/tools";
+import { z } from "zod";
+import { getScore } from "#lib/facts";
+
+export default defineTool({
+  description: "Get the company's Financial Health Score snapshot.",
+  inputSchema: z.object({ company_id: z.string() }),
+  label: { start: ({ company_id }) => `Score ${company_id}` },
+  async execute({ company_id }) {
+    const score = getScore(company_id);
+    if (!score) return { error: `Unknown company ${company_id}` };
+    return score;
+  },
+});

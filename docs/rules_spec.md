@@ -86,8 +86,8 @@ Un DataFrame plano por `(company_id, month)` con: `rank_*` (4), `red_*` (4), `n_
 
 ## 10. Proceso
 
-- Rama `feat/rules-score` apilada sobre `feat/features-seam-propuesta` (PR #16), porque depende del contrato. Si ML-1 renombra columnas en la revisión, los tests dicen dónde.
-- Sin `features.build()` las evals corren sobre la fixture. Si el slice #2 no tiene rama a las 14:00 del sábado, ML-2 escribe el builder desde las funciones del notebook y lo avisa.
+- Todo vive en la rama `tianwei-model` (PR #19), que sustituye a las PR apiladas #16–#18. Si se renombra una columna del contrato, los tests dicen dónde.
+- `features.build()` existe desde el 19 sep (tarde): las evals y el puntuador leen `artifacts/features.parquet` por defecto; los tests siguen corriendo sobre la fixture sin dataset.
 - Pregunta abierta 6 de `docs/tech_stack.md` (calibración de pesos) se resuelve pasando otro `RulesConfig`, no editando el módulo. Cerrada el 19 sep (mañana): pesos iguales pierden 0,008 de AUC(6); no se calibran.
 
 ## 11. Actualización 19 sep 2026 (mañana): decisiones de la revisión

@@ -94,6 +94,7 @@ web/                          Next.js + agente Eve (explicación LLM y chat) + S
 notebooks/                    Experimentos compartidos; importan xray, sin outputs en git
 tests/                        pytest con fixtures mínimas (no necesita el dataset)
 docs/rules_spec.md            Especificación viva del score por reglas; §11 las decisiones del 19 sep con sus números
+docs/model_card.md            Ficha del modelo: qué significa el número, supuestos con su chequeo, calibración y evaluación con cifras
 docs/features_seam.md         Contrato de features(company_id, month) y decisiones del builder
 docs/plan.md                  Decisiones cerradas: score, evento, componentes, API, reparto, pitch, plan B
 docs/tech_stack.md            PRD técnico: stack por capa, por qué, contratos de integración, variables, riesgos

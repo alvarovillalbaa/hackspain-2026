@@ -263,6 +263,52 @@ def group_kfold_auc6(
     return pd.DataFrame(rows)
 
 
+# --- fiabilidad del mapa (calibración) ----------------------------------------------------
+
+
+def reliability(
+    scored: pd.DataFrame, test_months: list[str] | None = TEST_MONTHS, n_bins: int = 10
+) -> dict:
+    """Dos tablas por deciles sobre las filas con score y etiqueta (docs/model_card.md §4 y §5).
+
+    `by_score_decile`: score medio frente a etiqueta realizada media (×100). Si el mapa está
+    calibrado fuera de train, las dos columnas coinciden salvo ruido; `mean_abs_gap` es el desvío
+    medio en puntos. `by_level_decile`: etiqueta media por decil de NIVEL sin suavizar; `dips` cuenta
+    las bajadas entre deciles vecinos y `largest_dip` la mayor (en puntos). Es el chequeo crudo del
+    único supuesto del mapa, que a más nivel nunca corresponde peor futuro: si aparece una bajada
+    mayor que el ruido del decil, el supuesto hay que revisarlo, no imponerlo.
+    """
+    o = scored[scored["score"].notna() & scored["label_t6"].notna()]
+    if test_months is not None:
+        o = o[o["month"].astype(str).isin(test_months)]
+    empty = {"n": len(o), "mean_abs_gap": float("nan"), "by_score_decile": [],
+             "by_level_decile": [], "dips": None, "largest_dip": float("nan")}
+    if len(o) < n_bins:
+        return empty
+
+    def deciles(col: str) -> list[dict]:
+        order = o[col].rank(method="first")  # fuerza n_bins grupos aunque haya empates
+        bins = pd.qcut(order, n_bins, labels=False)
+        rows = []
+        for d, g in o.groupby(bins, sort=True):
+            rows.append({"decile": int(d) + 1, f"{col}_mean": float(g[col].mean()),
+                         "label_mean": float(g["label_t6"].mean() * 100), "n": len(g)})
+        return rows
+
+    by_score = deciles("score")
+    by_level = deciles("level")
+    gaps = [abs(r["score_mean"] - r["label_mean"]) for r in by_score]
+    steps = np.diff([r["label_mean"] for r in by_level])
+    return {
+        "n": len(o),
+        "mean_abs_gap": float(np.mean(gaps)),
+        "by_score_decile": by_score,
+        "by_level_decile": by_level,
+        "dips": int((steps < 0).sum()),
+        "largest_dip": float(steps.min()) if len(steps) else float("nan"),
+    }
+
+
 # --- diagnóstico con umbrales absolutos ---------------------------------------------------
 
 
@@ -317,6 +363,7 @@ def run_all(
             "p_red_given_red": {str(k): r["p_red_given_red"] for k, r in per.iterrows()},
         },
         "directionality": directionality(scored, test_months, cfg),
+        "reliability": reliability(scored, test_months),
         "outlook_share": scored["outlook"].value_counts(normalize=True).to_dict(),
         "trend_share": scored["trend"].value_counts(normalize=True).to_dict(),
         "confidence_share": scored["confidence"].value_counts(normalize=True).to_dict(),
@@ -374,6 +421,11 @@ def _print_summary(name: str, m: dict) -> None:
     print(f"direccionalidad: Spearman {d['spearman']} (n={d['n']}) · P(rojo t+6 | negativo/estable/positivo) "
           f"{d.get('p_red_t6_given_negative')} / {d.get('p_red_t6_given_stable')} / {d.get('p_red_t6_given_positive')}"
           f" · | empeora/plano/mejora {d.get('p_red_t6_given_worsening')} / {d.get('p_red_t6_given_flat')} / {d.get('p_red_t6_given_improving')}")
+    r = m.get("reliability") or {}
+    if r.get("by_score_decile"):
+        print(f"fiabilidad (test, n={r['n']:,}): desvío medio score-etiqueta por decil {r['mean_abs_gap']:.1f} pts · "
+              f"bajadas crudas de la etiqueta por decil de nivel {r['dips']}/{len(r['by_level_decile']) - 1}"
+              f" (mayor {r['largest_dip']:+.1f} pts)")
     print(f"outlook: {m['outlook_share']} · trend: {m['trend_share']} · confidence: {m['confidence_share']}")
     if m.get("auc6_group_dispersion"):
         g = m["auc6_group_dispersion"]

@@ -77,6 +77,7 @@ en código nuestro.
 
 - Vas a tocar el score, el evento o las bandas → `docs/rules_spec.md` (la especificación viva; §11 las decisiones del 19 sep), `docs/plan.md` §2 y la evidencia en `docs/investigacion_score.md` §7–§8.
 - Vas a tocar la tabla de features → `docs/features_seam.md` (contrato y decisiones del builder).
+- Necesitas saber qué asume el modelo, cómo se calibra o qué significa el número → `docs/model_card.md` (ficha del modelo: supuestos con su chequeo y cifras).
 - Tienes que explicarlo sin tecnicismos → `docs/MODEL_toni.md` y `docs/sistema_en_cinco_figuras.html`.
 - Vas a elegir una librería o desplegar algo → `docs/tech_stack.md` §5 y §9 (riesgos) antes de añadir dependencias.
 - Vas a tocar `web/` → `web/AGENTS.md` y los docs de Eve que indica.

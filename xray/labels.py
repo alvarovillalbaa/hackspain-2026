@@ -10,6 +10,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from xray.profile import RankProfile
 from xray.rules import RulesConfig
 
 KEYS = ["company_id", "month"]
@@ -27,15 +28,27 @@ RANK_COLS = [f"rank_{s}" for s in SIGNALS]
 RED_COLS = [f"red_{s}" for s in SIGNALS]
 
 
-def rank_signals(features: pd.DataFrame) -> pd.DataFrame:
+def rank_signals(features: pd.DataFrame, profile: RankProfile | None = None) -> pd.DataFrame:
     """Rango percentil dentro del mes de cada señal, orientado a 1 = más sana.
 
     Empates por media, NaN excluidos del rango (quedan NaN). Conserva las columnas de entrada.
+    Con `profile` (xray.profile.RankProfile) las filas se ranquean contra esa población de
+    referencia en vez de entre ellas: es como se puntúan las empresas nuevas.
     """
     out = features.copy()
-    by_month = out.groupby("month")
-    for short, (col, ascending) in SIGNALS.items():
-        out[f"rank_{short}"] = by_month[col].rank(method="average", pct=True, ascending=ascending)
+    if profile is None:
+        by_month = out.groupby("month")
+        for short, (col, ascending) in SIGNALS.items():
+            out[f"rank_{short}"] = by_month[col].rank(method="average", pct=True, ascending=ascending)
+        return out
+    months = out["month"].astype(str)
+    groups = out.groupby(months).indices
+    for short, (col, _) in SIGNALS.items():
+        values = pd.to_numeric(out[col], errors="coerce").to_numpy(dtype=float)
+        r = np.full(len(out), np.nan)
+        for month, idx in groups.items():
+            r[idx] = profile.rank(str(month), short, values[idx])
+        out[f"rank_{short}"] = r
     return out
 
 

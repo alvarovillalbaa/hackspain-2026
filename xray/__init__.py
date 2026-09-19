@@ -3,6 +3,7 @@
 Módulos previstos (ver docs/plan.md):
 - data        carga de los CSV y caché en parquet          (slice 2)
 - features    tabla features(company_id, month)            (slice 2)
+- profile     perfil de rangos por mes para puntuar empresas nuevas contra la referencia
 - labels      índice de estado, evento, etiqueta t+6        (slice 4)
 - model       score 0–100 y SHAP                            (slice 4)
 - bands       banda + outlook + watch                       (slice 5)

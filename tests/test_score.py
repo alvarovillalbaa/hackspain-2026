@@ -17,15 +17,26 @@ def test_score_table_scores_every_row_with_an_index_and_never_imports_api():
     assert model.n_train > 0
 
 
-def test_score_table_with_extra_ranks_against_the_union_and_returns_only_extra_rows():
+def test_score_table_with_extra_ranks_against_the_reference_and_returns_only_extra_rows():
     ref = features.load_fixture()
     extra = ref[ref["company_id"] == "MOCK_SHORT"].assign(company_id="EXTRA_1")
     table, _ = score.score_table(ref, extra=extra)
     assert set(table["company_id"]) == {"EXTRA_1"} and len(table) == 5
-    assert table["score"].notna().all()
-    # Cuatro empresas en cada mes de EXTRA_1: DET negativo, DIP 8,3 días, SHORT y EXTRA_1 empatadas
-    # por encima → rango medio (3+4)/2 / 4 = 0,875. Sola con SHORT sería 0,75; sola, 1,0.
-    assert table["rank_balance"].tolist() == pytest.approx([0.875] * 5)
+    # Una copia de MOCK_SHORT se ranquea contra la referencia y obtiene exactamente su puntuación.
+    reference, _ = score.score_table(ref)
+    short = reference[reference["company_id"] == "MOCK_SHORT"]
+    for col in ("score", "level", "rank_balance", "outlook", "trend"):
+        assert table[col].tolist() == short[col].tolist(), col
+
+
+def test_extras_never_influence_each_other():
+    ref = features.load_fixture()
+    e1 = ref[ref["company_id"] == "MOCK_SHORT"].assign(company_id="EXTRA_1")
+    e2 = ref[ref["company_id"] == "MOCK_DIP"].assign(company_id="EXTRA_2")
+    alone, _ = score.score_table(ref, extra=e1)
+    together, _ = score.score_table(ref, extra=pd.concat([e1, e2], ignore_index=True))
+    both = together[together["company_id"] == "EXTRA_1"].reset_index(drop=True)
+    pd.testing.assert_frame_equal(alone.reset_index(drop=True), both)
 
 
 def test_score_table_rejects_overlapping_company_ids():

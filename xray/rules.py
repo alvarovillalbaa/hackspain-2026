@@ -14,6 +14,8 @@ import numpy as np
 import pandas as pd
 from sklearn.isotonic import IsotonicRegression
 
+from xray.profile import RankProfile
+
 KEYS = ["company_id", "month"]
 WATCH_KINDS = ("large_maturity", "main_customer_lost", "expensive_new_debt")  # orden = prioridad
 
@@ -63,20 +65,27 @@ def level(indexed: pd.DataFrame, cfg: RulesConfig | None = None) -> pd.DataFrame
 
 @dataclass
 class RulesModel:
-    """Mapa nivel → E[nivel a t+6] como nudos de una función monótona, en escala 0–100."""
+    """Mapa nivel → E[nivel a t+6] como nudos de una función monótona, en escala 0–100, más el
+    perfil de rangos por mes de la población de referencia (`rank_profile`, 19 sep) con el que se
+    ranquean las empresas nuevas."""
 
     knots_x: list[float]
     knots_y: list[float]
     train_until: str
     lead_cutoff: float
     n_train: int
+    rank_profile: dict | None = None
 
     def predict(self, level: np.ndarray | pd.Series) -> np.ndarray:
         x = np.asarray(level, dtype=float)
         return np.interp(x, self.knots_x, self.knots_y)  # clip en los extremos; NaN → NaN
 
+    def profile(self) -> RankProfile | None:
+        return RankProfile.from_dict(self.rank_profile) if self.rank_profile else None
+
     def save(self, path: str | Path) -> None:
-        Path(path).write_text(json.dumps(asdict(self), indent=2), encoding="utf-8")
+        # compacto: el perfil guarda ~100 k valores y con indent ocuparía megabytes de saltos de línea
+        Path(path).write_text(json.dumps(asdict(self), separators=(",", ":")), encoding="utf-8")
 
     @classmethod
     def load(cls, path: str | Path) -> RulesModel:
@@ -91,12 +100,15 @@ def fit(indexed: pd.DataFrame, cfg: RulesConfig | None = None, train_until: str 
         raise ValueError(f"fit: solo {len(train)} filas de train hasta {train_until}")
     iso = IsotonicRegression(y_min=0.0, y_max=1.0, out_of_bounds="clip")
     iso.fit(train["level"].to_numpy(), train["label_t6"].to_numpy())
+    from xray import labels  # aquí y no arriba: labels importa RulesConfig de este módulo
+
     model = RulesModel(
         knots_x=[float(v) for v in iso.X_thresholds_],
         knots_y=[float(v) * 100 for v in iso.y_thresholds_],
         train_until=train_until,
         lead_cutoff=0.0,
         n_train=len(train),
+        rank_profile=RankProfile.fit(indexed, labels.SIGNALS).to_dict(),  # todos los meses, no solo train
     )
     model.lead_cutoff = float(np.percentile(model.predict(train["level"]), cfg.lead_percentile))
     return model
@@ -211,13 +223,16 @@ def run(
     model: RulesModel | None = None,
     cfg: RulesConfig | None = None,
     train_until: str = "2025-08",
+    rank_against: RankProfile | None = None,
 ) -> pd.DataFrame:
     """features → tabla plana con rangos, rojos, índice, evento, etiqueta, nivel, score, outlook,
-    watch y confidence. Ajusta el mapa isotónico si no recibe modelo (score.py); la API pasa uno."""
+    trend, watch y confidence. Ajusta el mapa isotónico si no recibe modelo (score.py); la API pasa
+    uno. Con `rank_against` (el perfil del modelo) las filas se ranquean contra la referencia: es el
+    camino de las empresas nuevas."""
     from xray import labels  # aquí y no arriba: labels importa RulesConfig de este módulo
 
     cfg = cfg or RulesConfig()
-    df = labels.rank_signals(features)
+    df = labels.rank_signals(features, profile=rank_against)
     df = labels.state_index(df, cfg)
     df = labels.events(df, cfg)
     df = labels.label_t6(df, cfg)

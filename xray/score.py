@@ -3,9 +3,10 @@
     uv run xray-score --features artifacts/features.parquet --out artifacts/scores/scores.parquet
     uv run xray-score --features ref.parquet --extra nuevas.parquet --model artifacts/scores/rules_model.json
 
-Con `--extra`, las empresas nuevas se ranquean dentro del mes junto con la población de referencia
-(la unión de las dos tablas) y solo ellas van a la salida: el score de una empresa no depende de
-cuántas otras vengan en su fichero. Sin `--model` se ajusta el mapa isotónico sobre la unión hasta
+Con `--extra`, las empresas nuevas se ranquean mes a mes contra la población de referencia (el
+perfil de rangos guardado en el modelo) y solo ellas van a la salida: la puntuación de una empresa
+no depende de cuántas otras vengan en su fichero, y una copia de una empresa de referencia obtiene
+exactamente su puntuación. Sin `--model` se ajusta el mapa isotónico sobre la referencia hasta
 `--train-until` y se guarda junto a la salida.
 
 No importa `api/` ni nada de Node: es la entrega que corre sola (AGENTS.md). Embat no tiene script
@@ -50,21 +51,21 @@ def score_table(
     cfg: RulesConfig | None = None,
     train_until: str = TRAIN_UNTIL,
 ) -> tuple[pd.DataFrame, RulesModel]:
-    """Puntúa `features` (o solo `extra`, ranqueada junto a `features`). Devuelve (tabla, modelo)."""
+    """Puntúa `features` (o solo `extra`, ranqueada contra el perfil de `features`). Devuelve (tabla, modelo)."""
     cfg = cfg or RulesConfig()
-    parts = [_prepare(features)]
-    if extra is not None:
-        parts.append(_prepare(extra))
-        overlap = sorted(set(parts[0]["company_id"]) & set(parts[1]["company_id"]))
-        if overlap:
-            raise ValueError(f"score: {len(overlap)} company_id en las dos tablas, p. ej. {overlap[:5]}")
-    union = pd.concat(parts, ignore_index=True)
-    scored = rules.run(union, events_ext=events_ext, model=model, cfg=cfg, train_until=train_until)
+    ref = _prepare(features)
+    scored = rules.run(ref, events_ext=events_ext, model=model, cfg=cfg, train_until=train_until)
     if model is None:
         model = rules.fit(scored, cfg, train_until)  # el mismo ajuste que hizo run(); lo devolvemos
-    if extra is not None:
-        scored = scored[scored["company_id"].isin(parts[1]["company_id"].unique())]
-    return scored[OUTPUT_COLUMNS].reset_index(drop=True), model
+    if extra is None:
+        return scored[OUTPUT_COLUMNS].reset_index(drop=True), model
+    ext = _prepare(extra)
+    overlap = sorted(set(ref["company_id"]) & set(ext["company_id"]))
+    if overlap:
+        raise ValueError(f"score: {len(overlap)} company_id en las dos tablas, p. ej. {overlap[:5]}")
+    scored_ext = rules.run(ext, events_ext=events_ext, model=model, cfg=cfg, train_until=train_until,
+                           rank_against=model.profile())
+    return scored_ext[OUTPUT_COLUMNS].reset_index(drop=True), model
 
 
 def _read_table(path: Path) -> pd.DataFrame:

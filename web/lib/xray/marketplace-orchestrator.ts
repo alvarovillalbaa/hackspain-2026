@@ -1,9 +1,12 @@
 /**
  * Sequential Eve pipeline: quantity → offering → match.
  *
- * Declared subagents run as background tasks. The first session.waiting is NOT
- * the decision — keep reading the parent stream until the stage schema lands
- * (child outputSchema / submit_* / result.completed).
+ * Declared subagents run as background tasks: the parent's tool call returns
+ * `{status:"working"}` and the parent turn ends with prose, so a parent-turn
+ * `outputSchema` can never be fulfilled (OUTPUT_SCHEMA_NOT_FULFILLED). The
+ * decision is read from the CHILD session stream (`result.completed` /
+ * `submit_*`), found via `subagent.called` on the parent follow stream.
+ * Each stage gets a fresh parent session; prompts are self-contained.
  */
 import type { Client, MessageStreamEvent } from "eve/client";
 import {
@@ -20,6 +23,8 @@ import type { ActionKind, ScoreSnapshot } from "./types";
 import type { MarketplacePhase } from "./marketplace-progress";
 import {
   assembleRecommendation,
+  childSessionFor,
+  delegatedTo,
   extractCandidates,
   matchPrompt,
   offeringPrompt,
@@ -79,41 +84,66 @@ function parseOffers(candidates: unknown[]): OffersDecision | OfferDecision[] | 
   return null;
 }
 
-async function consumeUntilStage<T>(input: {
+async function runStage<T>(input: {
+  client: Client;
   stage: MarketplaceStage;
+  message: string;
   signal: AbortSignal;
   onEvent?: (event: MessageStreamEvent) => void;
-  response: AsyncIterable<MessageStreamEvent>;
-  follow: () => AsyncIterable<MessageStreamEvent>;
   parse: (candidates: unknown[]) => T | null;
 }): Promise<T> {
+  const { stage, signal } = input;
   let parsed: T | null = null;
-  let parked = false;
+  let delegated = false;
+  let childId: string | null = null;
 
   const handle = (event: MessageStreamEvent) => {
-    input.signal.throwIfAborted();
+    signal.throwIfAborted();
     input.onEvent?.(event);
-    const failed = failMessage(event);
-    if (failed) throw new Error(failed);
-    if (event.type === "session.waiting") parked = true;
-    parsed =
-      parsed ??
-      input.parse(extractCandidates(asPipelineEvent(event), input.stage));
+    const pe = asPipelineEvent(event);
+    delegated ||= delegatedTo(pe, stage);
+    childId ??= childSessionFor(pe, stage);
+    parsed ??= input.parse(extractCandidates(pe, stage));
   };
 
-  for await (const event of input.response) {
+  // 1. Parent turn: the orchestrator dispatches the stage subagent.
+  const { session, response } = await input.client.sessions.create({
+    message: input.message,
+    signal,
+  });
+  for await (const event of response) {
     handle(event);
-    if (parsed && parked) return parsed;
+    if (parsed) return parsed;
+    const failed = failMessage(event);
+    if (failed && !delegated) throw new Error(failed);
   }
-  if (parsed) return parsed;
+  if (!delegated) {
+    throw new Error(`Marketplace stage '${stage}': orchestrator did not call ${stage}`);
+  }
 
-  for await (const event of input.follow()) {
+  // 2. `subagent.called` (with childSessionId) lands after the turn boundary.
+  if (!childId) {
+    for await (const event of session.stream({ signal })) {
+      handle(event);
+      if (parsed) return parsed;
+      if (childId) break;
+    }
+  }
+  if (!childId) {
+    throw new Error(`Marketplace stage '${stage}': no child session for ${stage}`);
+  }
+
+  // 3. The decision is on the child stream.
+  for await (const event of input.client.sessions.attach(childId).stream({ signal })) {
     handle(event);
-    if (parsed && parked) return parsed;
+    if (parsed) return parsed;
+    const failed = failMessage(event);
+    if (failed) throw new Error(`Marketplace stage '${stage}': ${failed}`);
+    if (event.type === "session.waiting") break;
   }
 
   throw new Error(
-    `Marketplace stage '${input.stage}' finished without a structured payload`
+    `Marketplace stage '${stage}' finished without a structured payload`
   );
 }
 
@@ -151,72 +181,57 @@ export async function runMarketplacePipeline(
   input.onPhase("queued", "Preparando pipeline");
   input.onPhase("quantity", "Importe ideal");
 
-  const quantity = await withStageTimeout("quantity", input.signal, async (stageSignal) => {
-    const { session, response } = await input.client.sessions.create({
-      message: quantityPrompt(shared),
-      outputSchema: QuantityDecisionSchema,
-      signal: stageSignal,
-    });
-    const value = await consumeUntilStage({
+  const quantity = await withStageTimeout("quantity", input.signal, (stageSignal) =>
+    runStage({
+      client: input.client,
       stage: "quantity",
+      message: quantityPrompt(shared),
       signal: stageSignal,
       onEvent: input.onEvent,
-      response,
-      follow: () => session.stream({ signal: stageSignal }),
       parse: (candidates) =>
         parseStageOutput(QuantityDecisionSchema, candidates),
-    });
-    return { session, value };
-  });
+    })
+  );
 
   const quantityDecision: QuantityDecision =
     input.amount != null
-      ? { ...quantity.value, ideal_amount: input.amount }
-      : quantity.value;
+      ? { ...quantity, ideal_amount: input.amount }
+      : quantity;
 
   input.onPhase("offering", "Ofertas emisor");
-  const offers = await withStageTimeout("offering", input.signal, async (stageSignal) => {
-    const response = await quantity.session.send(offeringPrompt({
-      company_id: input.company_id,
-      action_kind: input.action_kind,
-      band: input.snapshot.band,
-      quantity: quantityDecision,
-    }), {
-      outputSchema: OffersDecisionSchema,
-      signal: stageSignal,
-    });
-    return consumeUntilStage({
+  const offers = await withStageTimeout("offering", input.signal, (stageSignal) =>
+    runStage({
+      client: input.client,
       stage: "offering",
+      message: offeringPrompt({
+        company_id: input.company_id,
+        action_kind: input.action_kind,
+        band: input.snapshot.band,
+        quantity: quantityDecision,
+      }),
       signal: stageSignal,
       onEvent: input.onEvent,
-      response,
-      follow: () => quantity.session.stream({ signal: stageSignal }),
       parse: parseOffers,
-    });
-  });
+    })
+  );
 
   input.onPhase("match", "Ranking bilateral");
-  const ranking = await withStageTimeout("match", input.signal, async (stageSignal) => {
-    const offerList = Array.isArray(offers) ? offers : offers.offers;
-    const response = await quantity.session.send(matchPrompt({
-      company_id: input.company_id,
-      action_kind: input.action_kind,
-      quantity: quantityDecision,
-      offers: offerList,
-    }), {
-      outputSchema: RankingDecisionSchema,
-      signal: stageSignal,
-    });
-    return consumeUntilStage({
+  const ranking = await withStageTimeout("match", input.signal, (stageSignal) =>
+    runStage({
+      client: input.client,
       stage: "match",
+      message: matchPrompt({
+        company_id: input.company_id,
+        action_kind: input.action_kind,
+        quantity: quantityDecision,
+        offers: Array.isArray(offers) ? offers : offers.offers,
+      }),
       signal: stageSignal,
       onEvent: input.onEvent,
-      response,
-      follow: () => quantity.session.stream({ signal: stageSignal }),
       parse: (candidates) =>
         parseStageOutput(RankingDecisionSchema, candidates),
-    });
-  });
+    })
+  );
 
   return assembleRecommendation({
     company_id: input.company_id,

@@ -1,11 +1,13 @@
 import { defineAgent } from "eve";
-import { agentRuntime } from "#lib/model";
+import { marketplaceRuntime } from "#lib/model";
 import { RankingDecisionSchema } from "#lib/schemas";
 
 export default defineAgent({
   description:
     "Score each offer against the company using deterministic compute_match. Receives structured terms only — never offering prose. Sorts by match.",
-  ...agentRuntime(),
+  ...marketplaceRuntime(),
+  // Only its own tools/: no bash/read_file (a docker sandbox took 20 s+ to open).
+  defaultTools: false,
   outputSchema: RankingDecisionSchema,
   experimental: { workflow: { modelCallsPerStep: 6 } },
 });

@@ -86,7 +86,7 @@ Plantilla `ai-app-jumpstart` movida intacta a `web/`. Versiones instaladas:
 | **TypeScript** | 5 | `npm run typecheck` |
 | Despliegue | **Vercel**, *Root Directory* = `web` | Un `git push` = demo actualizada |
 
-**Papel del agente Eve.** Recibe la pregunta del asesor, llama a tools sobre el fact pack / Blob y redacta **solo** sobre el JSON devuelto. Guardia: ninguna cifra en la respuesta que no exista en el input.
+**Papel del agente Eve.** Recibe la pregunta del asesor, llama a tools sobre el fact pack / Blob y redacta **solo** sobre el JSON devuelto. Guardia: ninguna cifra en la respuesta que no exista en el input. **Modelos (19 sep noche):** ficha/chat = Helmcode `glm5.3`; marketplace quantity→offering→match = Helmcode `deepseek-v4-flash`. Misma clave `OPENAI_API_KEY`.
 
 **Papel de Blob (19 sep).** Sustituye Postgres/Supabase para la demo live. `xray/session.json` es el grupo foco de `/start` (reset deals/acciones, chip Demo); no filtra `/` ni `/companies` (19 sep, IA grupos). Imports, deals, títulos Eve y recomendaciones sobreviven reload. El fact pack scored sigue en git.
 

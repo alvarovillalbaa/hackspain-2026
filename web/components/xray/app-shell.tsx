@@ -11,6 +11,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
+import { useWatchSlackSync } from "@/hooks/xray/use-watch-slack-sync";
 
 export interface Crumb {
   label: string;
@@ -27,6 +28,7 @@ export function AppShell({
   trailing?: React.ReactNode;
 }) {
   const pathname = usePathname();
+  useWatchSlackSync();
 
   return (
     <div className="flex min-h-full flex-col bg-background">
@@ -65,6 +67,12 @@ export function AppShell({
             </BreadcrumbList>
           </Breadcrumb>
           {trailing}
+          <Link
+            href="/settings"
+            className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Ajustes
+          </Link>
           <Link
             href="/chat"
             className="text-xs text-muted-foreground transition-colors hover:text-foreground"

@@ -15,6 +15,7 @@ Experimentos que el equipo tiene que poder ver (chequeos de literatura del slice
 uv sync --all-extras          # entorno + jupyterlab
 uv run nbstripout --install   # una vez por clon
 uv run xray-cache             # convierte los 9 CSV a parquet (una vez)
+uv run xray-features          # tabla del contrato → artifacts/features.parquet (8 s)
 uv run jupyter lab
 ```
 

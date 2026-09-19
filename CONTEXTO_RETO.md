@@ -3,6 +3,8 @@
 > **Fuente:** https://claude.ai/artifact/8N8Q7QMjprCUWxGAiJaWoP
 > **Evento:** HackSpain 2026 · 18–20 de septiembre · ETSIT UPM, Madrid
 > **Organizador del reto:** Embat
+>
+> **Nota del equipo (19 sep 2026):** Embat confirmó que no tiene script de scoring ni leaderboard y que valora sobre todo el producto construido encima del score. Las filas «Predicción sobre el test oculto» y «leaderboard» de este enunciado quedan sin efecto; todo lo demás sigue vigente.
 
 ## ¿Puede el dinero decir cómo está una empresa?
 

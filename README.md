@@ -6,9 +6,9 @@ Reto de **Embat** en **HackSpain 2026** (18–20 de septiembre, ETSIT UPM, Madri
 
 ## Qué hace
 
-- **Score 0–100 mensual por empresa** = estado financiero esperado dentro de 6 meses, construido solo con datos de tesorería.
-- **Trayectoria, no foto:** presentado al estilo de las agencias de rating como **banda + outlook + watch**, para distinguir un bache de un deterioro y detectar mejoras antes de que el banco las vea.
-- **Explicable:** descomposición por cinco dimensiones (liquidez, cobro, pago, deuda, actividad) y narrativa generada por un LLM **solo** sobre datos estructurados.
+- **Score 0–100 mensual por empresa** = nivel de salud de tesorería esperado dentro de 6 meses, construido solo con datos de tesorería a partir de cuatro señales: días de caja, facturas de proveedores impagadas, cobertura de las cuotas y flujo neto de caja. Reglas calibradas, no una caja negra (`docs/rules_spec.md`).
+- **Trayectoria, no foto:** presentado al estilo de las agencias de rating como **banda + outlook + trend + watch**, para distinguir un bache de un deterioro y detectar mejoras antes de que el banco las vea.
+- **Explicable:** cada cambio del score se reparte exactamente entre las cuatro señales (`xray.explain`), y la narrativa la genera un LLM **solo** sobre esos datos estructurados. Versión sin tecnicismos en `docs/MODEL_toni.md` y `docs/sistema_en_cinco_figuras.html`.
 - **Producto:** a quien tiene deuda, cuándo refinanciar y cuánto ahorra en €; a quien no, cuánto puede pedir y a qué cuota. Comprador: Embat (módulo pyme + comisión de originación al banco).
 
 ## Arquitectura
@@ -28,8 +28,8 @@ flowchart LR
     subgraph MOTOR["Motor"]
         FEAT[("features(company, month)<br/>liquidez · cobro · pago · deuda · actividad")]:::store
         IDX["Índice de estado + evento<br/>≥2 de 4 señales, ≥2 meses"]:::node
-        MODEL["Modelo → score 0–100<br/>E[estado t+6] · SHAP"]:::focal
-        BAND["Banda + outlook + watch<br/>nivel TTC · pendiente 3 m · evento &lt;90 d"]:::node
+        MODEL["Reglas calibradas → score 0–100<br/>E[nivel t+6] · drivers exactos"]:::focal
+        BAND["Banda + outlook + trend + watch<br/>persistencia · momentum 3 m · evento &lt;90 d"]:::node
         MC["Proyección de caja Monte Carlo<br/>capacidad de deuda · prob. estrés"]:::node
         RATE["Curva banda → tipo justo<br/>BdE/ECAF + 87 contratos"]:::node
     end
@@ -40,7 +40,7 @@ flowchart LR
         FRONT["React · asesor de Embat<br/>monitor → ficha → refinanciación → what-if"]:::focal
     end
 
-    LB["score.py → leaderboard<br/>test oculto 60–80 empresas"]:::node
+    LB["xray-score → tabla de scores<br/>todas las empresas; las nuevas, contra la referencia"]:::node
 
     CSV --> FEAT
     PUB -.-> FEAT
@@ -61,35 +61,44 @@ Dos *seams* fijan el trabajo en paralelo: la tabla `features(company, month)` (t
 ## Definición del score
 
 ```
-NIVEL_t    = media móvil 6–12 m del índice de estado → banda de 7–9 grados anclada a PD realizada
-             (cambia de banda solo si el deterioro persiste ≥ 3 meses)
-OUTLOOK_t  = pendiente 3 m del score rápido + nº de alertas activas → positivo / estable / negativo
+SEÑALES_t  = cuatro medidas del mes, cada una como rango percentil entre las empresas de ese mes:
+             días de caja · tasa de facturas de proveedores impagadas · cobertura de cuotas (6 m) · flujo neto de caja (3 m)
+ÍNDICE_t   = media ponderada de los rangos (0,35 · 0,20 · 0,20 · 0,25); rojo = rango ≤ 0,20
+NIVEL_t    = media móvil de 6 meses del índice
+SCORE_t    = 0–100 = mapa monótono (isotónico, ajustado con el primer año) de NIVEL_t a E[NIVEL_{t+6}]
+OUTLOOK_t  = persistencia: negativo si ≥ 3 meses rojos de 6 y el actual rojo; positivo si 3 verdes tras un rojo
+TREND_t    = media de (índice − nivel) en 3 meses frente a ±0,10 → improving / flat / worsening
 WATCH_t    = evento discreto a < 90 días (vencimiento grande, pérdida del cliente principal, deuda cara)
-SCORE_t    = 0–100 = E[NIVEL_{t+6}]   ← lo que va al leaderboard
 ```
 
-El evento de deterioro se define sobre el propio dataset (no hay etiqueta de impago): **≥ 2 de 4 señales en rojo durante ≥ 2 meses** — saldo mínimo reconstruido, facturas recibidas vencidas, cobertura del servicio de deuda, caída de entradas vs. mismo mes del año anterior. Detalle y evidencia en [`docs/plan.md`](docs/plan.md) §2 y [`docs/investigacion_score.md`](docs/investigacion_score.md).
+El evento de deterioro se define sobre el propio dataset (no hay etiqueta de impago): **≥ 2 de 4 señales en rojo durante ≥ 2 meses**. Un mes rojo son dos síntomas persistentes que coinciden, no un co-movimiento. Detalle y evidencia en [`docs/rules_spec.md`](docs/rules_spec.md), [`docs/plan.md`](docs/plan.md) §2 y [`docs/investigacion_score.md`](docs/investigacion_score.md).
 
 ## Evaluación
 
 | Qué | Cómo |
 |---|---|
-| Acierto | AUC(h) / Gini(h) para h = 1…12 en hold-out; meta AUC(6) ≥ 0,70 |
-| Anticipación | Lead time por evento: primer mes en que el score cruza umbral *y se mantiene*; objetivo mediana ≥ 3 meses |
-| Direccionalidad | Spearman entre Δscore(t−3→t) y Δíndice(t→t+6); P(bajada \| outlook negativo) vs P(bajada \| estable) |
-| Estabilidad | Matriz de transición mensual, % reversiones ≤ 3 m, PSI |
-| Generalización | Split temporal (train meses 1–12, test 13–18) **y** GroupKFold por `group_id` |
+| Acierto | AUC(h) para h = 1…12 en meses no vistos, contra el evento propio (0,71 a 6 m) **y** contra un resultado que el score no construye, el saldo bruto pasando a negativo (0,69 a 6 m, 0,72 a 1 m) |
+| Anticipación | Persistencia: P(rojo a 6 m \| rojo hoy) 54 % frente a 12 % de base; lead time en tres cifras (crónicos 17 %, con cruce 7 % y mediana 3 meses, tardíos 50 %) |
+| Direccionalidad | P(rojo a 6 m \| outlook negativo / estable / positivo) 66 / 8 / 16 % |
+| Estabilidad | Matriz de transición mensual, % reversiones ≤ 3 m, PSI (pendiente, slice #5) |
+| Generalización | Split temporal (train meses 1–12, test 13–18) y dispersión por grupos (`group_id`) |
+
+Todo sale de `uv run xray-evals` (`artifacts/evals/metrics.json`), sobre la tabla real de `uv run xray-features`.
 
 ## Estructura del repositorio
 
 ```
-xray/                         Paquete Python — el motor: data, features, labels, model, bands, projection, rates, score
-api/                          FastAPI, fina: importa xray y sirve el contrato /score (slice #8)
+xray/                         Paquete Python — el motor: data, features (contrato y build), profile, labels, rules, explain, evals, score
+api/                          FastAPI, fina: importa xray y sirve el contrato /score (slice #8, pendiente)
 web/                          Next.js + agente Eve (explicación LLM y chat) + Supabase; front del asesor (slices #9, #10)
 notebooks/                    Experimentos compartidos; importan xray, sin outputs en git
 tests/                        pytest con fixtures mínimas (no necesita el dataset)
+docs/rules_spec.md            Especificación viva del score por reglas; §11 las decisiones del 19 sep con sus números
+docs/model_card.md            Ficha del modelo: qué significa el número, supuestos con su chequeo, calibración y evaluación con cifras
+docs/features_seam.md         Contrato de features(company_id, month) y decisiones del builder
 docs/plan.md                  Decisiones cerradas: score, evento, componentes, API, reparto, pitch, plan B
 docs/tech_stack.md            PRD técnico: stack por capa, por qué, contratos de integración, variables, riesgos
+docs/MODEL_toni.md            El sistema explicado sin tecnicismos; docs/sistema_en_cinco_figuras.html, lo mismo en cinco figuras
 docs/investigacion_score.md   Evidencia (BIS, BdE, ECB, FinRegLab, agencias de rating) — 111 referencias
 docs/ideas_equipo.md          Brainstorming original y análisis por caso de uso
 CONTEXTO_RETO.md              Enunciado del reto
@@ -104,7 +113,10 @@ artifacts/                    Caché parquet, modelos, figuras — fuera de git
 ```bash
 uv sync --all-extras            # Python 3.12 + pandas, lightgbm, shap, fastapi, jupyterlab…
 uv run xray-cache               # convierte los 9 CSV de input_data/ a parquet (30 s, una vez)
-uv run pytest                   # tests del cargador, sin dataset
+uv run xray-features            # tabla features(company_id, month) → artifacts/features.parquet (8 s)
+uv run xray-evals               # métricas del score → artifacts/evals/metrics.json
+uv run xray-score               # scores de todas las empresas → artifacts/scores/scores.parquet
+uv run pytest                   # 105 tests, sin dataset (el humo sobre datos reales se salta si no hay caché)
 uv run jupyter lab              # notebooks: from xray.data import load
 ```
 

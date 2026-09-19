@@ -26,7 +26,7 @@ class RulesConfig:
         default_factory=lambda: {"balance": 0.35, "inflows": 0.25, "dscr": 0.20, "overdue": 0.20}
     )
     red_cutoff: float = 0.20  # rango ≤ red_cutoff es rojo
-    min_signals: int = 2  # señales necesarias para que exista el índice
+    min_signals: int = 1  # señales necesarias para que exista el índice; una basta (19 sep), confidence avisa
     red_month_min: int = 2  # n_red ≥ 2 es mes rojo
     event_run: int = 2  # meses rojos seguidos para que empiece un evento
     event_gap: int = 2  # verdes seguidos necesarios para que el siguiente evento sea otro episodio

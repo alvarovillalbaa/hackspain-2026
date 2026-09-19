@@ -15,11 +15,13 @@ from xray.rules import RulesConfig
 KEYS = ["company_id", "month"]
 
 SIGNALS: dict[str, tuple[str, bool]] = {
-    # nombre corto → (columna de features, ascending): ascending=True cuando más alto es más sano
-    "balance": ("min_balance_eur", True),
-    "overdue": ("overdue_received_ratio_3m", False),
+    # nombre corto → (columna de features, ascending): ascending=True cuando más alto es más sano.
+    # Señales v2 (19 sep, revisión): los nombres cortos, y con ellos rank_*, red_* y las claves de
+    # los pesos, no cambian; solo cambia la columna que leen (docs/features_seam.md §2).
+    "balance": ("cash_buffer_days", True),
+    "overdue": ("overdue_flow_rate_3m", False),
     "dscr": ("dscr_6m", True),
-    "inflows": ("inflows_yoy_change", True),
+    "inflows": ("net_cash_flow_ratio_3m", True),
 }
 RANK_COLS = [f"rank_{s}" for s in SIGNALS]
 RED_COLS = [f"red_{s}" for s in SIGNALS]

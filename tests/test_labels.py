@@ -11,10 +11,10 @@ from xray.rules import RulesConfig
 def _features(rows: list[dict]) -> pd.DataFrame:
     """Tabla mínima con las columnas que labels lee; el resto del contrato no hace falta aquí."""
     base = {
-        "min_balance_eur": np.nan,
-        "overdue_received_ratio_3m": np.nan,
+        "cash_buffer_days": np.nan,
+        "overdue_flow_rate_3m": np.nan,
         "dscr_6m": np.nan,
-        "inflows_yoy_change": np.nan,
+        "net_cash_flow_ratio_3m": np.nan,
     }
     return pd.DataFrame([{**base, **r} for r in rows])
 
@@ -25,12 +25,12 @@ def _features(rows: list[dict]) -> pd.DataFrame:
 def test_rank_orients_every_signal_so_that_one_is_healthiest():
     f = _features(
         [
-            {"company_id": "a", "month": "2025-01", "min_balance_eur": -100, "overdue_received_ratio_3m": 0.9,
-             "dscr_6m": 0.5, "inflows_yoy_change": -0.5},
-            {"company_id": "b", "month": "2025-01", "min_balance_eur": 0, "overdue_received_ratio_3m": 0.5,
-             "dscr_6m": 2.0, "inflows_yoy_change": 0.0},
-            {"company_id": "c", "month": "2025-01", "min_balance_eur": 100, "overdue_received_ratio_3m": 0.1,
-             "dscr_6m": 5.0, "inflows_yoy_change": 0.5},
+            {"company_id": "a", "month": "2025-01", "cash_buffer_days": -5, "overdue_flow_rate_3m": 0.9,
+             "dscr_6m": 0.5, "net_cash_flow_ratio_3m": -0.5},
+            {"company_id": "b", "month": "2025-01", "cash_buffer_days": 0, "overdue_flow_rate_3m": 0.5,
+             "dscr_6m": 2.0, "net_cash_flow_ratio_3m": 0.0},
+            {"company_id": "c", "month": "2025-01", "cash_buffer_days": 10, "overdue_flow_rate_3m": 0.1,
+             "dscr_6m": 5.0, "net_cash_flow_ratio_3m": 0.5},
         ]
     )
     r = labels.rank_signals(f).set_index("company_id")
@@ -42,10 +42,10 @@ def test_rank_orients_every_signal_so_that_one_is_healthiest():
 def test_rank_is_within_month_not_across_months():
     f = _features(
         [
-            {"company_id": "a", "month": "2025-01", "min_balance_eur": 10},
-            {"company_id": "b", "month": "2025-01", "min_balance_eur": 20},
-            {"company_id": "a", "month": "2025-02", "min_balance_eur": 1_000},
-            {"company_id": "b", "month": "2025-02", "min_balance_eur": 2_000},
+            {"company_id": "a", "month": "2025-01", "cash_buffer_days": 10},
+            {"company_id": "b", "month": "2025-01", "cash_buffer_days": 20},
+            {"company_id": "a", "month": "2025-02", "cash_buffer_days": 1_000},
+            {"company_id": "b", "month": "2025-02", "cash_buffer_days": 2_000},
         ]
     )
     r = labels.rank_signals(f).set_index(["company_id", "month"])
@@ -68,9 +68,9 @@ def test_rank_ties_share_the_average_and_nan_is_excluded():
 
 
 def test_rank_keeps_original_columns():
-    f = _features([{"company_id": "a", "month": "2025-01", "min_balance_eur": 1}])
+    f = _features([{"company_id": "a", "month": "2025-01", "cash_buffer_days": 1}])
     r = labels.rank_signals(f)
-    assert "min_balance_eur" in r.columns and "rank_balance" in r.columns
+    assert "cash_buffer_days" in r.columns and "rank_balance" in r.columns
 
 
 # --- state_index --------------------------------------------------------------------------
@@ -98,11 +98,12 @@ def test_state_index_renormalises_weights_over_available_signals():
     assert out.loc[0, "n_signals"] == 2
 
 
-def test_state_index_is_nan_with_fewer_than_two_signals():
+def test_state_index_with_one_signal_is_that_rank_unless_min_signals_says_otherwise():
     r = _ranked([{"company_id": "a", "month": "2025-01", "rank_balance": 0.9}])
     out = labels.state_index(r, RulesConfig())
-    assert np.isnan(out.loc[0, "state_index"])
+    assert out.loc[0, "state_index"] == pytest.approx(0.9)  # una señal basta (19 sep); confidence avisa
     assert out.loc[0, "n_signals"] == 1
+    assert np.isnan(labels.state_index(r, RulesConfig(min_signals=2)).loc[0, "state_index"])
 
 
 def test_red_flags_use_the_percentile_cutoff_and_count():

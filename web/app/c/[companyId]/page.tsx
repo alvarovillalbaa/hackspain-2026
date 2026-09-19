@@ -4,25 +4,12 @@ import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import { UploadIcon } from "lucide-react";
 import { AppShell } from "@/components/xray/app-shell";
-import { ScoreGauge } from "@/components/xray/score-gauge";
-import { ScoreBandBadge, OutlookBadge } from "@/components/xray/score-band-badge";
-import { DimensionRadar } from "@/components/xray/dimension-radar";
-import { ScoreTrajectory } from "@/components/xray/score-trajectory";
-import { DriverList } from "@/components/xray/driver-list";
+import { ScoreOverview } from "@/components/xray/score-overview";
 import { ActionCard } from "@/components/xray/action-card";
-import { OriginChip } from "@/components/xray/origin-chip";
 import { ScoreUplift } from "@/components/xray/score-uplift";
 import { ImportDialog } from "@/components/xray/import/import-dialog";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { PeerCohortCard } from "@/components/xray/peer-cohort-card";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCompanyScore } from "@/hooks/xray/use-company-score";
 import { useActions } from "@/hooks/xray/use-actions";
@@ -30,9 +17,7 @@ import { useCompanies } from "@/hooks/xray/use-companies";
 import { usePeers } from "@/hooks/xray/use-peers";
 import { useSelection } from "@/hooks/xray/use-selection";
 import { publishedProjectionMany } from "@/lib/xray/scoring";
-import { watchMeta } from "@/lib/xray/bands";
-import { formatDelta, formatMonth } from "@/lib/xray/format";
-import { PeerCohortCard } from "@/components/xray/peer-cohort-card";
+import { formatDelta } from "@/lib/xray/format";
 
 export default function ScorePage({
   params,
@@ -56,8 +41,6 @@ export default function ScorePage({
     return publishedProjectionMany(score, selected);
   }, [score, actions, selectedIds]);
 
-  const watch = watchMeta(score?.watch ?? null);
-
   return (
     <AppShell
       crumbs={[
@@ -80,118 +63,23 @@ export default function ScorePage({
         </div>
       ) : (
         <div className="space-y-10">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <div className="mb-2 flex items-center gap-2">
-                <OriginChip origin={score.origin} />
-                <span className="font-mono text-xs text-muted-foreground">
-                  {score.company_id} · {formatMonth(score.month)}
-                </span>
-              </div>
-              <h1 className="font-heading text-3xl font-semibold tracking-tight">
-                {company?.name ?? companyId}
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Financial Health Score · confianza {score.confidence}
-                {peers && peers.k > 0
-                  ? ` · ${formatDelta(peers.delta)} vs ${peers.k} similares`
-                  : null}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <ScoreBandBadge band={score.band} />
-              <OutlookBadge outlook={score.outlook} />
-              {watch.active ? (
-                <Badge variant="destructive">Watch</Badge>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
-            <ScoreGauge score={score.score} band={score.band} />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Card size="sm">
-                <CardHeader>
-                  <CardTitle>Sub-scores</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 font-mono tabular-nums">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Bankability</span>
-                    <span>{score.sub_scores.bankability}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Business</span>
-                    <span>{score.sub_scores.business_profile}</span>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card size="sm">
-                <CardHeader>
-                  <CardTitle>Proyección 6m</CardTitle>
-                  <CardDescription>p10 / p50 / p90</CardDescription>
-                </CardHeader>
-                <CardContent className="font-mono text-sm tabular-nums">
-                  {score.projection_6m.p10.toFixed(1)} ·{" "}
-                  {score.projection_6m.p50.toFixed(1)} ·{" "}
-                  {score.projection_6m.p90.toFixed(1)}
-                </CardContent>
-              </Card>
-              {watch.active ? (
-                <Alert className="sm:col-span-2">
-                  <AlertTitle>Watch activo</AlertTitle>
-                  <AlertDescription>{watch.description}</AlertDescription>
-                </Alert>
-              ) : null}
-              {score.alerts.map((a) => (
-                <Alert key={a.id} className="sm:col-span-2" variant="destructive">
-                  <AlertTitle>{a.severity}</AlertTitle>
-                  <AlertDescription>{a.message}</AlertDescription>
-                </Alert>
-              ))}
-              {peers && peers.k > 0 ? (
+          <ScoreOverview
+            snapshot={score}
+            title={company?.name ?? companyId}
+            subtitle={
+              peers && peers.k > 0
+                ? `Financial Health Score · confianza ${score.confidence} · ${formatDelta(peers.delta)} vs ${peers.k} similares`
+                : undefined
+            }
+            extras={
+              peers && peers.k > 0 ? (
                 <PeerCohortCard
                   cohort={peers}
                   currency={company?.currency ?? "EUR"}
                 />
-              ) : null}
-            </div>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Dimensiones</CardTitle>
-                <CardDescription>
-                  Liquidez · Cobros · Pagos · Deuda · Actividad
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <DimensionRadar dimensions={score.dimensions} />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Trayectoria</CardTitle>
-                <CardDescription>Histórico + abanico a 6 meses</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ScoreTrajectory
-                  history={score.history}
-                  projection={score.projection_6m}
-                />
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Drivers</CardTitle>
-              <CardDescription>Señales que mueven el score</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <DriverList drivers={score.drivers} />
-            </CardContent>
-          </Card>
+              ) : null
+            }
+          />
 
           <section className="space-y-4">
             <div className="flex flex-wrap items-end justify-between gap-3">

@@ -1,3 +1,4 @@
+import type { GroupScore } from "./group-score";
 import type { PeerCohort } from "./peers";
 import type {
   ActionRecommendation,
@@ -21,6 +22,7 @@ export interface XrayProvider {
   listCompanies(): Promise<CompanyRef[]>;
   getScore(companyId: string): Promise<ScoreSnapshot>;
   getPeers(companyId: string, k?: number): Promise<PeerCohort | null>;
+  getGroupScore(groupId: string): Promise<GroupScore>;
   listActions(companyId: string): Promise<ActionRecommendation[]>;
   listProducts(
     companyId: string,

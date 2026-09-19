@@ -137,6 +137,8 @@ Front y back arrancan el viernes sobre stubs con datos ficticios. `score.py` pro
 | **UX/Front (React)** | Wireframes monitor → ficha → refinanciación → what-if; React sobre stubs | Pantallas reales | Pulido, ensayo |
 | **Negocio** | Curva de tipos pública, modelo de negocio con cifras, texto del pitch | Enriquecimiento web de perfil de negocio; validar curva con Embat; módulo `xray/rates` (tipo implícito, revisa ML-2) | Pitch, ensayo, plan B |
 
+**19 sep (tarde):** ML-2 cubrió además, en la PR #19, el builder del slice #2 (`features.build()`, `xray-features`), el puntuador del #11 (`xray-score` con perfil de referencia) y los drivers y la agregación por grupo de los slices #9 y #10 (`xray.explain`); ML-1 revisa. La rama `codex/treasury-resilience-score` no se fusiona (`tech_stack.md` §10.5).
+
 **Hitos:** sábado por la mañana, charla de Embat → validar curva de tipos y definición del evento. **Sábado 18:00**: revisión de 15 min con tres semáforos; lo que esté en rojo pasa a plan B sin discusión. **Domingo 10:00**: congelación de código salvo bugs de demo. Ensayos con cronómetro sábado noche y domingo mañana.
 
 ## 8. Demo y pitch (5 minutos, dos presentadores)

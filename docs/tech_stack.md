@@ -166,7 +166,7 @@ Reglas: pydantic lo valida al salir, zod al entrar; `explanation` llega por `/ex
 - [ ] `uv sync --all-extras` y `npm install` funcionan desde clon limpio en Windows y macOS.
 - [ ] `uv run xray-cache` construye la caché; `load("transactions")` < 3 s desde caché.
 - [ ] API en modo stub sirve los cinco endpoints con el contrato §6.2 el viernes por la noche.
-- [ ] `score.py` produce un fichero de predicciones sin importar `api` ni nada de Node.
+- [x] `xray-score` produce la tabla de scores de todas las empresas sin importar `api` ni nada de Node (19 sep; el leaderboard ya no aplica).
 - [ ] Web desplegada en Vercel con *Root Directory* `web`; las cuatro pantallas navegan contra la API.
 - [ ] El agente Eve responde solo con cifras presentes en el JSON de entrada (test adversarial).
 - [ ] `uv run pytest` en verde; `npm run typecheck` en verde tras arreglar o eliminar los componentes rotos de la plantilla.
@@ -188,7 +188,7 @@ Reglas: pydantic lo valida al salir, zod al entrar; `explanation` llega por `/ex
 
 | Riesgo | Probabilidad | Mitigación |
 |---|---|---|
-| La plantilla `web/` no compila: 18 errores de tipos en `components/ai-elements` (base-ui) + `LayoutProps` | **Ya ocurre** | Full-stack, viernes: arreglar versiones de `@base-ui/react` o borrar los componentes no usados; `next dev` genera `LayoutProps` |
+| La plantilla `web/` no compila: 18 errores de tipos en `components/ai-elements` (base-ui) + `LayoutProps` | **Ya ocurre** | Full-stack, viernes: arreglar versiones de `@base-ui/react` o borrar los componentes no usados; `next dev` genera `LayoutProps`. **(19 sep, tarde)** `next build` falla por lo mismo, así que Vercel no despliega ningún commit, tampoco `main`; `web/vercel.json` omite el despliegue cuando el commit no toca `web/` para que las PR de Python no salgan en rojo. El arreglo (pinear `@base-ui/react`, borrar los componentes no usados o `typescript.ignoreBuildErrors` como parche de fin de semana) sigue en el slice del front y bloquea el P0 «web desplegada». |
 | El modelo del agente Eve (`openai/gpt-5.6-luna-fast` en la plantilla) necesita una clave/gateway que no tenemos | Alta | Decidir modelo y proveedor el viernes (pregunta abierta 1); el fallback es la explicación por plantilla en Python |
 | Python en Vercel para la API | Media | No intentarlo; API local + túnel, o Render/Fly con Dockerfile de 10 líneas |
 | Windows vs macOS: rutas, `eol`, wheels | Media | `.gitattributes` con LF; uv resuelve wheels por plataforma; rutas siempre vía `pathlib` y `XRAY_DATA_DIR` |
@@ -201,7 +201,7 @@ Reglas: pydantic lo valida al salir, zod al entrar; `explanation` llega por `/ex
 1. **Modelo y proveedor del agente Eve** *(full-stack, bloqueante para #9)*: la plantilla trae `openai/gpt-5.6-luna-fast` vía gateway. ¿Tenemos clave? ¿Cambiamos a Claude (coherente con el extractor del slice #1)? Decidir el viernes.
 2. **¿Dónde corre FastAPI en la demo?** *(full-stack + ML-1, sábado 18:00)*: local + túnel vs. PaaS. Depende de si la demo se presenta desde nuestro portátil.
 3. **Esquema Supabase mínimo** *(full-stack, sábado mañana)*: confirmar las tres tablas o reducir a una.
-4. **Formato del leaderboard** *(ML-1, cuando llegue el script de Embat)*.
+4. **Formato del leaderboard** *(ML-1, cuando llegue el script de Embat)*. **Cerrada el 19 sep:** Embat no tiene script de scoring ni leaderboard; `xray-score` escribe la tabla de scores para la API y el monitor y el formato vive en `_write_table` por si cambia.
 5. **¿Polars en `features`?** *(ML-1, solo si la construcción tarda > 2 min)*. **Cerrada el 19 sep (tarde):** `features.build()` en pandas sobre la caché parquet tarda 8 s para las 1.265 empresas; no hace falta polars. La rama `codex/treasury-resilience-score` (builder en polars, paquete aparte) no se fusiona: se tomaron de ella el filtro de facturas y la idea del perfil de referencia guardado, y se descartaron la normalización por `exchange_rate` (no es una conversión, plan §5) y el perfil global de percentiles (sensible a la deriva del saldo).
 6. **Calibración de los pesos del índice de estado** *(ML-2, domingo 10:00; añadida el 18 sep, noche)*: la v1 usa pesos fijos por el orden de evidencia del plan §2 y un único mapa isotónico del índice suavizado al índice realizado a t+6. Candidato para después: búsqueda de pesos que maximice el Spearman con el índice a t+6 en los meses de train, **restringida a ese orden de evidencia**, para que siga siendo «reglas calibradas» y no una regresión con otro nombre. Si la restricción cuesta mucha correlación, se dice en el pitch. **Resuelta el 19 sep (mañana):** pesos iguales pierden 0,008 de AUC(6) frente a los del plan; no se calibran. Consecuencia: el mapa isotónico es monótono y ningún parámetro ajustado mueve el ranking, así que GroupKFold se reporta como dispersión entre subpoblaciones, no como generalización (`rules_spec.md` §8 y §11).
 

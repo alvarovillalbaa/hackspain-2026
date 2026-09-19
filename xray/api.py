@@ -7,8 +7,11 @@ from functools import lru_cache
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
 from .calibration import CalibrationArtifact
+from .dashboard import build_dashboard_payload, entity_catalog, latest_data_date
 from .forecast import BaselineForecaster
 from .ledger import Ledger
 from .score import default_data_directory, score_entity
@@ -19,6 +22,14 @@ app = FastAPI(title="X-Ray financial health", version="0.1.0")
 @lru_cache(maxsize=1)
 def get_ledger() -> Ledger:
     return Ledger(os.environ.get("XRAY_DATA_DIR", str(default_data_directory())))
+
+
+@lru_cache(maxsize=1)
+def get_dashboard_ledger() -> Ledger:
+    return Ledger(
+        os.environ.get("XRAY_DATA_DIR", str(default_data_directory())),
+        reconstruct_balances=True,
+    )
 
 
 @lru_cache(maxsize=2)
@@ -53,6 +64,36 @@ def _score(entity_id: str, as_of: str):
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/entities")
+def entities() -> dict[str, object]:
+    ledger = get_ledger()
+    return {"as_of": latest_data_date(ledger), "entities": entity_catalog(ledger)}
+
+
+@app.get("/entities/{entity_id}/dashboard")
+def dashboard_data(
+    entity_id: str,
+    as_of: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    interval: str = Query("monthly", pattern=r"^(weekly|monthly|quarterly)$"),
+    periods: int = Query(12, ge=2, le=24),
+) -> dict[str, object]:
+    ledger = get_dashboard_ledger()
+    try:
+        entity_type, _ = ledger.resolve_entity(entity_id)
+        return build_dashboard_payload(
+            ledger,
+            entity_id,
+            as_of or latest_data_date(ledger),
+            interval=interval,
+            periods=periods,
+            calibration=get_calibration(entity_type),
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @app.get("/entities/{entity_id}/score")
@@ -106,3 +147,15 @@ def actions(
         "band": scored.result.band,
         "actions": scored.explanation["actions"],
     }
+
+
+_dashboard_source = Path(__file__).resolve().parent.parent / "dashboard" / "dist"
+_dashboard_packaged = Path(__file__).resolve().parent / "dashboard_assets"
+_dashboard_directory = _dashboard_source if _dashboard_source.exists() else _dashboard_packaged
+if _dashboard_directory.exists():
+    app.mount("/dashboard", StaticFiles(directory=_dashboard_directory, html=True), name="dashboard")
+
+
+@app.get("/", include_in_schema=False)
+def root() -> RedirectResponse:
+    return RedirectResponse(url="/dashboard/")

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Inspect X-Ray financial health scores, underlying metrics, reliability, and calibrated forecasts." />
+    <title>X-Ray Score Monitor</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b1220'/%3E%3Cpath d='M7 8l7.4 8L7 24h5l5-5.4 5 5.4h5l-7.4-8L27 8h-5l-5 5.4L12 8z' fill='%235ce1e6'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell" id="app" aria-live="polite">
+      <header class="topbar">
+        <div class="brand"><span class="brand-mark">X</span><span>X-Ray</span></div>
+        <div class="status"><span class="status-dot"></span> Financial health monitor</div>
+      </header>
+      <div id="dashboard">
+        <section class="loading-card">
+          <div class="skeleton skeleton-title"></div>
+          <div class="skeleton skeleton-chart"></div>
+          <p>Preparing the company score history…</p>
+        </section>
+      </div>
+    </main>
+    <script src="./app.js" defer></script>
+  </body>
+</html>

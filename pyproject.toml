@@ -40,6 +40,7 @@ xray-evals = "xray.evals:main"
 xray-score = "xray.score:main"
 xray-features = "xray.features:main"
 xray-export-web = "xray.export_web:main"
+xray-export-dashboard = "xray.dashboard_export:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -47,6 +48,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["xray"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"dashboard/dist" = "xray/dashboard_assets"
 
 [tool.uv.sources]
 torch = [{ index = "pytorch-cu130", extra = "gpu" }]

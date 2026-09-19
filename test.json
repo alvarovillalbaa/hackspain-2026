@@ -1,380 +1,48 @@
 {
-  "entity_id": "GROUP_0001",
+  "schema_version": "xray-web-v1.0",
+  "entity_id": "COMP_0001",
   "as_of": "2026-09-01T23:59:59.999999",
-  "score": 40.52,
-  "base_score": 44.86,
-  "momentum_modifier": -4.3363,
-  "band": "vulnerable",
-  "confidence": "B",
-  "confidence_score": 0.8,
-  "score_version": "xray-score-v1.0",
-  "component_scores": {
-    "liquidity": 5.1,
-    "cash_generation": 59.6,
-    "payment_behaviour": 50.0,
-    "debt_capacity": 75.0,
-    "resilience": 71.77
-  },
-  "component_reliability": {
-    "liquidity": 1.0,
-    "cash_generation": 1.0,
-    "payment_behaviour": 0.0,
-    "debt_capacity": 0.5,
-    "resilience": 0.5
-  },
-  "point_ledger": [
-    {
-      "key": "cash_runway_days",
-      "component": "liquidity",
-      "raw_value": 0.8670607666333727,
-      "feature_score": 1.1561,
-      "reliability": 1.0,
-      "contribution": 0.173412,
-      "reason_code": "LOW_CASH_RUNWAY"
-    },
-    {
-      "key": "worst_deficit_cash_coverage",
-      "component": "liquidity",
-      "raw_value": 0.18084508013707554,
-      "feature_score": 9.0423,
-      "reliability": 1.0,
-      "contribution": 1.356338,
-      "reason_code": "CASH_BELOW_DOWNSIDE_NEED"
-    },
-    {
-      "key": "liquidity_missing_data_neutral",
-      "component": "liquidity",
-      "raw_value": null,
-      "feature_score": 50.0,
-      "reliability": 0.0,
-      "contribution": 0.0,
-      "reason_code": "NO_SHRINKAGE"
-    },
-    {
-      "key": "operating_cash_margin",
-      "component": "cash_generation",
-      "raw_value": -0.007945241381375858,
-      "feature_score": 48.411,
-      "reliability": 1.0,
-      "contribution": 4.034246,
-      "reason_code": "NEUTRAL"
-    },
-    {
-      "key": "positive_cashflow_month_fraction",
-      "component": "cash_generation",
-      "raw_value": 0.3333333333333333,
-      "feature_score": 30.3922,
-      "reliability": 1.0,
-      "contribution": 2.53268,
-      "reason_code": "REPEATED_NEGATIVE_MONTHS"
-    },
-    {
-      "key": "recurring_obligation_coverage",
-      "component": "cash_generation",
-      "raw_value": 279.0712684465336,
-      "feature_score": 100.0,
-      "reliability": 1.0,
-      "contribution": 8.333333,
-      "reason_code": "RECURRING_COSTS_WELL_COVERED"
-    },
-    {
-      "key": "cash_generation_missing_data_neutral",
-      "component": "cash_generation",
-      "raw_value": null,
-      "feature_score": 50.0,
-      "reliability": 0.0,
-      "contribution": 0.0,
-      "reason_code": "NO_SHRINKAGE"
-    },
-    {
-      "key": "overdue_receivables_ratio",
-      "component": "payment_behaviour",
-      "raw_value": null,
-      "feature_score": null,
-      "reliability": 0.0,
-      "contribution": 0.0,
-      "reason_code": "OVERDUE_RECEIVABLES_RATIO_UNAVAILABLE"
-    },
-    {
-      "key": "customer_collection_delay_days",
-      "component": "payment_behaviour",
-      "raw_value": null,
-      "feature_score": null,
-      "reliability": 0.0,
-      "contribution": 0.0,
-      "reason_code": "CUSTOMER_COLLECTION_DELAY_DAYS_UNAVAILABLE"
-    },
-    {
-      "key": "overdue_payables_ratio",
-      "component": "payment_behaviour",
-      "raw_value": null,
-      "feature_score": null,
-      "reliability": 0.0,
-      "contribution": 0.0,
-      "reason_code": "OVERDUE_PAYABLES_RATIO_UNAVAILABLE"
-    },
-    {
-      "key": "supplier_payment_delay_change_days",
-      "component": "payment_behaviour",
-      "raw_value": null,
-      "feature_score": null,
-      "reliability": 0.0,
-      "contribution": 0.0,
-      "reason_code": "SUPPLIER_PAYMENT_DELAY_CHANGE_DAYS_UNAVAILABLE"
-    },
-    {
-      "key": "payment_behaviour_missing_data_neutral",
-      "component": "payment_behaviour",
-      "raw_value": null,
-      "feature_score": 50.0,
-      "reliability": 1.0,
-      "contribution": 10.0,
-      "reason_code": "MISSING_DATA_NEUTRAL_SHRINKAGE"
-    },
-    {
-      "key": "debt_service_coverage",
-      "component": "debt_capacity",
-      "raw_value": null,
-      "feature_score": null,
-      "reliability": 0.0,
-      "contribution": 0.0,
-      "reason_code": "DEBT_SERVICE_COVERAGE_UNAVAILABLE"
-    },
-    {
-      "key": "interest_burden",
-      "component": "debt_capacity",
-      "raw_value": -0.0,
-      "feature_score": 100.0,
-      "reliability": 1.0,
-      "contribution": 7.5,
-      "reason_code": "LOW_INTEREST_BURDEN"
-    },
-    {
-      "key": "debt_capacity_missing_data_neutral",
-      "component": "debt_capacity",
-      "raw_value": null,
-      "feature_score": 50.0,
-      "reliability": 0.5,
-      "contribution": 3.75,
-      "reason_code": "MISSING_DATA_NEUTRAL_SHRINKAGE"
-    },
-    {
-      "key": "top3_collection_concentration",
-      "component": "resilience",
-      "raw_value": null,
-      "feature_score": null,
-      "reliability": 0.0,
-      "contribution": 0.0,
-      "reason_code": "TOP3_COLLECTION_CONCENTRATION_UNAVAILABLE"
-    },
-    {
-      "key": "downside_cashflow_volatility",
-      "component": "resilience",
-      "raw_value": 0.080803943370885,
-      "feature_score": 93.5357,
-      "reliability": 1.0,
-      "contribution": 4.676784,
-      "reason_code": "STABLE_CASHFLOW"
-    },
-    {
-      "key": "resilience_missing_data_neutral",
-      "component": "resilience",
-      "raw_value": null,
-      "feature_score": 50.0,
-      "reliability": 0.5,
-      "contribution": 2.5,
-      "reason_code": "MISSING_DATA_NEUTRAL_SHRINKAGE"
-    },
-    {
-      "key": "momentum_modifier",
-      "component": "momentum",
-      "raw_value": -4.3363,
-      "feature_score": null,
-      "reliability": 1.0,
-      "contribution": -4.3363,
-      "reason_code": "MOMENTUM_NEGATIVE"
-    }
-  ],
-  "top_positive_drivers": [
-    "RECURRING_COSTS_WELL_COVERED",
-    "LOW_INTEREST_BURDEN",
-    "STABLE_CASHFLOW"
-  ],
-  "top_negative_drivers": [
-    "LOW_CASH_RUNWAY",
-    "CASH_BELOW_DOWNSIDE_NEED",
-    "REPEATED_NEGATIVE_MONTHS"
-  ],
-  "shock_cap": null,
-  "max_source_timestamp": "2026-09-01T01:00:00",
-  "point_ledger_sum": 40.52,
-  "features": {
-    "cash_runway_days": {
-      "name": "cash_runway_days",
-      "value": 0.8670607666333727,
-      "window_days": 180,
-      "coverage": 1.0,
-      "reliability": 1.0,
-      "max_source_timestamp": "2026-09-01T01:00:00",
-      "evidence_count": 1773,
-      "unit": "days"
-    },
-    "worst_deficit_cash_coverage": {
-      "name": "worst_deficit_cash_coverage",
-      "value": 0.18084508013707554,
-      "window_days": 180,
-      "coverage": 1.0,
-      "reliability": 1.0,
-      "max_source_timestamp": "2026-09-01T01:00:00",
-      "evidence_count": 6,
-      "unit": "multiple"
-    },
-    "operating_cash_margin": {
-      "name": "operating_cash_margin",
-      "value": -0.007945241381375858,
-      "window_days": 180,
-      "coverage": 1.0,
-      "reliability": 1.0,
-      "max_source_timestamp": "2026-09-01T01:00:00",
-      "evidence_count": 2479,
-      "unit": "ratio"
-    },
-    "positive_cashflow_month_fraction": {
-      "name": "positive_cashflow_month_fraction",
-      "value": 0.3333333333333333,
-      "window_days": 180,
-      "coverage": 1.0,
-      "reliability": 1.0,
-      "max_source_timestamp": "2026-09-01T01:00:00",
-      "evidence_count": 6,
-      "unit": "fraction"
-    },
-    "recurring_obligation_coverage": {
-      "name": "recurring_obligation_coverage",
-      "value": 279.0712684465336,
-      "window_days": 180,
-      "coverage": 1.0,
-      "reliability": 1.0,
-      "max_source_timestamp": "2026-09-01T01:00:00",
-      "evidence_count": 72,
-      "unit": "multiple"
-    },
-    "overdue_receivables_ratio": {
-      "name": "overdue_receivables_ratio",
-      "value": null,
-      "window_days": 180,
-      "coverage": 0.0,
-      "reliability": 0.0,
-      "max_source_timestamp": "2026-09-01T01:00:00",
-      "evidence_count": 0,
-      "unit": "fraction"
-    },
-    "customer_collection_delay_days": {
-      "name": "customer_collection_delay_days",
-      "value": null,
-      "window_days": 180,
-      "coverage": 0.0,
-      "reliability": 0.0,
-      "max_source_timestamp": "2026-09-01T01:00:00",
-      "evidence_count": 0,
-      "unit": "days"
-    },
-    "overdue_payables_ratio": {
-      "name": "overdue_payables_ratio",
-      "value": null,
-      "window_days": 180,
-      "coverage": 0.0,
-      "reliability": 0.0,
-      "max_source_timestamp": "2026-09-01T01:00:00",
-      "evidence_count": 0,
-      "unit": "fraction"
-    },
-    "supplier_payment_delay_change_days": {
-      "name": "supplier_payment_delay_change_days",
-      "value": null,
-      "window_days": 180,
-      "coverage": 0.0,
-      "reliability": 0.0,
-      "max_source_timestamp": "2026-09-01T01:00:00",
-      "evidence_count": 0,
-      "unit": "days"
-    },
-    "debt_service_coverage": {
-      "name": "debt_service_coverage",
-      "value": null,
-      "window_days": 180,
-      "coverage": 1.0,
-      "reliability": 0.3333333333333333,
-      "max_source_timestamp": "2026-09-01T01:00:00",
-      "evidence_count": 0,
-      "unit": "multiple"
-    },
-    "interest_burden": {
-      "name": "interest_burden",
-      "value": -0.0,
-      "window_days": 180,
-      "coverage": 1.0,
-      "reliability": 1.0,
-      "max_source_timestamp": "2026-09-01T01:00:00",
-      "evidence_count": 0,
-      "unit": "ratio"
-    },
-    "top3_collection_concentration": {
-      "name": "top3_collection_concentration",
-      "value": null,
-      "window_days": 180,
-      "coverage": 1.0,
-      "reliability": 0.0,
-      "max_source_timestamp": "2026-09-01T01:00:00",
-      "evidence_count": 0,
-      "unit": "fraction"
-    },
-    "downside_cashflow_volatility": {
-      "name": "downside_cashflow_volatility",
-      "value": 0.080803943370885,
-      "window_days": 180,
-      "coverage": 1.0,
-      "reliability": 1.0,
-      "max_source_timestamp": "2026-09-01T01:00:00",
-      "evidence_count": 167,
-      "unit": "ratio"
-    }
-  },
-  "explanation": {
-    "entity_id": "GROUP_0001",
+  "current": {
+    "entity_id": "COMP_0001",
     "as_of": "2026-09-01T23:59:59.999999",
-    "score": 40.52,
+    "score": 43.18,
+    "base_score": 44.77,
+    "momentum_modifier": -1.5964,
     "band": "vulnerable",
-    "confidence": "B",
-    "drivers": {
-      "positive": [
-        "RECURRING_COSTS_WELL_COVERED",
-        "LOW_INTEREST_BURDEN",
-        "STABLE_CASHFLOW"
-      ],
-      "negative": [
-        "LOW_CASH_RUNWAY",
-        "CASH_BELOW_DOWNSIDE_NEED",
-        "REPEATED_NEGATIVE_MONTHS"
-      ]
+    "confidence": "A",
+    "confidence_score": 0.95,
+    "score_version": "xray-score-v1.0",
+    "component_scores": {
+      "liquidity": 26.07,
+      "cash_generation": 58.71,
+      "payment_behaviour": 43.34,
+      "debt_capacity": 58.28,
+      "resilience": 48.63
+    },
+    "component_reliability": {
+      "liquidity": 1.0,
+      "cash_generation": 1.0,
+      "payment_behaviour": 1.0,
+      "debt_capacity": 0.833,
+      "resilience": 0.8
     },
     "point_ledger": [
       {
         "key": "cash_runway_days",
         "component": "liquidity",
-        "raw_value": 0.8670607666333727,
-        "feature_score": 1.1561,
+        "raw_value": 12.866253732423038,
+        "feature_score": 17.155,
         "reliability": 1.0,
-        "contribution": 0.173412,
+        "contribution": 2.573251,
         "reason_code": "LOW_CASH_RUNWAY"
       },
       {
         "key": "worst_deficit_cash_coverage",
         "component": "liquidity",
-        "raw_value": 0.18084508013707554,
-        "feature_score": 9.0423,
+        "raw_value": 0.6997054762712936,
+        "feature_score": 34.9853,
         "reliability": 1.0,
-        "contribution": 1.356338,
+        "contribution": 5.247791,
         "reason_code": "CASH_BELOW_DOWNSIDE_NEED"
       },
       {
@@ -389,28 +57,28 @@
       {
         "key": "operating_cash_margin",
         "component": "cash_generation",
-        "raw_value": -0.007945241381375858,
-        "feature_score": 48.411,
+        "raw_value": -0.037067261310759894,
+        "feature_score": 42.5865,
         "reliability": 1.0,
-        "contribution": 4.034246,
+        "contribution": 3.548879,
         "reason_code": "NEUTRAL"
       },
       {
         "key": "positive_cashflow_month_fraction",
         "component": "cash_generation",
-        "raw_value": 0.3333333333333333,
-        "feature_score": 30.3922,
+        "raw_value": 0.5,
+        "feature_score": 50.0,
         "reliability": 1.0,
-        "contribution": 2.53268,
-        "reason_code": "REPEATED_NEGATIVE_MONTHS"
+        "contribution": 4.166667,
+        "reason_code": "NEUTRAL"
       },
       {
         "key": "recurring_obligation_coverage",
         "component": "cash_generation",
-        "raw_value": 279.0712684465336,
-        "feature_score": 100.0,
+        "raw_value": 1.8413328159958156,
+        "feature_score": 83.5333,
         "reliability": 1.0,
-        "contribution": 8.333333,
+        "contribution": 6.96111,
         "reason_code": "RECURRING_COSTS_WELL_COVERED"
       },
       {
@@ -425,64 +93,64 @@
       {
         "key": "overdue_receivables_ratio",
         "component": "payment_behaviour",
-        "raw_value": null,
-        "feature_score": null,
-        "reliability": 0.0,
+        "raw_value": 1.0,
+        "feature_score": 0.0,
+        "reliability": 1.0,
         "contribution": 0.0,
-        "reason_code": "OVERDUE_RECEIVABLES_RATIO_UNAVAILABLE"
+        "reason_code": "OVERDUE_RECEIVABLES"
       },
       {
         "key": "customer_collection_delay_days",
         "component": "payment_behaviour",
-        "raw_value": null,
-        "feature_score": null,
-        "reliability": 0.0,
-        "contribution": 0.0,
-        "reason_code": "CUSTOMER_COLLECTION_DELAY_DAYS_UNAVAILABLE"
+        "raw_value": 37.77545108767227,
+        "feature_score": 38.6695,
+        "reliability": 1.0,
+        "contribution": 1.933473,
+        "reason_code": "SLOW_CUSTOMER_COLLECTIONS"
       },
       {
         "key": "overdue_payables_ratio",
         "component": "payment_behaviour",
-        "raw_value": null,
-        "feature_score": null,
-        "reliability": 0.0,
-        "contribution": 0.0,
-        "reason_code": "OVERDUE_PAYABLES_RATIO_UNAVAILABLE"
+        "raw_value": 0.007278943227202405,
+        "feature_score": 98.5442,
+        "reliability": 1.0,
+        "contribution": 4.927211,
+        "reason_code": "SUPPLIERS_CURRENT"
       },
       {
         "key": "supplier_payment_delay_change_days",
         "component": "payment_behaviour",
-        "raw_value": null,
-        "feature_score": null,
-        "reliability": 0.0,
-        "contribution": 0.0,
-        "reason_code": "SUPPLIER_PAYMENT_DELAY_CHANGE_DAYS_UNAVAILABLE"
+        "raw_value": 13.0,
+        "feature_score": 36.1538,
+        "reliability": 1.0,
+        "contribution": 1.807692,
+        "reason_code": "SUPPLIER_DELAY_WORSENING"
       },
       {
         "key": "payment_behaviour_missing_data_neutral",
         "component": "payment_behaviour",
         "raw_value": null,
         "feature_score": 50.0,
-        "reliability": 1.0,
-        "contribution": 10.0,
-        "reason_code": "MISSING_DATA_NEUTRAL_SHRINKAGE"
+        "reliability": 0.0,
+        "contribution": 0.0,
+        "reason_code": "NO_SHRINKAGE"
       },
       {
         "key": "debt_service_coverage",
         "component": "debt_capacity",
-        "raw_value": null,
-        "feature_score": null,
-        "reliability": 0.0,
+        "raw_value": -270.66500000000036,
+        "feature_score": 0.0,
+        "reliability": 0.6667,
         "contribution": 0.0,
-        "reason_code": "DEBT_SERVICE_COVERAGE_UNAVAILABLE"
+        "reason_code": "DEBT_SERVICE_UNCOVERED"
       },
       {
         "key": "interest_burden",
         "component": "debt_capacity",
-        "raw_value": -0.0,
-        "feature_score": 100.0,
+        "raw_value": 0.000136948853049932,
+        "feature_score": 99.8973,
         "reliability": 1.0,
-        "contribution": 7.5,
+        "contribution": 7.492297,
         "reason_code": "LOW_INTEREST_BURDEN"
       },
       {
@@ -490,26 +158,26 @@
         "component": "debt_capacity",
         "raw_value": null,
         "feature_score": 50.0,
-        "reliability": 0.5,
-        "contribution": 3.75,
+        "reliability": 0.1667,
+        "contribution": 1.25,
         "reason_code": "MISSING_DATA_NEUTRAL_SHRINKAGE"
       },
       {
         "key": "top3_collection_concentration",
         "component": "resilience",
-        "raw_value": null,
-        "feature_score": null,
-        "reliability": 0.0,
+        "raw_value": 1.0,
+        "feature_score": 0.0,
+        "reliability": 0.6,
         "contribution": 0.0,
-        "reason_code": "TOP3_COLLECTION_CONCENTRATION_UNAVAILABLE"
+        "reason_code": "CUSTOMER_CONCENTRATION"
       },
       {
         "key": "downside_cashflow_volatility",
         "component": "resilience",
-        "raw_value": 0.080803943370885,
-        "feature_score": 93.5357,
+        "raw_value": 0.27734288583210687,
+        "feature_score": 77.2657,
         "reliability": 1.0,
-        "contribution": 4.676784,
+        "contribution": 3.863286,
         "reason_code": "STABLE_CASHFLOW"
       },
       {
@@ -517,137 +185,1486 @@
         "component": "resilience",
         "raw_value": null,
         "feature_score": 50.0,
-        "reliability": 0.5,
-        "contribution": 2.5,
+        "reliability": 0.2,
+        "contribution": 1.0,
         "reason_code": "MISSING_DATA_NEUTRAL_SHRINKAGE"
       },
       {
         "key": "momentum_modifier",
         "component": "momentum",
-        "raw_value": -4.3363,
+        "raw_value": -1.5964,
         "feature_score": null,
         "reliability": 1.0,
-        "contribution": -4.3363,
+        "contribution": -1.5964,
+        "reason_code": "MOMENTUM_NEGATIVE"
+      }
+    ],
+    "top_positive_drivers": [
+      "LOW_INTEREST_BURDEN",
+      "SUPPLIERS_CURRENT",
+      "RECURRING_COSTS_WELL_COVERED"
+    ],
+    "top_negative_drivers": [
+      "OVERDUE_RECEIVABLES",
+      "DEBT_SERVICE_UNCOVERED",
+      "CUSTOMER_CONCENTRATION"
+    ],
+    "shock_cap": null,
+    "max_source_timestamp": "2026-09-01T00:00:00",
+    "point_ledger_sum": 43.18
+  },
+  "forecast": {
+    "entity_id": "COMP_0001",
+    "as_of": "2026-09-01T23:59:59.999999",
+    "model_version": "commitment-seasonal-baseline-v1.0",
+    "horizons": {
+      "30": {
+        "horizon_days": 30,
+        "as_of": "2026-09-01T23:59:59.999999",
+        "target_date": "2026-10-01T23:59:59.999999",
+        "score": {
+          "entity_id": "COMP_0001",
+          "as_of": "2026-10-01T23:59:59.999999",
+          "score": 59.95,
+          "base_score": 59.95,
+          "momentum_modifier": 0.0,
+          "band": "vulnerable",
+          "confidence": "A",
+          "confidence_score": 0.95,
+          "score_version": "xray-score-v1.0",
+          "component_scores": {
+            "liquidity": 53.83,
+            "cash_generation": 78.33,
+            "payment_behaviour": 43.34,
+            "debt_capacity": 71.25,
+            "resilience": 48.63
+          },
+          "component_reliability": {
+            "liquidity": 0.85,
+            "cash_generation": 0.9,
+            "payment_behaviour": 1.0,
+            "debt_capacity": 0.425,
+            "resilience": 0.8
+          },
+          "point_ledger": [
+            {
+              "key": "cash_runway_days",
+              "component": "liquidity",
+              "raw_value": 41.40588959874062,
+              "feature_score": 49.5049,
+              "reliability": 0.85,
+              "contribution": 6.311876,
+              "reason_code": "NEUTRAL"
+            },
+            {
+              "key": "worst_deficit_cash_coverage",
+              "component": "liquidity",
+              "raw_value": 1.3801963199580207,
+              "feature_score": 59.5049,
+              "reliability": 0.85,
+              "contribution": 7.586876,
+              "reason_code": "NEUTRAL"
+            },
+            {
+              "key": "liquidity_missing_data_neutral",
+              "component": "liquidity",
+              "raw_value": null,
+              "feature_score": 50.0,
+              "reliability": 0.15,
+              "contribution": 2.25,
+              "reason_code": "MISSING_DATA_NEUTRAL_SHRINKAGE"
+            },
+            {
+              "key": "operating_cash_margin",
+              "component": "cash_generation",
+              "raw_value": 0.43440218618584814,
+              "feature_score": 100.0,
+              "reliability": 0.85,
+              "contribution": 7.083333,
+              "reason_code": "STRONG_OPERATING_MARGIN"
+            },
+            {
+              "key": "positive_cashflow_month_fraction",
+              "component": "cash_generation",
+              "raw_value": 0.5,
+              "feature_score": 50.0,
+              "reliability": 1.0,
+              "contribution": 4.166667,
+              "reason_code": "NEUTRAL"
+            },
+            {
+              "key": "recurring_obligation_coverage",
+              "component": "cash_generation",
+              "raw_value": 5.814961229446063,
+              "feature_score": 100.0,
+              "reliability": 0.85,
+              "contribution": 7.083333,
+              "reason_code": "RECURRING_COSTS_WELL_COVERED"
+            },
+            {
+              "key": "cash_generation_missing_data_neutral",
+              "component": "cash_generation",
+              "raw_value": null,
+              "feature_score": 50.0,
+              "reliability": 0.1,
+              "contribution": 1.25,
+              "reason_code": "MISSING_DATA_NEUTRAL_SHRINKAGE"
+            },
+            {
+              "key": "overdue_receivables_ratio",
+              "component": "payment_behaviour",
+              "raw_value": 1.0,
+              "feature_score": 0.0,
+              "reliability": 1.0,
+              "contribution": 0.0,
+              "reason_code": "OVERDUE_RECEIVABLES"
+            },
+            {
+              "key": "customer_collection_delay_days",
+              "component": "payment_behaviour",
+              "raw_value": 37.77545108767227,
+              "feature_score": 38.6695,
+              "reliability": 1.0,
+              "contribution": 1.933473,
+              "reason_code": "SLOW_CUSTOMER_COLLECTIONS"
+            },
+            {
+              "key": "overdue_payables_ratio",
+              "component": "payment_behaviour",
+              "raw_value": 0.007278943227202405,
+              "feature_score": 98.5442,
+              "reliability": 1.0,
+              "contribution": 4.927211,
+              "reason_code": "SUPPLIERS_CURRENT"
+            },
+            {
+              "key": "supplier_payment_delay_change_days",
+              "component": "payment_behaviour",
+              "raw_value": 13.0,
+              "feature_score": 36.1538,
+              "reliability": 1.0,
+              "contribution": 1.807692,
+              "reason_code": "SUPPLIER_DELAY_WORSENING"
+            },
+            {
+              "key": "payment_behaviour_missing_data_neutral",
+              "component": "payment_behaviour",
+              "raw_value": null,
+              "feature_score": 50.0,
+              "reliability": 0.0,
+              "contribution": 0.0,
+              "reason_code": "NO_SHRINKAGE"
+            },
+            {
+              "key": "debt_service_coverage",
+              "component": "debt_capacity",
+              "raw_value": null,
+              "feature_score": null,
+              "reliability": 0.0,
+              "contribution": 0.0,
+              "reason_code": "DEBT_SERVICE_COVERAGE_UNAVAILABLE"
+            },
+            {
+              "key": "interest_burden",
+              "component": "debt_capacity",
+              "raw_value": 0.0,
+              "feature_score": 100.0,
+              "reliability": 0.85,
+              "contribution": 6.375,
+              "reason_code": "LOW_INTEREST_BURDEN"
+            },
+            {
+              "key": "debt_capacity_missing_data_neutral",
+              "component": "debt_capacity",
+              "raw_value": null,
+              "feature_score": 50.0,
+              "reliability": 0.575,
+              "contribution": 4.3125,
+              "reason_code": "MISSING_DATA_NEUTRAL_SHRINKAGE"
+            },
+            {
+              "key": "top3_collection_concentration",
+              "component": "resilience",
+              "raw_value": 1.0,
+              "feature_score": 0.0,
+              "reliability": 0.6,
+              "contribution": 0.0,
+              "reason_code": "CUSTOMER_CONCENTRATION"
+            },
+            {
+              "key": "downside_cashflow_volatility",
+              "component": "resilience",
+              "raw_value": 0.27734288583210687,
+              "feature_score": 77.2657,
+              "reliability": 1.0,
+              "contribution": 3.863286,
+              "reason_code": "STABLE_CASHFLOW"
+            },
+            {
+              "key": "resilience_missing_data_neutral",
+              "component": "resilience",
+              "raw_value": null,
+              "feature_score": 50.0,
+              "reliability": 0.2,
+              "contribution": 1.0,
+              "reason_code": "MISSING_DATA_NEUTRAL_SHRINKAGE"
+            },
+            {
+              "key": "momentum_modifier",
+              "component": "momentum",
+              "raw_value": 0.0,
+              "feature_score": null,
+              "reliability": 1.0,
+              "contribution": 0.0,
+              "reason_code": "NO_MOMENTUM"
+            }
+          ],
+          "top_positive_drivers": [
+            "STRONG_OPERATING_MARGIN",
+            "RECURRING_COSTS_WELL_COVERED",
+            "LOW_INTEREST_BURDEN"
+          ],
+          "top_negative_drivers": [
+            "OVERDUE_RECEIVABLES",
+            "CUSTOMER_CONCENTRATION",
+            "SUPPLIER_DELAY_WORSENING"
+          ],
+          "shock_cap": null,
+          "max_source_timestamp": "2026-09-01T00:00:00",
+          "point_ledger_sum": 59.95
+        },
+        "projected_balance": 73224.85,
+        "primitive_totals": {
+          "operating_collections": 93801.52,
+          "operating_payments": 36922.87,
+          "recurring_fixed_outflows": 16131.07,
+          "debt_service": 0.0,
+          "interest": 0.0
+        }
+      },
+      "90": {
+        "horizon_days": 90,
+        "as_of": "2026-09-01T23:59:59.999999",
+        "target_date": "2026-11-30T23:59:59.999999",
+        "score": {
+          "entity_id": "COMP_0001",
+          "as_of": "2026-11-30T23:59:59.999999",
+          "score": 33.43,
+          "base_score": 33.43,
+          "momentum_modifier": 0.0,
+          "band": "critical",
+          "confidence": "A",
+          "confidence_score": 0.95,
+          "score_version": "xray-score-v1.0",
+          "component_scores": {
+            "liquidity": 7.5,
+            "cash_generation": 27.85,
+            "payment_behaviour": 43.34,
+            "debt_capacity": 71.25,
+            "resilience": 48.63
+          },
+          "component_reliability": {
+            "liquidity": 0.85,
+            "cash_generation": 0.9,
+            "payment_behaviour": 1.0,
+            "debt_capacity": 0.425,
+            "resilience": 0.8
+          },
+          "point_ledger": [
+            {
+              "key": "cash_runway_days",
+              "component": "liquidity",
+              "raw_value": 0.0,
+              "feature_score": 0.0,
+              "reliability": 0.85,
+              "contribution": 0.0,
+              "reason_code": "LOW_CASH_RUNWAY"
+            },
+            {
+              "key": "worst_deficit_cash_coverage",
+              "component": "liquidity",
+              "raw_value": -0.35053977455671353,
+              "feature_score": 0.0,
+              "reliability": 0.85,
+              "contribution": 0.0,
+              "reason_code": "CASH_BELOW_DOWNSIDE_NEED"
+            },
+            {
+              "key": "liquidity_missing_data_neutral",
+              "component": "liquidity",
+              "raw_value": null,
+              "feature_score": 50.0,
+              "reliability": 0.15,
+              "contribution": 2.25,
+              "reason_code": "MISSING_DATA_NEUTRAL_SHRINKAGE"
+            },
+            {
+              "key": "operating_cash_margin",
+              "component": "cash_generation",
+              "raw_value": -1.0714671702478642,
+              "feature_score": 0.0,
+              "reliability": 0.85,
+              "contribution": 0.0,
+              "reason_code": "NEGATIVE_OPERATING_MARGIN"
+            },
+            {
+              "key": "positive_cashflow_month_fraction",
+              "component": "cash_generation",
+              "raw_value": 0.5,
+              "feature_score": 50.0,
+              "reliability": 1.0,
+              "contribution": 4.166667,
+              "reason_code": "NEUTRAL"
+            },
+            {
+              "key": "recurring_obligation_coverage",
+              "component": "cash_generation",
+              "raw_value": 0.6545549420514934,
+              "feature_score": 21.8185,
+              "reliability": 0.85,
+              "contribution": 1.545477,
+              "reason_code": "RECURRING_COSTS_UNCOVERED"
+            },
+            {
+              "key": "cash_generation_missing_data_neutral",
+              "component": "cash_generation",
+              "raw_value": null,
+              "feature_score": 50.0,
+              "reliability": 0.1,
+              "contribution": 1.25,
+              "reason_code": "MISSING_DATA_NEUTRAL_SHRINKAGE"
+            },
+            {
+              "key": "overdue_receivables_ratio",
+              "component": "payment_behaviour",
+              "raw_value": 1.0,
+              "feature_score": 0.0,
+              "reliability": 1.0,
+              "contribution": 0.0,
+              "reason_code": "OVERDUE_RECEIVABLES"
+            },
+            {
+              "key": "customer_collection_delay_days",
+              "component": "payment_behaviour",
+              "raw_value": 37.77545108767227,
+              "feature_score": 38.6695,
+              "reliability": 1.0,
+              "contribution": 1.933473,
+              "reason_code": "SLOW_CUSTOMER_COLLECTIONS"
+            },
+            {
+              "key": "overdue_payables_ratio",
+              "component": "payment_behaviour",
+              "raw_value": 0.007278943227202405,
+              "feature_score": 98.5442,
+              "reliability": 1.0,
+              "contribution": 4.927211,
+              "reason_code": "SUPPLIERS_CURRENT"
+            },
+            {
+              "key": "supplier_payment_delay_change_days",
+              "component": "payment_behaviour",
+              "raw_value": 13.0,
+              "feature_score": 36.1538,
+              "reliability": 1.0,
+              "contribution": 1.807692,
+              "reason_code": "SUPPLIER_DELAY_WORSENING"
+            },
+            {
+              "key": "payment_behaviour_missing_data_neutral",
+              "component": "payment_behaviour",
+              "raw_value": null,
+              "feature_score": 50.0,
+              "reliability": 0.0,
+              "contribution": 0.0,
+              "reason_code": "NO_SHRINKAGE"
+            },
+            {
+              "key": "debt_service_coverage",
+              "component": "debt_capacity",
+              "raw_value": null,
+              "feature_score": null,
+              "reliability": 0.0,
+              "contribution": 0.0,
+              "reason_code": "DEBT_SERVICE_COVERAGE_UNAVAILABLE"
+            },
+            {
+              "key": "interest_burden",
+              "component": "debt_capacity",
+              "raw_value": 0.0,
+              "feature_score": 100.0,
+              "reliability": 0.85,
+              "contribution": 6.375,
+              "reason_code": "LOW_INTEREST_BURDEN"
+            },
+            {
+              "key": "debt_capacity_missing_data_neutral",
+              "component": "debt_capacity",
+              "raw_value": null,
+              "feature_score": 50.0,
+              "reliability": 0.575,
+              "contribution": 4.3125,
+              "reason_code": "MISSING_DATA_NEUTRAL_SHRINKAGE"
+            },
+            {
+              "key": "top3_collection_concentration",
+              "component": "resilience",
+              "raw_value": 1.0,
+              "feature_score": 0.0,
+              "reliability": 0.6,
+              "contribution": 0.0,
+              "reason_code": "CUSTOMER_CONCENTRATION"
+            },
+            {
+              "key": "downside_cashflow_volatility",
+              "component": "resilience",
+              "raw_value": 0.27734288583210687,
+              "feature_score": 77.2657,
+              "reliability": 1.0,
+              "contribution": 3.863286,
+              "reason_code": "STABLE_CASHFLOW"
+            },
+            {
+              "key": "resilience_missing_data_neutral",
+              "component": "resilience",
+              "raw_value": null,
+              "feature_score": 50.0,
+              "reliability": 0.2,
+              "contribution": 1.0,
+              "reason_code": "MISSING_DATA_NEUTRAL_SHRINKAGE"
+            },
+            {
+              "key": "momentum_modifier",
+              "component": "momentum",
+              "raw_value": 0.0,
+              "feature_score": null,
+              "reliability": 1.0,
+              "contribution": 0.0,
+              "reason_code": "NO_MOMENTUM"
+            }
+          ],
+          "top_positive_drivers": [
+            "LOW_INTEREST_BURDEN",
+            "SUPPLIERS_CURRENT",
+            "STABLE_CASHFLOW"
+          ],
+          "top_negative_drivers": [
+            "LOW_CASH_RUNWAY",
+            "CASH_BELOW_DOWNSIDE_NEED",
+            "NEGATIVE_OPERATING_MARGIN"
+          ],
+          "shock_cap": null,
+          "max_source_timestamp": "2026-09-01T00:00:00",
+          "point_ledger_sum": 33.43
+        },
+        "projected_balance": -68289.43,
+        "primitive_totals": {
+          "operating_collections": 94045.52,
+          "operating_payments": 51133.63,
+          "recurring_fixed_outflows": 143678.57,
+          "debt_service": 0.0,
+          "interest": 0.0
+        }
+      },
+      "180": {
+        "horizon_days": 180,
+        "as_of": "2026-09-01T23:59:59.999999",
+        "target_date": "2027-02-28T23:59:59.999999",
+        "score": {
+          "entity_id": "COMP_0001",
+          "as_of": "2027-02-28T23:59:59.999999",
+          "score": 32.89,
+          "base_score": 32.89,
+          "momentum_modifier": 0.0,
+          "band": "critical",
+          "confidence": "A",
+          "confidence_score": 0.95,
+          "score_version": "xray-score-v1.0",
+          "component_scores": {
+            "liquidity": 7.5,
+            "cash_generation": 25.67,
+            "payment_behaviour": 43.34,
+            "debt_capacity": 71.25,
+            "resilience": 48.63
+          },
+          "component_reliability": {
+            "liquidity": 0.85,
+            "cash_generation": 0.9,
+            "payment_behaviour": 1.0,
+            "debt_capacity": 0.425,
+            "resilience": 0.8
+          },
+          "point_ledger": [
+            {
+              "key": "cash_runway_days",
+              "component": "liquidity",
+              "raw_value": 0.0,
+              "feature_score": 0.0,
+              "reliability": 0.85,
+              "contribution": 0.0,
+              "reason_code": "LOW_CASH_RUNWAY"
+            },
+            {
+              "key": "worst_deficit_cash_coverage",
+              "component": "liquidity",
+              "raw_value": -0.5583145852062766,
+              "feature_score": 0.0,
+              "reliability": 0.85,
+              "contribution": 0.0,
+              "reason_code": "CASH_BELOW_DOWNSIDE_NEED"
+            },
+            {
+              "key": "liquidity_missing_data_neutral",
+              "component": "liquidity",
+              "raw_value": null,
+              "feature_score": 50.0,
+              "reliability": 0.15,
+              "contribution": 2.25,
+              "reason_code": "MISSING_DATA_NEUTRAL_SHRINKAGE"
+            },
+            {
+              "key": "operating_cash_margin",
+              "component": "cash_generation",
+              "raw_value": -1.7401107615044684,
+              "feature_score": 0.0,
+              "reliability": 0.85,
+              "contribution": 0.0,
+              "reason_code": "NEGATIVE_OPERATING_MARGIN"
+            },
+            {
+              "key": "positive_cashflow_month_fraction",
+              "component": "cash_generation",
+              "raw_value": 0.5,
+              "feature_score": 50.0,
+              "reliability": 1.0,
+              "contribution": 4.166667,
+              "reason_code": "NEUTRAL"
+            },
+            {
+              "key": "recurring_obligation_coverage",
+              "component": "cash_generation",
+              "raw_value": 0.4237858958947338,
+              "feature_score": 14.1262,
+              "reliability": 0.85,
+              "contribution": 1.000606,
+              "reason_code": "RECURRING_COSTS_UNCOVERED"
+            },
+            {
+              "key": "cash_generation_missing_data_neutral",
+              "component": "cash_generation",
+              "raw_value": null,
+              "feature_score": 50.0,
+              "reliability": 0.1,
+              "contribution": 1.25,
+              "reason_code": "MISSING_DATA_NEUTRAL_SHRINKAGE"
+            },
+            {
+              "key": "overdue_receivables_ratio",
+              "component": "payment_behaviour",
+              "raw_value": 1.0,
+              "feature_score": 0.0,
+              "reliability": 1.0,
+              "contribution": 0.0,
+              "reason_code": "OVERDUE_RECEIVABLES"
+            },
+            {
+              "key": "customer_collection_delay_days",
+              "component": "payment_behaviour",
+              "raw_value": 37.77545108767227,
+              "feature_score": 38.6695,
+              "reliability": 1.0,
+              "contribution": 1.933473,
+              "reason_code": "SLOW_CUSTOMER_COLLECTIONS"
+            },
+            {
+              "key": "overdue_payables_ratio",
+              "component": "payment_behaviour",
+              "raw_value": 0.007278943227202405,
+              "feature_score": 98.5442,
+              "reliability": 1.0,
+              "contribution": 4.927211,
+              "reason_code": "SUPPLIERS_CURRENT"
+            },
+            {
+              "key": "supplier_payment_delay_change_days",
+              "component": "payment_behaviour",
+              "raw_value": 13.0,
+              "feature_score": 36.1538,
+              "reliability": 1.0,
+              "contribution": 1.807692,
+              "reason_code": "SUPPLIER_DELAY_WORSENING"
+            },
+            {
+              "key": "payment_behaviour_missing_data_neutral",
+              "component": "payment_behaviour",
+              "raw_value": null,
+              "feature_score": 50.0,
+              "reliability": 0.0,
+              "contribution": 0.0,
+              "reason_code": "NO_SHRINKAGE"
+            },
+            {
+              "key": "debt_service_coverage",
+              "component": "debt_capacity",
+              "raw_value": null,
+              "feature_score": null,
+              "reliability": 0.0,
+              "contribution": 0.0,
+              "reason_code": "DEBT_SERVICE_COVERAGE_UNAVAILABLE"
+            },
+            {
+              "key": "interest_burden",
+              "component": "debt_capacity",
+              "raw_value": 0.0,
+              "feature_score": 100.0,
+              "reliability": 0.85,
+              "contribution": 6.375,
+              "reason_code": "LOW_INTEREST_BURDEN"
+            },
+            {
+              "key": "debt_capacity_missing_data_neutral",
+              "component": "debt_capacity",
+              "raw_value": null,
+              "feature_score": 50.0,
+              "reliability": 0.575,
+              "contribution": 4.3125,
+              "reason_code": "MISSING_DATA_NEUTRAL_SHRINKAGE"
+            },
+            {
+              "key": "top3_collection_concentration",
+              "component": "resilience",
+              "raw_value": 1.0,
+              "feature_score": 0.0,
+              "reliability": 0.6,
+              "contribution": 0.0,
+              "reason_code": "CUSTOMER_CONCENTRATION"
+            },
+            {
+              "key": "downside_cashflow_volatility",
+              "component": "resilience",
+              "raw_value": 0.27734288583210687,
+              "feature_score": 77.2657,
+              "reliability": 1.0,
+              "contribution": 3.863286,
+              "reason_code": "STABLE_CASHFLOW"
+            },
+            {
+              "key": "resilience_missing_data_neutral",
+              "component": "resilience",
+              "raw_value": null,
+              "feature_score": 50.0,
+              "reliability": 0.2,
+              "contribution": 1.0,
+              "reason_code": "MISSING_DATA_NEUTRAL_SHRINKAGE"
+            },
+            {
+              "key": "momentum_modifier",
+              "component": "momentum",
+              "raw_value": 0.0,
+              "feature_score": null,
+              "reliability": 1.0,
+              "contribution": 0.0,
+              "reason_code": "NO_MOMENTUM"
+            }
+          ],
+          "top_positive_drivers": [
+            "LOW_INTEREST_BURDEN",
+            "SUPPLIERS_CURRENT",
+            "STABLE_CASHFLOW"
+          ],
+          "top_negative_drivers": [
+            "LOW_CASH_RUNWAY",
+            "CASH_BELOW_DOWNSIDE_NEED",
+            "NEGATIVE_OPERATING_MARGIN"
+          ],
+          "shock_cap": null,
+          "max_source_timestamp": "2026-09-01T00:00:00",
+          "point_ledger_sum": 32.89
+        },
+        "projected_balance": -236295.49,
+        "primitive_totals": {
+          "operating_collections": 154457.27,
+          "operating_payments": 58759.97,
+          "recurring_fixed_outflows": 364470.05,
+          "debt_service": 0.0,
+          "interest": 0.0
+        }
+      }
+    },
+    "max_source_timestamp": "2026-09-01T00:00:00",
+    "calibration_version": "xray-calibration-v1.0",
+    "calibration_status": "calibrated_out_of_fold",
+    "calibration_metadata": {
+      "entity_type": "company",
+      "coverage_target": 0.8,
+      "rows": 1917,
+      "rows_by_horizon": {
+        "30": 639,
+        "90": 639,
+        "180": 639
+      },
+      "balance_mode": "single_anchor_backward",
+      "balance_reliability": 0.75,
+      "calibration_origins": [
+        "2025-09-30T00:00:00",
+        "2025-10-31T00:00:00",
+        "2025-11-30T00:00:00",
+        "2025-12-31T00:00:00"
+      ],
+      "validation_origins": [
+        "2026-01-31T00:00:00",
+        "2026-02-28T00:00:00"
+      ],
+      "validation": {
+        "by_horizon": {
+          "30": {
+            "rows": 368,
+            "mae": 10.2164,
+            "bias": -3.6286,
+            "direction_accuracy": 0.5353,
+            "large_drop_recall": 0.2,
+            "interval_coverage": 0.8125,
+            "interval_average_width": 33.1112
+          },
+          "90": {
+            "rows": 368,
+            "mae": 12.1053,
+            "bias": -6.5326,
+            "direction_accuracy": 0.5543,
+            "large_drop_recall": 0.4706,
+            "interval_coverage": 0.7636,
+            "interval_average_width": 33.6775
+          },
+          "180": {
+            "rows": 368,
+            "mae": 13.4809,
+            "bias": -8.6746,
+            "direction_accuracy": 0.5109,
+            "large_drop_recall": 0.3333,
+            "interval_coverage": 0.8125,
+            "interval_average_width": 39.1629
+          }
+        },
+        "by_model": {
+          "commitment-seasonal-baseline-v1.0": 11.9342
+        },
+        "probability_calibration": {
+          "30": {
+            "decline_at_least_15": {
+              "rows": 368,
+              "event_rate": 0.0136,
+              "mean_probability": 0.02,
+              "brier_score": 0.0138
+            },
+            "score_below_40": {
+              "rows": 368,
+              "event_rate": 0.1875,
+              "mean_probability": 0.1595,
+              "brier_score": 0.1238
+            }
+          },
+          "90": {
+            "decline_at_least_15": {
+              "rows": 368,
+              "event_rate": 0.0462,
+              "mean_probability": 0.0669,
+              "brier_score": 0.0455
+            },
+            "score_below_40": {
+              "rows": 368,
+              "event_rate": 0.1739,
+              "mean_probability": 0.1788,
+              "brier_score": 0.1219
+            }
+          },
+          "180": {
+            "decline_at_least_15": {
+              "rows": 368,
+              "event_rate": 0.0897,
+              "mean_probability": 0.1122,
+              "brier_score": 0.0866
+            },
+            "score_below_40": {
+              "rows": 368,
+              "event_rate": 0.1359,
+              "mean_probability": 0.1771,
+              "brier_score": 0.1007
+            }
+          }
+        }
+      }
+    },
+    "calibrated_medians": {
+      "30": 63.89,
+      "90": 39.12,
+      "180": 39.64
+    },
+    "intervals": {
+      "30": [
+        46.3,
+        81.48
+      ],
+      "90": [
+        21.63,
+        56.61
+      ],
+      "180": [
+        19.93,
+        59.35
+      ]
+    },
+    "threshold_probabilities": {
+      "30": {
+        "score_below_40": 0.0492,
+        "decline_at_least_15": 0.0
+      },
+      "90": {
+        "score_below_40": 0.4833,
+        "decline_at_least_15": 0.0343
+      },
+      "180": {
+        "score_below_40": 0.4,
+        "decline_at_least_15": 0.1143
+      }
+    },
+    "weekly_ledger": [
+      {
+        "week_start": "2026-09-02",
+        "operating_collections": 93679.52,
+        "operating_payments": 834.0342256410256,
+        "recurring_fixed_outflows": 2174.1015418803418,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 94191.52,
+        "opening_balance": 32477.260000000002,
+        "net_cashflow": 90671.38423247864,
+        "closing_balance": 123148.64423247863
+      },
+      {
+        "week_start": "2026-09-09",
+        "operating_collections": 30.5,
+        "operating_payments": 9810.85,
+        "recurring_fixed_outflows": 2312.2780837606833,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 9810.85,
+        "opening_balance": 123148.64423247863,
+        "net_cashflow": -12092.628083760683,
+        "closing_balance": 111056.01614871796
+      },
+      {
+        "week_start": "2026-09-16",
+        "operating_collections": 30.5,
+        "operating_payments": 990.1049999999999,
+        "recurring_fixed_outflows": 2450.4546256410254,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 358.65,
+        "opening_balance": 111056.01614871796,
+        "net_cashflow": -3410.0596256410254,
+        "closing_balance": 107645.95652307692
+      },
+      {
+        "week_start": "2026-09-23",
+        "operating_collections": 30.5,
+        "operating_payments": 16524.75,
+        "recurring_fixed_outflows": 2588.6311675213674,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 16524.75,
+        "opening_balance": 107645.95652307692,
+        "net_cashflow": -19082.881167521366,
+        "closing_balance": 88563.07535555557
+      },
+      {
+        "week_start": "2026-09-30",
+        "operating_collections": 30.5,
+        "operating_payments": 8763.130000000001,
+        "recurring_fixed_outflows": 6605.6,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 15368.730000000001,
+        "opening_balance": 88563.07535555557,
+        "net_cashflow": -15338.230000000001,
+        "closing_balance": 73224.84535555556
+      },
+      {
+        "week_start": "2026-10-07",
+        "operating_collections": 30.5,
+        "operating_payments": 990.1049999999999,
+        "recurring_fixed_outflows": 2864.9842512820505,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 0.0,
+        "opening_balance": 73224.84535555556,
+        "net_cashflow": -3824.5892512820506,
+        "closing_balance": 69400.25610427352
+      },
+      {
+        "week_start": "2026-10-14",
+        "operating_collections": 30.5,
+        "operating_payments": 990.1049999999999,
+        "recurring_fixed_outflows": 3003.1607931623926,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 0.0,
+        "opening_balance": 69400.25610427352,
+        "net_cashflow": -3962.7657931623926,
+        "closing_balance": 65437.49031111112
+      },
+      {
+        "week_start": "2026-10-21",
+        "operating_collections": 30.5,
+        "operating_payments": 7280.03,
+        "recurring_fixed_outflows": 3053.8875,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 7280.03,
+        "opening_balance": 65437.49031111112,
+        "net_cashflow": -10303.4175,
+        "closing_balance": 55134.072811111124
+      },
+      {
+        "week_start": "2026-10-28",
+        "operating_collections": 30.5,
+        "operating_payments": 990.1049999999999,
+        "recurring_fixed_outflows": 52956.05,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 52956.05,
+        "opening_balance": 55134.072811111124,
+        "net_cashflow": -53915.655000000006,
+        "closing_balance": 1218.4178111111141
+      },
+      {
+        "week_start": "2026-11-04",
+        "operating_collections": 30.5,
+        "operating_payments": 990.1049999999999,
+        "recurring_fixed_outflows": 6605.6,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 6605.6,
+        "opening_balance": 1218.4178111111141,
+        "net_cashflow": -7565.205,
+        "closing_balance": -6346.787188888884
+      },
+      {
+        "week_start": "2026-11-11",
+        "operating_collections": 30.5,
+        "operating_payments": 990.1049999999999,
+        "recurring_fixed_outflows": 3053.8875,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 0.0,
+        "opening_balance": -6346.787188888884,
+        "net_cashflow": -4013.4925,
+        "closing_balance": -10360.279688888884
+      },
+      {
+        "week_start": "2026-11-18",
+        "operating_collections": 30.5,
+        "operating_payments": 990.1049999999999,
+        "recurring_fixed_outflows": 3053.8875,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 0.0,
+        "opening_balance": -10360.279688888884,
+        "net_cashflow": -4013.4925,
+        "closing_balance": -14373.772188888885
+      },
+      {
+        "week_start": "2026-11-25",
+        "operating_collections": 30.5,
+        "operating_payments": 990.1049999999999,
+        "recurring_fixed_outflows": 52956.05,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 52956.05,
+        "opening_balance": -14373.772188888885,
+        "net_cashflow": -53915.655000000006,
+        "closing_balance": -68289.42718888889
+      },
+      {
+        "week_start": "2026-12-02",
+        "operating_collections": 30.5,
+        "operating_payments": 990.1049999999999,
+        "recurring_fixed_outflows": 6605.6,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 6605.6,
+        "opening_balance": -68289.42718888889,
+        "net_cashflow": -7565.205,
+        "closing_balance": -75854.6321888889
+      },
+      {
+        "week_start": "2026-12-09",
+        "operating_collections": 30.5,
+        "operating_payments": 990.1049999999999,
+        "recurring_fixed_outflows": 3053.8875,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 0.0,
+        "opening_balance": -75854.6321888889,
+        "net_cashflow": -4013.4925,
+        "closing_balance": -79868.1246888889
+      },
+      {
+        "week_start": "2026-12-16",
+        "operating_collections": 30.5,
+        "operating_payments": 990.1049999999999,
+        "recurring_fixed_outflows": 3053.8875,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 0.0,
+        "opening_balance": -79868.1246888889,
+        "net_cashflow": -4013.4925,
+        "closing_balance": -83881.6171888889
+      },
+      {
+        "week_start": "2026-12-23",
+        "operating_collections": 30.5,
+        "operating_payments": 990.1049999999999,
+        "recurring_fixed_outflows": 39748.82,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 39748.82,
+        "opening_balance": -83881.6171888889,
+        "net_cashflow": -40708.425,
+        "closing_balance": -124590.04218888888
+      },
+      {
+        "week_start": "2026-12-30",
+        "operating_collections": 30.5,
+        "operating_payments": 990.1049999999999,
+        "recurring_fixed_outflows": 19812.83,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 19812.83,
+        "opening_balance": -124590.04218888888,
+        "net_cashflow": -20772.435,
+        "closing_balance": -145362.47718888888
+      },
+      {
+        "week_start": "2027-01-06",
+        "operating_collections": 0.0,
+        "operating_payments": 0.5,
+        "recurring_fixed_outflows": 2302.755,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 0.0,
+        "opening_balance": -145362.47718888888,
+        "net_cashflow": -2303.255,
+        "closing_balance": -147665.73218888888
+      },
+      {
+        "week_start": "2027-01-13",
+        "operating_collections": 0.0,
+        "operating_payments": 0.5,
+        "recurring_fixed_outflows": 2302.755,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 0.0,
+        "opening_balance": -147665.73218888888,
+        "net_cashflow": -2303.255,
+        "closing_balance": -149968.9871888889
+      },
+      {
+        "week_start": "2027-01-20",
+        "operating_collections": 0.0,
+        "operating_payments": 0.5,
+        "recurring_fixed_outflows": 2302.755,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 0.0,
+        "opening_balance": -149968.9871888889,
+        "net_cashflow": -2303.255,
+        "closing_balance": -152272.2421888889
+      },
+      {
+        "week_start": "2027-01-27",
+        "operating_collections": 0.0,
+        "operating_payments": 0.5,
+        "recurring_fixed_outflows": 52956.05,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 52956.05,
+        "opening_balance": -152272.2421888889,
+        "net_cashflow": -52956.55,
+        "closing_balance": -205228.79218888888
+      },
+      {
+        "week_start": "2027-02-03",
+        "operating_collections": 15183.02053162393,
+        "operating_payments": 668.4525,
+        "recurring_fixed_outflows": 11760.52046324786,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 6605.6,
+        "opening_balance": -205228.79218888888,
+        "net_cashflow": 2754.0475683760706,
+        "closing_balance": -202474.74462051282
+      },
+      {
+        "week_start": "2027-02-10",
+        "operating_collections": 15104.2149025641,
+        "operating_payments": 668.4525,
+        "recurring_fixed_outflows": 11898.697005128202,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 0.0,
+        "opening_balance": -202474.74462051282,
+        "net_cashflow": 2537.0653974358975,
+        "closing_balance": -199937.67922307694
+      },
+      {
+        "week_start": "2027-02-17",
+        "operating_collections": 15025.40927350427,
+        "operating_payments": 668.4525,
+        "recurring_fixed_outflows": 12036.873547008545,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 0.0,
+        "opening_balance": -199937.67922307694,
+        "net_cashflow": 2320.083226495726,
+        "closing_balance": -197617.59599658122
+      },
+      {
+        "week_start": "2027-02-24",
+        "operating_collections": 14946.603644444442,
+        "operating_payments": 668.4525,
+        "recurring_fixed_outflows": 52956.05,
+        "debt_service": 0.0,
+        "interest": 0.0,
+        "known_commitments": 52956.05,
+        "opening_balance": -197617.59599658122,
+        "net_cashflow": -38677.89885555556,
+        "closing_balance": -236295.49485213676
+      }
+    ]
+  },
+  "explanation": {
+    "entity_id": "COMP_0001",
+    "as_of": "2026-09-01T23:59:59.999999",
+    "score": 43.18,
+    "band": "vulnerable",
+    "confidence": "A",
+    "drivers": {
+      "positive": [
+        "LOW_INTEREST_BURDEN",
+        "SUPPLIERS_CURRENT",
+        "RECURRING_COSTS_WELL_COVERED"
+      ],
+      "negative": [
+        "OVERDUE_RECEIVABLES",
+        "DEBT_SERVICE_UNCOVERED",
+        "CUSTOMER_CONCENTRATION"
+      ]
+    },
+    "point_ledger": [
+      {
+        "key": "cash_runway_days",
+        "component": "liquidity",
+        "raw_value": 12.866253732423038,
+        "feature_score": 17.155,
+        "reliability": 1.0,
+        "contribution": 2.573251,
+        "reason_code": "LOW_CASH_RUNWAY"
+      },
+      {
+        "key": "worst_deficit_cash_coverage",
+        "component": "liquidity",
+        "raw_value": 0.6997054762712936,
+        "feature_score": 34.9853,
+        "reliability": 1.0,
+        "contribution": 5.247791,
+        "reason_code": "CASH_BELOW_DOWNSIDE_NEED"
+      },
+      {
+        "key": "liquidity_missing_data_neutral",
+        "component": "liquidity",
+        "raw_value": null,
+        "feature_score": 50.0,
+        "reliability": 0.0,
+        "contribution": 0.0,
+        "reason_code": "NO_SHRINKAGE"
+      },
+      {
+        "key": "operating_cash_margin",
+        "component": "cash_generation",
+        "raw_value": -0.037067261310759894,
+        "feature_score": 42.5865,
+        "reliability": 1.0,
+        "contribution": 3.548879,
+        "reason_code": "NEUTRAL"
+      },
+      {
+        "key": "positive_cashflow_month_fraction",
+        "component": "cash_generation",
+        "raw_value": 0.5,
+        "feature_score": 50.0,
+        "reliability": 1.0,
+        "contribution": 4.166667,
+        "reason_code": "NEUTRAL"
+      },
+      {
+        "key": "recurring_obligation_coverage",
+        "component": "cash_generation",
+        "raw_value": 1.8413328159958156,
+        "feature_score": 83.5333,
+        "reliability": 1.0,
+        "contribution": 6.96111,
+        "reason_code": "RECURRING_COSTS_WELL_COVERED"
+      },
+      {
+        "key": "cash_generation_missing_data_neutral",
+        "component": "cash_generation",
+        "raw_value": null,
+        "feature_score": 50.0,
+        "reliability": 0.0,
+        "contribution": 0.0,
+        "reason_code": "NO_SHRINKAGE"
+      },
+      {
+        "key": "overdue_receivables_ratio",
+        "component": "payment_behaviour",
+        "raw_value": 1.0,
+        "feature_score": 0.0,
+        "reliability": 1.0,
+        "contribution": 0.0,
+        "reason_code": "OVERDUE_RECEIVABLES"
+      },
+      {
+        "key": "customer_collection_delay_days",
+        "component": "payment_behaviour",
+        "raw_value": 37.77545108767227,
+        "feature_score": 38.6695,
+        "reliability": 1.0,
+        "contribution": 1.933473,
+        "reason_code": "SLOW_CUSTOMER_COLLECTIONS"
+      },
+      {
+        "key": "overdue_payables_ratio",
+        "component": "payment_behaviour",
+        "raw_value": 0.007278943227202405,
+        "feature_score": 98.5442,
+        "reliability": 1.0,
+        "contribution": 4.927211,
+        "reason_code": "SUPPLIERS_CURRENT"
+      },
+      {
+        "key": "supplier_payment_delay_change_days",
+        "component": "payment_behaviour",
+        "raw_value": 13.0,
+        "feature_score": 36.1538,
+        "reliability": 1.0,
+        "contribution": 1.807692,
+        "reason_code": "SUPPLIER_DELAY_WORSENING"
+      },
+      {
+        "key": "payment_behaviour_missing_data_neutral",
+        "component": "payment_behaviour",
+        "raw_value": null,
+        "feature_score": 50.0,
+        "reliability": 0.0,
+        "contribution": 0.0,
+        "reason_code": "NO_SHRINKAGE"
+      },
+      {
+        "key": "debt_service_coverage",
+        "component": "debt_capacity",
+        "raw_value": -270.66500000000036,
+        "feature_score": 0.0,
+        "reliability": 0.6667,
+        "contribution": 0.0,
+        "reason_code": "DEBT_SERVICE_UNCOVERED"
+      },
+      {
+        "key": "interest_burden",
+        "component": "debt_capacity",
+        "raw_value": 0.000136948853049932,
+        "feature_score": 99.8973,
+        "reliability": 1.0,
+        "contribution": 7.492297,
+        "reason_code": "LOW_INTEREST_BURDEN"
+      },
+      {
+        "key": "debt_capacity_missing_data_neutral",
+        "component": "debt_capacity",
+        "raw_value": null,
+        "feature_score": 50.0,
+        "reliability": 0.1667,
+        "contribution": 1.25,
+        "reason_code": "MISSING_DATA_NEUTRAL_SHRINKAGE"
+      },
+      {
+        "key": "top3_collection_concentration",
+        "component": "resilience",
+        "raw_value": 1.0,
+        "feature_score": 0.0,
+        "reliability": 0.6,
+        "contribution": 0.0,
+        "reason_code": "CUSTOMER_CONCENTRATION"
+      },
+      {
+        "key": "downside_cashflow_volatility",
+        "component": "resilience",
+        "raw_value": 0.27734288583210687,
+        "feature_score": 77.2657,
+        "reliability": 1.0,
+        "contribution": 3.863286,
+        "reason_code": "STABLE_CASHFLOW"
+      },
+      {
+        "key": "resilience_missing_data_neutral",
+        "component": "resilience",
+        "raw_value": null,
+        "feature_score": 50.0,
+        "reliability": 0.2,
+        "contribution": 1.0,
+        "reason_code": "MISSING_DATA_NEUTRAL_SHRINKAGE"
+      },
+      {
+        "key": "momentum_modifier",
+        "component": "momentum",
+        "raw_value": -1.5964,
+        "feature_score": null,
+        "reliability": 1.0,
+        "contribution": -1.5964,
         "reason_code": "MOMENTUM_NEGATIVE"
       }
     ],
     "shock_cap": null,
     "actions": [
       {
-        "feature": "cash_runway_days",
-        "action": "Build cash runway",
-        "current_value": 0.8671,
-        "target_value": 15.0,
-        "estimated_point_gain": 2.83,
-        "evidence": [
-          {
-            "payment_category": "-",
-            "amount": 169500836.64
-          },
-          {
-            "payment_category": "payment",
-            "amount": 13909883.22
-          },
-          {
-            "payment_category": "utility",
-            "amount": 1153398.94
-          }
-        ]
-      },
-      {
         "feature": "worst_deficit_cash_coverage",
         "action": "Raise the liquid downside buffer",
-        "current_value": 0.1808,
-        "target_value": 0.5,
-        "estimated_point_gain": 2.39,
+        "current_value": 0.6997,
+        "target_value": 1.0,
+        "estimated_point_gain": 2.25,
         "evidence": [
           {
-            "payment_category": "-",
-            "amount": 169500836.64
-          },
-          {
             "payment_category": "payment",
-            "amount": 13909883.22
+            "amount": 273057.99
           },
           {
-            "payment_category": "utility",
-            "amount": 1153398.94
+            "payment_category": "salary",
+            "amount": 108317.76
+          },
+          {
+            "payment_category": "tax",
+            "amount": 79615.85
           }
         ]
       },
       {
         "feature": "positive_cashflow_month_fraction",
         "action": "Sustain positive monthly cash flow",
-        "current_value": 0.3333,
-        "target_value": 0.5,
-        "estimated_point_gain": 1.63,
+        "current_value": 0.5,
+        "target_value": 0.75,
+        "estimated_point_gain": 2.08,
         "evidence": [
           {
-            "payment_category": "-",
-            "amount": 169500836.64
-          },
-          {
             "payment_category": "payment",
-            "amount": 13909883.22
+            "amount": 273057.99
           },
           {
-            "payment_category": "utility",
-            "amount": 1153398.94
+            "payment_category": "salary",
+            "amount": 108317.76
+          },
+          {
+            "payment_category": "tax",
+            "amount": 79615.85
           }
         ]
       },
       {
-        "feature": "downside_cashflow_volatility",
-        "action": "Reduce downside cash-flow volatility",
-        "current_value": 0.0808,
-        "target_value": 0.0,
-        "estimated_point_gain": 0.32,
+        "feature": "recurring_obligation_coverage",
+        "action": "Cover recurring obligations with stable inflows",
+        "current_value": 1.8413,
+        "target_value": 2.5,
+        "estimated_point_gain": 1.37,
         "evidence": [
           {
-            "payment_category": "-",
-            "amount": 169500836.64
-          },
-          {
             "payment_category": "payment",
-            "amount": 13909883.22
+            "amount": 273057.99
           },
           {
-            "payment_category": "utility",
-            "amount": 1153398.94
+            "payment_category": "salary",
+            "amount": 108317.76
+          },
+          {
+            "payment_category": "tax",
+            "amount": 79615.85
           }
         ]
       },
       {
-        "feature": "operating_cash_margin",
-        "action": "Improve operating cash margin",
-        "current_value": -0.0079,
-        "target_value": 0.0,
-        "estimated_point_gain": 0.13,
+        "feature": "customer_collection_delay_days",
+        "action": "Shorten customer collection delay",
+        "current_value": 37.7755,
+        "target_value": 20.0,
+        "estimated_point_gain": 1.07,
         "evidence": [
           {
-            "payment_category": "-",
-            "amount": 169500836.64
+            "invoice_id": "65140fa5b14d724ec9778526d344d86d",
+            "counterparty_id": "COUNTERPARTY_03903",
+            "amount": 30394.06,
+            "days_overdue": 54
           },
           {
-            "payment_category": "payment",
-            "amount": 13909883.22
+            "invoice_id": "899cf18abce42f588924b90654e76239",
+            "counterparty_id": "COUNTERPARTY_03903",
+            "amount": 30394.06,
+            "days_overdue": 26
           },
           {
-            "payment_category": "utility",
-            "amount": 1153398.94
+            "invoice_id": "35680237b9451d9724e44d3d400b32a4",
+            "counterparty_id": "COUNTERPARTY_03903",
+            "amount": 6868.65,
+            "days_overdue": 54
+          }
+        ]
+      },
+      {
+        "feature": "overdue_receivables_ratio",
+        "action": "Collect overdue customer invoices",
+        "current_value": 1.0,
+        "target_value": 0.6,
+        "estimated_point_gain": 1.0,
+        "evidence": [
+          {
+            "invoice_id": "65140fa5b14d724ec9778526d344d86d",
+            "counterparty_id": "COUNTERPARTY_03903",
+            "amount": 30394.06,
+            "days_overdue": 54
+          },
+          {
+            "invoice_id": "899cf18abce42f588924b90654e76239",
+            "counterparty_id": "COUNTERPARTY_03903",
+            "amount": 30394.06,
+            "days_overdue": 26
+          },
+          {
+            "invoice_id": "35680237b9451d9724e44d3d400b32a4",
+            "counterparty_id": "COUNTERPARTY_03903",
+            "amount": 6868.65,
+            "days_overdue": 54
           }
         ]
       }
     ],
     "audit": {
-      "booked_transactions": 3225,
-      "invoices_known": 0,
-      "open_invoices": 0,
-      "reconstructable_products": 10,
-      "excluded_transfers": 70,
-      "reporting_currency": "GBP",
+      "booked_transactions": 203,
+      "invoices_known": 633,
+      "open_invoices": 36,
+      "reconstructable_products": 2,
+      "backward_reconstructed_products": 0,
+      "balance_reconstruction_reliability": 1.0,
+      "balance_lineage_max_timestamp": "2026-09-01T00:00:00",
+      "excluded_transfers": 1,
+      "reporting_currency": "EUR",
       "unconverted_companies": 0
     },
-    "max_source_timestamp": "2026-09-01T01:00:00"
+    "max_source_timestamp": "2026-09-01T00:00:00"
   }
 }

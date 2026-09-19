@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+import sys
 import pandas as pd
 
 from xray import explain, features as features_mod
@@ -84,6 +85,9 @@ def _write_table(df: pd.DataFrame, path: Path) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # consola cp1252 de Windows: UTF-8 para separadores y flechas de los resúmenes
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(prog="xray-score", description="Puntuador por lotes del score por reglas")
     ap.add_argument("--features", required=True, help="tabla del contrato de referencia (parquet o csv)")
     ap.add_argument("--extra", default=None,
@@ -105,26 +109,32 @@ def main(argv: list[str] | None = None) -> int:
     feats = _read_table(Path(args.features))
     extra = _read_table(Path(args.extra)) if args.extra else None
     events_ext = _read_table(Path(args.events)) if args.events else None
+    tables = None
     if events_ext is None and args.events_from_data:
         from xray import events as events_mod
         from xray.data import load
 
-        events_ext = events_mod.build(load(), feats)
+        tables = load()
+        events_ext = events_mod.build(tables, feats)
         print(f"{len(events_ext):,} eventos de watch desde los CSV")
     model = RulesModel.load(args.model) if args.model else None
     table, fitted = score_table(feats, extra=extra, events_ext=events_ext, model=model, train_until=args.train_until)
     out = Path(args.out)
     _write_table(table[OUTPUT_COLUMNS], out)
     if model is None:
+        if tables is not None:
+            # el tipo «caro» de referencia viaja congelado en el modelo: ingest y packs no
+            # tienen la cartera entera para calcular su propio percentil (events.py)
+            fitted.expensive_rate_p75 = events_mod.rate_reference(tables, as_of=args.train_until)
         fitted.save(out.parent / "rules_model.json")
     print(f"{len(table):,} filas · {table['company_id'].nunique()} empresas · "
-          f"score en {table['score'].notna().mean():.0%} de las filas → {out}")
+          f"score en {table['score'].notna().mean():.0%} de las filas -> {out}")
     companies_path = Path(args.companies)
     if extra is None and companies_path.exists():
         groups_path = Path(args.groups) if args.groups else out.parent / f"groups{out.suffix or '.parquet'}"
         groups = explain.group_rollup(table, _read_table(companies_path))
         _write_table(groups, groups_path)
-        print(f"{len(groups):,} filas de grupo · {groups['group_id'].nunique()} grupos → {groups_path}")
+        print(f"{len(groups):,} filas de grupo · {groups['group_id'].nunique()} grupos -> {groups_path}")
     return 0
 
 

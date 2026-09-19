@@ -239,7 +239,8 @@ def projection_metrics(
         hi = np.clip(now + q[0.9].to_numpy()[b], 0.0, 100.0)
         base = table(lo, now, hi)
 
-    out = {"n": int(test.sum()), "horizon": horizon, **table(p10, p50, p90), "martingale_baseline": base}
+    out = {"n": int(test.sum()), "horizon": horizon, **table(p10, p50, p90), "martingale_baseline": base,
+           "coverage_80_by_outlook": None, "coverage_80_by_history": None}
     sub = o.loc[test]
     inside = (y >= p10) & (y <= p90)
     if "outlook" in sub.columns:
@@ -249,7 +250,7 @@ def projection_metrics(
         }
     if "months_of_history" in sub.columns:
         h = sub["months_of_history"]
-        tranches = {"lt_6": h < 6, "6_11": (h >= 6) & (h < 12), "ge_12": h >= 12}
+        tranches = {"lt_6": h < 6, "6_11": (h >= 6) & (h < 12), "ge_12": h >= 12, "unknown": h.isna()}
         out["coverage_80_by_history"] = {
             k: (float(inside[m.to_numpy()].mean()) if m.any() else None) for k, m in tranches.items()
         }
@@ -265,8 +266,11 @@ def watch_metrics(
     cfg: RulesConfig | None = None,
     months_ahead: int = 3,
 ) -> dict:
-    """Cuota de filas con watch y P(mes rojo en (t, t+3]) con watch activo frente a sin watch, en
-    test, entre filas que no están en rojo en t y tienen los tres meses siguientes."""
+    """Cuota de filas con watch y P(mes rojo en (t, t+3]) con watch activo frente a sin watch.
+
+    Todas las cifras van sobre el mismo denominador: las filas evaluables — no rojas en t, con
+    los `months_ahead` meses siguientes y, si se indica, en `test_months`. `kinds` cuenta meses
+    con watch activo (~3 por evento), no eventos distintos."""
     cfg = cfg or RulesConfig()
     o = _sorted(scored)
     empty = {"share_rows_with_watch": 0.0, "n_watch": 0, "p_red_3m_given_watch": None,
@@ -284,11 +288,11 @@ def watch_metrics(
         m &= o["month"].astype(str).isin(test_months)
     with_w, without = m & active, m & ~active
     return {
-        "share_rows_with_watch": float(active.mean()),
+        "share_rows_with_watch": float(active[m].mean()) if m.any() else 0.0,
         "n_watch": int(with_w.sum()),
         "p_red_3m_given_watch": float(red_ahead[with_w].mean()) if with_w.any() else None,
         "p_red_3m_given_no_watch": float(red_ahead[without].mean()) if without.any() else None,
-        "kinds": {str(k): int(v) for k, v in o.loc[active, "watch"].value_counts().items()},
+        "kinds": {str(k): int(v) for k, v in o.loc[with_w, "watch"].value_counts().items()},
     }
 
 
@@ -562,6 +566,9 @@ def _read_table(path: Path) -> pd.DataFrame:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # consola cp1252 de Windows: UTF-8 para separadores y flechas de los resúmenes
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(prog="xray-evals", description="Evals del score por reglas (docs/rules_spec.md §8)")
     ap.add_argument("--features", default=str(artifacts_dir() / "features.parquet"), help="tabla del contrato (parquet o csv)")
     ap.add_argument("--events", default=None, help="events_ext csv (company_id, month, kind); opcional")
@@ -605,7 +612,7 @@ def main(argv: list[str] | None = None) -> int:
     write_metrics(metrics, args.name, out_dir / "metrics.json")
     model.save(out_dir / f"{args.name}_model.json")
     _print_summary(args.name, _clean(metrics))
-    print(f"→ {out_dir / 'metrics.json'} · {out_dir / f'{args.name}_model.json'}")
+    print(f"-> {out_dir / 'metrics.json'} · {out_dir / f'{args.name}_model.json'}")
     return 0
 
 

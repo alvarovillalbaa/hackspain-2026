@@ -168,10 +168,11 @@ def test_watch_metrics_measure_red_within_three_months_with_and_without_watch():
     df = _scored("a", [50.0] * 10, n_red=[0, 0, 0, 0, 2, 2, 0, 0, 0, 0])
     df["watch"] = [None, "large_maturity", "large_maturity", "large_maturity", None, None, None, None, None, None]
     out = evals.watch_metrics(df, test_months=None)
-    assert out["share_rows_with_watch"] == pytest.approx(0.3)
+    # el denominador es el de las filas evaluables {0,1,2,3,6}: no rojas en t y con 3 meses siguientes
+    assert out["share_rows_with_watch"] == pytest.approx(0.6)
     assert out["n_watch"] == 3 and out["p_red_3m_given_watch"] == 1.0  # t = 1, 2, 3 ven el rojo de t = 4
     assert out["p_red_3m_given_no_watch"] == 0.0  # t = 0 y t = 6 no ven ningún rojo en (t, t+3]
-    assert out["kinds"] == {"large_maturity": 3}
+    assert out["kinds"] == {"large_maturity": 3}  # meses con watch activo, ~3 por evento
     assert evals.watch_metrics(df.drop(columns=["watch"]), test_months=None)["n_watch"] == 0
 
 

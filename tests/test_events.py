@@ -81,20 +81,81 @@ def test_large_maturity_fires_in_the_first_month_within_90_days_only_when_the_ba
 # --- expensive_new_debt ------------------------------------------------------------------
 
 
-def test_expensive_new_debt_needs_a_contract_rate_above_the_portfolio_percentile():
+def _debt_fixture() -> tuple[pd.DataFrame, pd.DataFrame]:
+    """D1 es el alta cara de febrero; X1–X3 son contratos preexistentes (2024) que llenan el pool."""
     debt = pd.DataFrame([
         {"product_id": "D1", "company_id": "C1", "type": "loan", "created_at": pd.Timestamp("2026-02-10")},
         {"product_id": "D2", "company_id": "C1", "type": "loan", "created_at": pd.Timestamp("2026-03-10")},  # sin contrato
         {"product_id": "D3", "company_id": "C1", "type": "loan", "created_at": pd.Timestamp("2026-04-10")},  # tipo normal
+        {"product_id": "X1", "company_id": "C9", "type": "loan", "created_at": pd.Timestamp("2024-06-01")},
+        {"product_id": "X2", "company_id": "C9", "type": "loan", "created_at": pd.Timestamp("2024-06-01")},
+        {"product_id": "X3", "company_id": "C9", "type": "loan", "created_at": pd.Timestamp("2024-06-01")},
     ])
     schedule = pd.DataFrame([
         {"product_id": "D1", "company_id": "C1", "annual_interest_rate_or_spread": 0.09},
         {"product_id": "D3", "company_id": "C1", "annual_interest_rate_or_spread": 0.03},
         {"product_id": "X1", "company_id": "C9", "annual_interest_rate_or_spread": 0.02},
         {"product_id": "X2", "company_id": "C9", "annual_interest_rate_or_spread": 0.04},
+        {"product_id": "X3", "company_id": "C9", "annual_interest_rate_or_spread": 0.025},
     ])
+    return debt, schedule
+
+
+def test_expensive_new_debt_needs_a_contract_rate_above_the_portfolio_percentile():
+    debt, schedule = _debt_fixture()
     out = events.build(_tables(debt=debt, schedule=schedule), _features())
     assert out.to_dict("records") == [{"company_id": "C1", "month": "2026-02", "kind": "expensive_new_debt"}]
+
+
+def test_expensive_new_debt_pool_only_counts_contracts_existing_at_the_month():
+    # un contrato carísimo dado de alta DESPUÉS no puede inflar el p75 de un alta anterior:
+    # con toda la tabla el pool a 2026-02 sería [0.02×4, 0.06, 0.50] (p75 ≈ 0.28) y D1 no
+    # saldría; contando solo lo existente a fin de febrero (p75 = 0.02) sí es «caro»
+    debt, schedule = _debt_fixture()
+    debt.loc[len(debt)] = {"product_id": "P5", "company_id": "C1", "type": "loan",
+                           "created_at": pd.Timestamp("2026-07-10")}
+    schedule.loc[len(schedule)] = {"product_id": "P5", "company_id": "C1",
+                                   "annual_interest_rate_or_spread": 0.50}
+    out = events.build(_tables(debt=debt, schedule=schedule), _features())
+    # P5 también dispara en su alta (2026-07), pero ese mes está fuera de la rejilla
+    assert out.to_dict("records") == [{"company_id": "C1", "month": "2026-02", "kind": "expensive_new_debt"}]
+
+
+def test_expensive_new_debt_uses_the_frozen_threshold_from_the_model():
+    # ingest/packs: el percentil de referencia viene congelado en el RulesModel y no hace
+    # falta pool en el pack — con un solo contrato el evento sí dispara
+    debt = pd.DataFrame([
+        {"product_id": "D1", "company_id": "C1", "type": "loan", "created_at": pd.Timestamp("2026-02-10")},
+    ])
+    schedule = pd.DataFrame([
+        {"product_id": "D1", "company_id": "C1", "annual_interest_rate_or_spread": 0.09},
+    ])
+    cfg = events.EventsConfig(expensive_rate_threshold=0.05)
+    out = events.build(_tables(debt=debt, schedule=schedule), _features(), cfg)
+    assert out.to_dict("records") == [{"company_id": "C1", "month": "2026-02", "kind": "expensive_new_debt"}]
+    assert events.build(_tables(debt=debt, schedule=schedule), _features(),
+                        events.EventsConfig(expensive_rate_threshold=0.20)).empty
+
+
+def test_rate_reference_is_the_portfolio_percentile_as_of_a_month():
+    debt, schedule = _debt_fixture()
+    tables = _tables(debt=debt, schedule=schedule)
+    assert events.rate_reference(tables) == pytest.approx(0.04)  # p75 de toda la tabla
+    assert events.rate_reference(tables, as_of="2026-02") == pytest.approx(0.0525)
+    assert events.rate_reference(tables, as_of="2025-06") is None  # pool de 3 < mínimo
+    assert events.rate_reference(_tables()) is None
+
+
+def test_main_customer_lost_counts_invoice_history_before_the_grid():
+    # A dejó de facturar justo antes de la rejilla: solo con la historia pre-rejilla llega a
+    # los 6 meses recurrentes, y el evento sale a los `absence_months` del borde de la rejilla
+    inv = pd.DataFrame(
+        [_invoice("C1", "A", m, 6_000.0) for m in [str(p) for p in pd.period_range("2025-01", "2025-06", freq="M")]]
+        + [_invoice("C1", "B", m, 4_000.0) for m in MONTHS]
+    )
+    grid = _features(months=[str(p) for p in pd.period_range("2025-07", "2026-06", freq="M")])
+    out = events.build(_tables(invoices=inv), grid)
+    assert out.to_dict("records") == [{"company_id": "C1", "month": "2025-09", "kind": "main_customer_lost"}]
 
 
 # --- determinismo, sin mirar el futuro, rejilla ----------------------------------------------

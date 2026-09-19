@@ -32,7 +32,7 @@ export function buildScoreExplanation(row: ExportedScore): string {
     );
   }
   if (row.watch) {
-    parts.push(`En seguimiento: ${row.watch}.`);
+    parts.push(`En seguimiento: ${watchMeta(row.watch).description}.`);
   }
   return parts.join(" ");
 }

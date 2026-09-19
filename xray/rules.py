@@ -1,7 +1,8 @@
 """Score por reglas calibradas (slice #15). Especificación: docs/rules_spec.md.
 
-Nivel → mapa isotónico → score 0–100; outlook por persistencia; watch desde eventos externos;
-confidence por historial y cobertura. Solo lee la salida de `xray.labels`.
+Nivel → mapa isotónico → score 0–100 y abanico a t+6 por tramo de nivel; outlook por persistencia;
+watch desde eventos externos; confidence por historial y cobertura. Solo lee la salida de
+`xray.labels`.
 """
 
 from __future__ import annotations
@@ -18,6 +19,7 @@ from xray.profile import RankProfile
 
 KEYS = ["company_id", "month"]
 WATCH_KINDS = ("large_maturity", "main_customer_lost", "expensive_new_debt")  # orden = prioridad
+PROJECTION_COLUMNS = ["proj_p10", "proj_p50", "proj_p90"]  # cuantiles del score a t+6, en puntos
 
 
 @dataclass(frozen=True)
@@ -42,6 +44,9 @@ class RulesConfig:
     trend_threshold: float = 0.10  # |momentum| por encima del cual trend deja de ser flat
     watch_months: int = 3  # meses que dura un watch, el del evento incluido
     lead_percentile: float = 20.0  # percentil de scores de train que define lead_cutoff
+    projection_bins: int = 20  # tramos de nivel (cuantiles de train) para el abanico a t+6
+    projection_min_rows: int = 30  # filas de train por tramo; con menos filas, menos tramos
+    projection_quantiles: tuple[float, float, float] = (0.10, 0.50, 0.90)
     confidence_high: tuple[int, int] = (12, 3)  # (months_of_history, n_signals) mínimos
     confidence_medium: tuple[int, int] = (6, 2)
 
@@ -75,6 +80,8 @@ class RulesModel:
     lead_cutoff: float
     n_train: int
     rank_profile: dict | None = None
+    projection_edges: list[float] | None = None  # cortes de nivel de los tramos (len = tramos + 1)
+    projection_points: list[list[float]] | None = None  # por tramo: [p10, p50, p90] del score a t+6
 
     def predict(self, level: np.ndarray | pd.Series) -> np.ndarray:
         x = np.asarray(level, dtype=float)
@@ -83,13 +90,53 @@ class RulesModel:
     def profile(self) -> RankProfile | None:
         return RankProfile.from_dict(self.rank_profile) if self.rank_profile else None
 
+    def project(self, level: np.ndarray | pd.Series) -> np.ndarray:
+        """Cuantiles del score a t+6 (n, 3) según el tramo de nivel de hoy; nivel NaN → fila NaN."""
+        if self.projection_edges is None or self.projection_points is None:
+            raise ValueError("RulesModel sin proyección a t+6: vuelve a ajustar con `uv run xray-score`")
+        x = np.asarray(level, dtype=float)
+        edges = np.asarray(self.projection_edges, dtype=float)
+        points = np.asarray(self.projection_points, dtype=float)
+        idx = np.clip(np.searchsorted(edges[1:-1], x, side="right"), 0, len(points) - 1)
+        out = points[idx].astype(float)
+        out[np.isnan(x)] = np.nan
+        return out
+
     def save(self, path: str | Path) -> None:
         # compacto: el perfil guarda ~100 k valores y con indent ocuparía megabytes de saltos de línea
         Path(path).write_text(json.dumps(asdict(self), separators=(",", ":")), encoding="utf-8")
 
     @classmethod
     def load(cls, path: str | Path) -> RulesModel:
-        return cls(**json.loads(Path(path).read_text(encoding="utf-8")))
+        model = cls(**json.loads(Path(path).read_text(encoding="utf-8")))
+        if model.projection_edges is None or model.projection_points is None:
+            raise ValueError(
+                f"{path}: RulesModel sin proyección a t+6 (modelo anterior al slice 14); "
+                "regenera con `uv run xray-score --features artifacts/features.parquet`"
+            )
+        return model
+
+
+def _fit_projection(
+    train: pd.DataFrame, model: RulesModel, cfg: RulesConfig
+) -> tuple[list[float], list[list[float]]]:
+    """Cuantiles de la etiqueta por tramo de nivel, pasados por el mapa: como el mapa es monótono y
+    nivel(t+6) = etiqueta(t) (model_card.md §4), son los cuantiles del score dentro de 6 meses."""
+    level = train["level"].to_numpy(dtype=float)
+    label = train["label_t6"].to_numpy(dtype=float)
+    bins = max(1, min(cfg.projection_bins, len(train) // cfg.projection_min_rows))
+    edges = np.unique(np.quantile(level, np.linspace(0.0, 1.0, bins + 1)))
+    if len(edges) < 2:
+        edges = np.array([edges[0], edges[0]])
+    idx = np.clip(np.searchsorted(edges[1:-1], level, side="right"), 0, len(edges) - 2)
+    points: list[list[float]] = []
+    for b in range(len(edges) - 1):
+        rows = label[idx == b]
+        if len(rows) == 0:
+            rows = label
+        q = np.quantile(rows, cfg.projection_quantiles)
+        points.append([float(v) for v in model.predict(q)])
+    return [float(e) for e in edges], points
 
 
 def fit(indexed: pd.DataFrame, cfg: RulesConfig | None = None, train_until: str = "2025-08") -> RulesModel:
@@ -111,6 +158,7 @@ def fit(indexed: pd.DataFrame, cfg: RulesConfig | None = None, train_until: str 
         rank_profile=RankProfile.fit(indexed, labels.SIGNALS).to_dict(),  # todos los meses, no solo train
     )
     model.lead_cutoff = float(np.percentile(model.predict(train["level"]), cfg.lead_percentile))
+    model.projection_edges, model.projection_points = _fit_projection(train, model, cfg)
     return model
 
 
@@ -205,11 +253,15 @@ def score(
     events_ext: pd.DataFrame | None = None,
     cfg: RulesConfig | None = None,
 ) -> pd.DataFrame:
-    """Añade score, outlook, trend, watch y confidence a una tabla que ya trae nivel (o índice)."""
+    """Añade score, abanico a t+6, outlook, trend, watch y confidence a una tabla que ya trae nivel
+    (o índice)."""
     cfg = cfg or RulesConfig()
     out = indexed if "level" in indexed.columns else level(indexed, cfg)
     out = out.copy()
     out["score"] = model.predict(out["level"])
+    proj = model.project(out["level"])
+    for i, col in enumerate(PROJECTION_COLUMNS):
+        out[col] = proj[:, i]
     out = outlook(out, cfg)
     out = trend(out, cfg)
     out = watch(out, events_ext, cfg)

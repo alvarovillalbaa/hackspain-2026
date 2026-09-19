@@ -25,12 +25,13 @@ import pandas as pd
 from xray import explain, features as features_mod
 from xray import labels, rules
 from xray.data import artifacts_dir
-from xray.rules import RulesConfig, RulesModel
+from xray.rules import PROJECTION_COLUMNS, RulesConfig, RulesModel
 
 KEYS = ["company_id", "month"]
 TRAIN_UNTIL = "2025-08"
 OUTPUT_COLUMNS: list[str] = KEYS + [
     "score", "level", "state_index", "outlook", "trend", "watch", "confidence",
+    *PROJECTION_COLUMNS,
     "n_signals", "n_red", "event", "months_of_history",
 ] + labels.RANK_COLS + features_mod.SIGNAL_COLUMNS
 

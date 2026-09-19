@@ -1,3 +1,4 @@
+import type { PeerCohort } from "../peers";
 import type {
   ActionRecommendation,
   AmortizeContext,
@@ -37,6 +38,17 @@ export const eveProvider = {
     return apiGet<ScoreSnapshot>(
       `/api/xray/score/${encodeURIComponent(companyId)}`
     );
+  },
+
+  async getPeers(companyId: string, k?: number): Promise<PeerCohort | null> {
+    const q = k != null ? `?k=${k}` : "";
+    try {
+      return await apiGet<PeerCohort>(
+        `/api/xray/peers/${encodeURIComponent(companyId)}${q}`
+      );
+    } catch {
+      return null;
+    }
   },
 
   async listActions(companyId: string): Promise<ActionRecommendation[]> {

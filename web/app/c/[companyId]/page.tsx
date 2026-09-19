@@ -27,10 +27,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCompanyScore } from "@/hooks/xray/use-company-score";
 import { useActions } from "@/hooks/xray/use-actions";
 import { useCompanies } from "@/hooks/xray/use-companies";
+import { usePeers } from "@/hooks/xray/use-peers";
 import { useSelection } from "@/hooks/xray/use-selection";
 import { publishedProjectionMany } from "@/lib/xray/scoring";
 import { watchMeta } from "@/lib/xray/bands";
-import { formatMonth } from "@/lib/xray/format";
+import { formatDelta, formatMonth } from "@/lib/xray/format";
+import { PeerCohortCard } from "@/components/xray/peer-cohort-card";
 
 export default function ScorePage({
   params,
@@ -41,6 +43,7 @@ export default function ScorePage({
   const { data: score, loading } = useCompanyScore(companyId);
   const { data: actions, loading: actionsLoading } = useActions(companyId);
   const { data: companies, addImported } = useCompanies();
+  const { data: peers } = usePeers(companyId);
   const company = companies.find((c) => c.company_id === companyId);
   const selection = useSelection<string>();
   const selectedIds = selection.values;
@@ -89,8 +92,10 @@ export default function ScorePage({
                 {company?.name ?? companyId}
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Financial Health Score · confianza {score.confidence} · peer p
-                {score.peer_percentile}
+                Financial Health Score · confianza {score.confidence}
+                {peers && peers.k > 0
+                  ? ` · ${formatDelta(peers.delta)} vs ${peers.k} similares`
+                  : null}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -143,6 +148,12 @@ export default function ScorePage({
                   <AlertDescription>{a.message}</AlertDescription>
                 </Alert>
               ))}
+              {peers && peers.k > 0 ? (
+                <PeerCohortCard
+                  cohort={peers}
+                  currency={company?.currency ?? "EUR"}
+                />
+              ) : null}
             </div>
           </div>
 

@@ -1,3 +1,4 @@
+import type { PeerCohort } from "../peers";
 import type {
   ActionRecommendation,
   AmortizeContext,
@@ -37,6 +38,13 @@ export const mockProvider = {
     const score = SCORE_BY_ID[companyId];
     if (!score) throw new Error(`Company not found: ${companyId}`);
     return score;
+  },
+
+  async getPeers(
+    _companyId: string,
+    _k?: number
+  ): Promise<PeerCohort | null> {
+    return null;
   },
 
   async listActions(companyId: string): Promise<ActionRecommendation[]> {

@@ -8,8 +8,12 @@ import {
   decisionWithAmount,
   extractCandidates,
   parseStageOutput,
+  childSessionFor,
+  delegatedTo,
   phaseFromEvent,
+  quantityPrompt,
 } from "./marketplace-pipeline";
+import { rootRuntime } from "../../agent/lib/model";
 import { reassembleMatches } from "./reassemble";
 import type { ScoreSnapshot } from "./types";
 import { scoreFromDimensions } from "./scoring";
@@ -137,6 +141,48 @@ describe("marketplace pipeline", () => {
     expect(parseStageOutput(QuantityDecisionSchema, fromSubmit)?.ideal_amount).toBe(
       350_000
     );
+  });
+
+  it("finds the child session of a background subagent from the parent stream", () => {
+    const working = {
+      type: "subagent.completed",
+      data: {
+        subagentName: "quantity",
+        output: '{"agentId":"ag_quantity:1","status":"working","taskId":"t1"}',
+      },
+    };
+    const called = {
+      type: "subagent.called",
+      data: { name: "quantity", childSessionId: "wrun_child" },
+    };
+    expect(delegatedTo(working, "quantity")).toBe(true);
+    expect(delegatedTo(working, "offering")).toBe(false);
+    expect(childSessionFor(working, "quantity")).toBeNull();
+    expect(childSessionFor(called, "quantity")).toBe("wrun_child");
+    expect(childSessionFor(called, "match")).toBeNull();
+    // the working receipt is not a decision
+    expect(
+      parseStageOutput(QuantityDecisionSchema, extractCandidates(working, "quantity"))
+    ).toBeNull();
+  });
+
+  it("routes orchestrator stage turns to the fast model and chat to the ficha model", () => {
+    const stage = quantityPrompt({
+      company_id: "COMP_0001",
+      action_id: "COMP_0001-refinance-0",
+      action_kind: "refinance",
+      recommended_amount: 1000,
+      dimension_deltas: {},
+      band: "B",
+      score: 50,
+    });
+    const modelId = (m: { model: { modelId: string } }) => m.model.modelId;
+    expect(modelId(rootRuntime([{ role: "user", content: stage }]))).toBe("deepseek-v4-flash");
+    expect(
+      modelId(rootRuntime([{ role: "user", content: [{ type: "text", text: stage }] }]))
+    ).toBe("deepseek-v4-flash");
+    expect(modelId(rootRuntime([{ role: "user", content: "Resume la ficha" }]))).toBe("glm5.3");
+    expect(modelId(rootRuntime([]))).toBe("glm5.3");
   });
 
   it("assembles an eve decision and keeps origin through amount override", () => {

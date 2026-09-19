@@ -15,6 +15,7 @@ import {
   type RankingDecision,
   type RecommendationDecision,
 } from "../../agent/lib/schemas";
+import { MARKETPLACE_STAGE_PREFIX } from "../../agent/lib/model";
 import type { ActionKind } from "./types";
 import type { MarketplacePhase } from "./marketplace-progress";
 
@@ -47,7 +48,15 @@ function walkCandidates(value: unknown, into: unknown[]): void {
   }
   if (typeof value !== "object") return;
   const rec = value as Record<string, unknown>;
-  for (const key of ["decision", "data", "output", "result", "quantity", "offers"]) {
+  for (const key of [
+    "decision",
+    "data",
+    "output",
+    "result",
+    "quantity",
+    "offers",
+    "ranking",
+  ]) {
     if (key in rec) into.push(rec[key]);
   }
 }
@@ -80,6 +89,33 @@ export function extractCandidates(
     }
   }
   return out;
+}
+
+/**
+ * Declared subagents run as background tasks: the parent's tool call returns
+ * `{status:"working"}` at once and the decision lands on the CHILD session
+ * stream. `subagent.called` (parent follow stream) carries its id.
+ */
+export function childSessionFor(
+  event: PipelineEvent,
+  stage: MarketplaceStage
+): string | null {
+  if (event.type !== "subagent.called") return null;
+  const data = event.data ?? {};
+  const name = String(data.name ?? data.toolName ?? "");
+  const id = data.childSessionId;
+  return name === stage && typeof id === "string" ? id : null;
+}
+
+/** True when the parent turn actually dispatched the stage subagent. */
+export function delegatedTo(
+  event: PipelineEvent,
+  stage: MarketplaceStage
+): boolean {
+  if (event.type === "subagent.completed") {
+    return String(event.data?.subagentName ?? event.data?.name ?? "") === stage;
+  }
+  return childSessionFor(event, stage) != null;
 }
 
 export function parseStageOutput<T>(
@@ -186,9 +222,9 @@ export function quantityPrompt(input: {
   amount?: number;
 }): string {
   return [
-    "ORCHESTRATOR STAGE 1/3 — QUANTITY ONLY.",
+    `${MARKETPLACE_STAGE_PREFIX} 1/3 — QUANTITY ONLY.`,
     "Call the `quantity` subagent exactly once. Do not call offering or match.",
-    "Wait until quantity finishes, then return its QuantityDecision as this turn's structured output. Copy fields; do not recalculate.",
+    "Its QuantityDecision is read from the subagent session; reply with one short line after dispatching.",
     `company_id: ${input.company_id}`,
     `action_id: ${input.action_id}`,
     `action_kind: ${input.action_kind}`,
@@ -212,9 +248,9 @@ export function offeringPrompt(input: {
   quantity: QuantityDecision;
 }): string {
   return [
-    "ORCHESTRATOR STAGE 2/3 — OFFERING ONLY.",
+    `${MARKETPLACE_STAGE_PREFIX} 2/3 — OFFERING ONLY.`,
     "Call the `offering` subagent exactly once. Do not call quantity or match.",
-    "Wait until offering finishes, then return its OffersDecision (offers array) as this turn's structured output.",
+    "Its OffersDecision is read from the subagent session; reply with one short line after dispatching.",
     `company_id: ${input.company_id}`,
     `action_kind: ${input.action_kind}`,
     `target_amount: ${input.quantity.ideal_amount}`,
@@ -234,9 +270,9 @@ export function matchPrompt(input: {
     ({ issuer_rationale: _ignored, ...offer }) => offer
   );
   return [
-    "ORCHESTRATOR STAGE 3/3 — MATCH ONLY.",
+    `${MARKETPLACE_STAGE_PREFIX} 3/3 — MATCH ONLY.`,
     "Call the `match` subagent exactly once. Do not call quantity or offering.",
-    "Wait until match finishes, then return its RankingDecision as this turn's structured output.",
+    "Its RankingDecision is read from the subagent session; reply with one short line after dispatching.",
     `company_id: ${input.company_id}`,
     `action_kind: ${input.action_kind}`,
     `amount: ${input.quantity.ideal_amount}`,

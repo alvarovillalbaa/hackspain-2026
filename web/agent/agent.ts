@@ -1,6 +1,11 @@
-import { defineAgent } from "eve";
-import { agentRuntime } from "#lib/model";
+import { defineAgent, defineDynamic } from "eve";
+import { rootRuntime } from "#lib/model";
 
 export default defineAgent({
-  ...agentRuntime(),
+  // Live LanguageModel objects may only be returned from `step.started`.
+  model: defineDynamic({
+    events: {
+      "step.started": (_event, ctx) => rootRuntime(ctx.messages),
+    },
+  }),
 });

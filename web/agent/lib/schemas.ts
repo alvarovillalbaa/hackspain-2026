@@ -27,7 +27,7 @@ export const QuantityDecisionSchema = z.object({
   /** Why not more — required to prevent "more is always better". */
   ceiling_reason: z.string().min(8),
   rationale: z.string().min(8),
-  risks: z.array(z.string()).default([]),
+  risks: z.array(z.string()).optional().default([]),
 });
 
 export type QuantityDecision = z.infer<typeof QuantityDecisionSchema>;
@@ -70,7 +70,7 @@ export const RankedOfferSchema = z.object({
   client_fit: z.number().min(0).max(1),
   issuer_appetite: z.number().min(0).max(1),
   rationale: z.string().min(4),
-  risks: z.array(z.string()).default([]),
+  risks: z.array(z.string()).optional().default([]),
 });
 
 export const RankingDecisionSchema = z.object({

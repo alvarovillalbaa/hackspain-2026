@@ -116,7 +116,7 @@ Plantilla `ai-app-jumpstart` movida intacta a `web/`. Versiones instaladas:
 
 ### 6.1 `features(company_id, month)` — dentro de Python
 
-Tabla plana mensual, una fila por empresa y mes, con las cinco dimensiones (liquidez, cobro, pago, deuda, actividad) y columnas estáticas del perfil público. La producen `xray.features`; la consumen `labels`, `model`, `projection` y `score.py`. Se cachea en `artifacts/features.parquet`.
+Tabla plana mensual, una fila por empresa y mes, con las cinco dimensiones (liquidez, cobro, pago, deuda, actividad) y columnas estáticas del perfil público. La produce `features.build()` (`uv run xray-features`, 8 s); la consumen `labels`, `rules`, `explain`, `evals` y `score`. Se cachea en `artifacts/features.parquet`.
 
 ### 6.2 API JSON — entre Python y web
 
@@ -125,7 +125,7 @@ Endpoints: `GET /companies` · `GET /score/{company_id}` · `GET /debt/{company_
 ```json
 {
   "company_id": "…", "month": "2026-09",
-  "score": 62.4, "band": "BB", "outlook": "negative", "watch": null,
+  "score": 62.4, "band": "BB", "outlook": "negative", "trend": "worsening", "watch": null,
   "sub_scores": {"bankability": 58, "business_profile": 71},
   "dimensions": {"liquidity": 0.4, "collections": 0.7, "payments": 0.3, "debt": 0.5, "activity": 0.6},
   "peer_percentile": 41,
@@ -202,8 +202,8 @@ Reglas: pydantic lo valida al salir, zod al entrar; `explanation` llega por `/ex
 2. **¿Dónde corre FastAPI en la demo?** *(full-stack + ML-1, sábado 18:00)*: local + túnel vs. PaaS. Depende de si la demo se presenta desde nuestro portátil.
 3. **Esquema Supabase mínimo** *(full-stack, sábado mañana)*: confirmar las tres tablas o reducir a una.
 4. **Formato del leaderboard** *(ML-1, cuando llegue el script de Embat)*.
-5. **¿Polars en `features`?** *(ML-1, solo si la construcción tarda > 2 min)*.
-6. **Calibración de los pesos del índice de estado** *(ML-2, domingo 10:00; añadida el 18 sep, noche)*: la v1 usa pesos fijos por el orden de evidencia del plan §2 y un único mapa isotónico del índice suavizado al índice realizado a t+6. Candidato para después: búsqueda de pesos que maximice el Spearman con el índice a t+6 en los meses de train, **restringida a ese orden de evidencia**, para que siga siendo «reglas calibradas» y no una regresión con otro nombre. Si la restricción cuesta mucha correlación, se dice en el pitch.
+5. **¿Polars en `features`?** *(ML-1, solo si la construcción tarda > 2 min)*. **Cerrada el 19 sep (tarde):** `features.build()` en pandas sobre la caché parquet tarda 8 s para las 1.265 empresas; no hace falta polars. La rama `codex/treasury-resilience-score` (builder en polars, paquete aparte) no se fusiona: se tomaron de ella el filtro de facturas y la idea del perfil de referencia guardado, y se descartaron la normalización por `exchange_rate` (no es una conversión, plan §5) y el perfil global de percentiles (sensible a la deriva del saldo).
+6. **Calibración de los pesos del índice de estado** *(ML-2, domingo 10:00; añadida el 18 sep, noche)*: la v1 usa pesos fijos por el orden de evidencia del plan §2 y un único mapa isotónico del índice suavizado al índice realizado a t+6. Candidato para después: búsqueda de pesos que maximice el Spearman con el índice a t+6 en los meses de train, **restringida a ese orden de evidencia**, para que siga siendo «reglas calibradas» y no una regresión con otro nombre. Si la restricción cuesta mucha correlación, se dice en el pitch. **Resuelta el 19 sep (mañana):** pesos iguales pierden 0,008 de AUC(6) frente a los del plan; no se calibran. Consecuencia: el mapa isotónico es monótono y ningún parámetro ajustado mueve el ranking, así que GroupKFold se reporta como dispersión entre subpoblaciones, no como generalización (`rules_spec.md` §8 y §11).
 
 ## 11. Calendario del stack
 

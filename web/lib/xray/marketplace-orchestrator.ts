@@ -10,12 +10,12 @@
  */
 import type { Client, MessageStreamEvent } from "eve/client";
 import {
-  OfferDecisionSchema,
-  OffersDecisionSchema,
+  TermQuoteSchema,
+  TermsDecisionSchema,
   QuantityDecisionSchema,
   RankingDecisionSchema,
-  type OfferDecision,
-  type OffersDecision,
+  type TermQuote,
+  type TermsDecision,
   type QuantityDecision,
   type RecommendationDecision,
 } from "../../agent/lib/schemas";
@@ -62,24 +62,28 @@ function failMessage(event: MessageStreamEvent): string | null {
   return null;
 }
 
-function parseOffers(candidates: unknown[]): OffersDecision | OfferDecision[] | null {
-  const full = parseStageOutput(OffersDecisionSchema, candidates);
+function parseTerms(candidates: unknown[]): TermsDecision | TermQuote[] | null {
+  const full = parseStageOutput(TermsDecisionSchema, candidates);
   if (full) return full;
   for (const candidate of candidates) {
     const list = Array.isArray(candidate)
       ? candidate
       : candidate &&
           typeof candidate === "object" &&
-          Array.isArray((candidate as { offers?: unknown }).offers)
-        ? (candidate as { offers: unknown[] }).offers
-        : null;
+          Array.isArray((candidate as { terms?: unknown }).terms)
+        ? (candidate as { terms: unknown[] }).terms
+        : candidate &&
+            typeof candidate === "object" &&
+            Array.isArray((candidate as { offers?: unknown }).offers)
+          ? (candidate as { offers: unknown[] }).offers
+          : null;
     if (!list) continue;
-    const offers: OfferDecision[] = [];
+    const terms: TermQuote[] = [];
     for (const row of list) {
-      const parsed = OfferDecisionSchema.safeParse(row);
-      if (parsed.success) offers.push(parsed.data);
+      const parsed = TermQuoteSchema.safeParse(row);
+      if (parsed.success) terms.push(parsed.data);
     }
-    if (offers.length > 0) return offers;
+    if (terms.length > 0) return terms;
   }
   return null;
 }
@@ -198,8 +202,8 @@ export async function runMarketplacePipeline(
       ? { ...quantity, ideal_amount: input.amount }
       : quantity;
 
-  input.onPhase("offering", "Ofertas emisor");
-  const offers = await withStageTimeout("offering", input.signal, (stageSignal) =>
+  input.onPhase("offering", "Cotizando términos");
+  const terms = await withStageTimeout("offering", input.signal, (stageSignal) =>
     runStage({
       client: input.client,
       stage: "offering",
@@ -211,7 +215,7 @@ export async function runMarketplacePipeline(
       }),
       signal: stageSignal,
       onEvent: input.onEvent,
-      parse: parseOffers,
+      parse: parseTerms,
     })
   );
 
@@ -224,7 +228,7 @@ export async function runMarketplacePipeline(
         company_id: input.company_id,
         action_kind: input.action_kind,
         quantity: quantityDecision,
-        offers: Array.isArray(offers) ? offers : offers.offers,
+        terms: Array.isArray(terms) ? terms : terms.terms,
       }),
       signal: stageSignal,
       onEvent: input.onEvent,
@@ -238,7 +242,7 @@ export async function runMarketplacePipeline(
     action_id: input.action_id,
     action_kind: input.action_kind,
     quantity: quantityDecision,
-    offers,
+    terms,
     ranking,
   });
 }

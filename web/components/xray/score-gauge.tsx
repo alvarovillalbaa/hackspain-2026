@@ -86,7 +86,7 @@ export function ScoreGauge({
               {size === "sm" ? score.toFixed(0) : score.toFixed(1)}
             </span>
             <span className="mt-0.5 max-w-[90%] truncate text-center font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
-              {label ?? meta?.label ?? ""}
+              {label ?? ""}
             </span>
           </>
         )}

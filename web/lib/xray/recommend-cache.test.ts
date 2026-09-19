@@ -35,22 +35,18 @@ describe("quantityFromDecision", () => {
     expect(quantityFromDecision(undefined)).toBeUndefined();
   });
 
-  it("surfaces ceiling_reason and rationale", () => {
+  it("surfaces reasoning and risks", () => {
     const decision = {
       quantity: {
         company_id: "C",
         action_kind: "refinance",
         ideal_amount: 100_000,
-        amount_min: 50_000,
-        amount_max: 200_000,
-        ceiling_reason: "DSCR caería por debajo de 1,2.",
-        rationale: "Suficiente para refinanciar el tramo caro.",
+        reasoning: "Suficiente para refinanciar el tramo caro sin romper DSCR.",
         risks: ["Tipo variable"],
       },
     } as RecommendationDecision;
     expect(quantityFromDecision(decision)).toEqual({
-      ceiling_reason: "DSCR caería por debajo de 1,2.",
-      rationale: "Suficiente para refinanciar el tramo caro.",
+      reasoning: "Suficiente para refinanciar el tramo caro sin romper DSCR.",
       risks: ["Tipo variable"],
     });
   });

@@ -110,8 +110,8 @@ Use this when the user (or `POST /api/xray/recommend`) asks for a product recomm
 The HTTP marketplace runner sends **one stage per turn**. On each turn, call **only** the named subagent, wait until it finishes (background task + structured output), then copy its payload into this turn's output schema. Do not invent numbers. Do not skip ahead.
 
 1. **STAGE 1/3 quantity** — message includes `company_id`, `action_kind`, `recommended_amount`, dimension deltas. Call `quantity`. Return `QuantityDecision`.
-2. **STAGE 2/3 offering** — message includes `target_amount` from quantity and `band`. Call `offering`. Offering **selects catalog products** and quotes terms inside ranges — it does not invent SKUs. Return `OffersDecision`. Do **not** pass match scores.
-3. **STAGE 3/3 match** — message includes structured offers only (strip `issuer_rationale`). Call `match`. Return `RankingDecision`. Preserve ranking order.
+2. **STAGE 2/3 offering** — message includes `target_amount` from quantity and `band`. Call `offering`. Quote **point terms** (`amount`, `interest_rate`, `start_date`, `end_date`) inside catalog ranges — it does not invent SKUs. Optimize for the issuer. Return `TermsDecision`. No reasoning field. Do **not** pass match scores.
+3. **STAGE 3/3 match** — message includes structured terms. Call `match`. Return `{ product_id, reasoning }` only. Server computes match% and sorts.
 
 The server assembles `RecommendationDecision` and recomputes match/uplift. You never re-rank after match returns.
 

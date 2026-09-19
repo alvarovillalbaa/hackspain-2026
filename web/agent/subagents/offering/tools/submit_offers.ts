@@ -1,21 +1,21 @@
 import { defineTool } from "eve/tools";
-import { OffersDecisionSchema } from "#lib/schemas";
+import { TermsDecisionSchema } from "#lib/schemas";
 import { getProduct } from "@/lib/xray/catalog";
 
 export default defineTool({
   description:
-    "Submit the final set of catalog quotes. product_id must exist in the registry; unknown ids are dropped. Do not include match scores.",
-  inputSchema: OffersDecisionSchema,
+    "Submit point terms against catalog products. product_id must exist; unknown ids are dropped. Fields: amount, interest_rate, start_date, end_date. No reasoning.",
+  inputSchema: TermsDecisionSchema,
   label: {
-    start: ({ company_id, offers }) =>
-      `Submit ${offers.length} offers for ${company_id}`,
+    start: ({ company_id, terms }) =>
+      `Submit ${terms.length} terms for ${company_id}`,
   },
   async execute(decision) {
-    const offers = decision.offers.filter((o) => getProduct(o.product_id));
+    const terms = decision.terms.filter((o) => getProduct(o.product_id));
     return {
       ok: true as const,
-      decision: { ...decision, offers },
-      dropped: decision.offers.length - offers.length,
+      decision: { ...decision, terms },
+      dropped: decision.terms.length - terms.length,
     };
   },
 });

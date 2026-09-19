@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { ScoreGauge } from "@/components/xray/score-gauge";
-import { ScoreBandBadge, OutlookBadge } from "@/components/xray/score-band-badge";
+import { OutlookBadge } from "@/components/xray/score-band-badge";
 import { DimensionRadar, type RadarSeries } from "@/components/xray/dimension-radar";
 import {
   ScoreTrajectory,
@@ -18,14 +18,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Progress,
   ProgressLabel,
   ProgressValue,
 } from "@/components/ui/progress";
-import { watchMeta } from "@/lib/xray/bands";
 import { formatCurrency, formatDelta, formatMonth, formatNumber, formatPercent } from "@/lib/xray/format";
 import type { PeerCohort } from "@/lib/xray/peers";
 import type {
@@ -95,30 +93,26 @@ export function SubScoresCard({ subScores }: { subScores: SubScores }) {
   return (
     <Card size="sm">
       <CardHeader>
-        <CardTitle>Desglose</CardTitle>
+        <CardTitle>Dimensiones</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Progress value={subScores.bankability}>
-          <div className="flex w-full items-center gap-2">
-            <ProgressLabel>Financiabilidad</ProgressLabel>
-            <ReasoningHint
-              text={subScoreReasoning("Financiabilidad", subScores.bankability)}
-            />
-            <ProgressValue />
-          </div>
-        </Progress>
-        <Progress value={subScores.business_profile}>
-          <div className="flex w-full items-center gap-2">
-            <ProgressLabel>Perfil de negocio</ProgressLabel>
-            <ReasoningHint
-              text={subScoreReasoning(
-                "Perfil de negocio",
-                subScores.business_profile
-              )}
-            />
-            <ProgressValue />
-          </div>
-        </Progress>
+        {(
+          [
+            ["liquidity", "Liquidez"],
+            ["collections", "Cobros"],
+            ["payments", "Pagos"],
+            ["debt", "Deuda"],
+            ["activity", "Actividad"],
+          ] as const
+        ).map(([key, label]) => (
+          <Progress key={key} value={subScores[key]}>
+            <div className="flex w-full items-center gap-2">
+              <ProgressLabel>{label}</ProgressLabel>
+              <ReasoningHint text={subScoreReasoning(label, subScores[key])} />
+              <ProgressValue />
+            </div>
+          </Progress>
+        ))}
       </CardContent>
     </Card>
   );
@@ -201,7 +195,6 @@ export function ScoreHeader({
   /** Compact identity for compare columns; omitted on the ficha (breadcrumb owns it). */
   title?: ReactNode;
 }) {
-  const watch = watchMeta(snapshot.watch ?? null);
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="min-w-0">
@@ -215,9 +208,7 @@ export function ScoreHeader({
         </span>
       </div>
       <div className="flex items-center gap-2">
-        <ScoreBandBadge band={snapshot.band} />
         <OutlookBadge outlook={snapshot.outlook} />
-        {watch.active ? <Badge variant="destructive">En seguimiento</Badge> : null}
       </div>
     </div>
   );
@@ -289,7 +280,6 @@ export function ScoreHero({
   showDrivers?: boolean;
 }) {
   const [mode, setMode] = useState<GaugeMode>("score");
-  const watch = watchMeta(snapshot.watch ?? null);
   return (
     <div className="space-y-4">
       <GaugeModePills mode={mode} onChange={setMode} />
@@ -302,7 +292,6 @@ export function ScoreHero({
         {mode === "score" ? (
           <ScoreGauge
             score={snapshot.score}
-            band={snapshot.band}
             reasoning={snapshot.explanation}
             color={color}
           />
@@ -315,12 +304,6 @@ export function ScoreHero({
             <DriversPanel drivers={snapshot.drivers} compact />
           ) : null}
           {snapshot.treasury ? <TreasuryCard treasury={snapshot.treasury} /> : null}
-          {watch.active ? (
-            <Alert className="sm:col-span-2">
-              <AlertTitle>Watch activo</AlertTitle>
-              <AlertDescription>{watch.description}</AlertDescription>
-            </Alert>
-          ) : null}
           {snapshot.alerts.map((a) => (
             <Alert key={a.id} className="sm:col-span-2" variant="destructive">
               <AlertTitle>{a.severity}</AlertTitle>

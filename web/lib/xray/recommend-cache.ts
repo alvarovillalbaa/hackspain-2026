@@ -6,8 +6,7 @@ import type { RecommendationDecision } from "../../agent/lib/schemas";
 import type { ProductMatch } from "./types";
 
 export type QuantitySummary = {
-  ceiling_reason: string;
-  rationale: string;
+  reasoning: string;
   risks: string[];
 };
 
@@ -23,8 +22,7 @@ export function quantityFromDecision(
 ): QuantitySummary | undefined {
   if (!decision?.quantity) return undefined;
   return {
-    ceiling_reason: decision.quantity.ceiling_reason,
-    rationale: decision.quantity.rationale,
+    reasoning: decision.quantity.reasoning,
     risks: decision.quantity.risks ?? [],
   };
 }

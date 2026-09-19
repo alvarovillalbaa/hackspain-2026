@@ -16,7 +16,7 @@ import { ScoreGauge } from "@/components/xray/score-gauge";
 import { ScoreTrajectory } from "@/components/xray/score-trajectory";
 import { DimensionRadar } from "@/components/xray/dimension-radar";
 import { ScoreUplift } from "@/components/xray/score-uplift";
-import { outlookMeta } from "@/lib/xray/bands";
+import { outlookMeta, trendMeta, confidenceMeta } from "@/lib/xray/bands";
 import {
   formatCompactEuro,
   formatCurrency,
@@ -28,6 +28,7 @@ import {
 } from "@/lib/xray/format";
 import { publishedProjection } from "@/lib/xray/scoring";
 import { signalLabel } from "@/lib/xray/signal-labels";
+import { SUB_SCORE_KEYS, SUB_SCORE_LABELS } from "@/lib/xray/sub-scores";
 import {
   AGE_BAND_LABEL,
   SIZE_BAND_LABEL,
@@ -42,6 +43,7 @@ import type {
   ScoreSnapshot,
 } from "@/lib/xray/types";
 import { cn } from "@/lib/utils";
+import type { SignalDotMonth } from "@/components/xray/score-trajectory";
 
 export const TRAJECTORY_RANGES = [3, 6, 12] as const;
 export type TrajectoryRange = (typeof TRAJECTORY_RANGES)[number];
@@ -158,30 +160,9 @@ export function FichaChips({
   );
 }
 
-export function FichaGauge({
-  score,
-  band,
-  outlook,
-}: {
-  score: number;
-  band: ScoreSnapshot["band"];
-  outlook: Outlook;
-}) {
-  return (
-    <div className="flex h-[266px] w-[428px] max-w-full shrink-0 items-center justify-center overflow-clip rounded-2xl bg-white">
-      <ScoreGauge
-        score={score}
-        band={band}
-        color={outlookColor(outlook)}
-        variant="embat"
-      />
-    </div>
-  );
-}
-
 export function SubScoreRow({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex items-center justify-between border-b border-[#dce0e6] px-5 py-[15px]">
+    <div className="flex items-center justify-between border-b border-[#dce0e6] px-5 py-2.5 last:border-b-0">
       <p className="text-[14px] font-medium tracking-[-0.14px] text-[#666]">
         {label}
       </p>
@@ -197,28 +178,140 @@ export function SubScoreRow({ label, value }: { label: string; value: number }) 
   );
 }
 
-export function DesgloseCard({
-  bankability,
-  business,
+export function FichaGauge({
+  score,
+  outlook,
 }: {
-  bankability: number;
-  business: number;
+  score: number;
+  outlook: Outlook;
 }) {
   return (
+    <div className="flex h-[200px] w-full max-w-[280px] shrink-0 items-center justify-center overflow-clip">
+      <ScoreGauge
+        score={score}
+        color={outlookColor(outlook)}
+        variant="embat"
+      />
+    </div>
+  );
+}
+
+export function ConfidenceMeter({
+  confidence,
+  nSignals,
+  monthsOfHistory,
+}: {
+  confidence: ScoreSnapshot["confidence"];
+  nSignals?: number;
+  monthsOfHistory?: number;
+}) {
+  const meta = confidenceMeta(confidence);
+  const hint = [
+    nSignals != null ? `${nSignals} señales` : null,
+    monthsOfHistory != null ? `${monthsOfHistory} meses` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <Popover>
+      <PopoverTrigger
+        type="button"
+        className="inline-flex items-center gap-1.5 rounded-xl border border-[#dce0e6] bg-white px-2 py-0.5 text-[12px] font-medium tracking-[-0.12px] text-[#666] outline-none"
+        aria-label={`Confianza ${meta.label}`}
+      >
+        <span className="flex gap-0.5" aria-hidden>
+          {([1, 2, 3] as const).map((i) => (
+            <span
+              key={i}
+              className={cn(
+                "size-1.5 rounded-full",
+                i <= meta.level ? "bg-primary" : "bg-[#dce0e6]"
+              )}
+            />
+          ))}
+        </span>
+        Confianza {meta.label}
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        side="top"
+        sideOffset={6}
+        className={cn(
+          embatUiClass,
+          "z-50 w-[240px] rounded-xl border border-[#dce0e6] bg-white p-2.5 text-[13px] font-medium tracking-[-0.13px] text-black shadow-sm ring-0"
+        )}
+      >
+        <p>{meta.description}</p>
+        {hint ? (
+          <p className="mt-1 text-[12px] text-[#999]">{hint}</p>
+        ) : null}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export function HealthScoreCard({
+  snapshot,
+  onOpenSignals,
+}: {
+  snapshot: ScoreSnapshot;
+  onOpenSignals: () => void;
+}) {
+  const outlook = outlookMeta(snapshot.outlook);
+  const trend = trendMeta(snapshot.trend);
+
+  return (
     <section
-      className={cn(fichaCardClass, "h-[266px] min-w-[260px] flex-1")}
-      aria-labelledby="desglose-score"
+      className={cn(fichaCardClass, "min-h-[300px] min-w-[280px] flex-1")}
+      aria-labelledby="health-score"
     >
-      <header className="border-b border-[#dce0e6] px-5 py-[15px]">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[#dce0e6] px-5 py-[15px]">
         <h2
-          id="desglose-score"
+          id="health-score"
           className="text-[14px] font-medium tracking-[-0.14px] text-[#999]"
         >
-          Desglose Score
+          Health Score
         </h2>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span
+            className={cn(
+              "inline-flex items-center justify-center rounded-xl border px-1 py-0.5 text-[12px] font-medium",
+              statusClass(snapshot.outlook)
+            )}
+          >
+            {outlook.label}
+          </span>
+          <span className="inline-flex items-center justify-center rounded-xl border border-[#dce0e6] bg-white px-1 py-0.5 text-[12px] font-medium text-[#666]">
+            {trend.label}
+          </span>
+          <ConfidenceMeter
+            confidence={snapshot.confidence}
+            nSignals={snapshot.n_signals}
+          />
+        </div>
       </header>
-      <SubScoreRow label="Financiabilidad" value={bankability} />
-      <SubScoreRow label="Perfil de negocio" value={business} />
+      <div className="flex flex-col items-center gap-2 px-3 pt-2">
+        <FichaGauge score={snapshot.score} outlook={snapshot.outlook} />
+      </div>
+      <div className="flex flex-col border-t border-[#dce0e6]">
+        {SUB_SCORE_KEYS.map((key) => (
+          <SubScoreRow
+            key={key}
+            label={SUB_SCORE_LABELS[key]}
+            value={snapshot.sub_scores[key]}
+          />
+        ))}
+      </div>
+      <div className="border-t border-[#dce0e6] px-5 py-3">
+        <button
+          type="button"
+          onClick={onOpenSignals}
+          className="text-[13px] font-medium tracking-[-0.13px] text-primary hover:underline"
+        >
+          Ver señales
+        </button>
+      </div>
     </section>
   );
 }
@@ -288,6 +381,9 @@ export function ActionRow({
   subtitle?: string;
 }) {
   const projection = publishedProjection(snapshot, action);
+  const description = action.description ?? action.title;
+  const tip = action.reasoning ?? action.rationale;
+  const confidence = action.confidence ?? snapshot.confidence;
 
   return (
     <div className={cn(fichaItemClass, "hover:bg-[rgba(220,224,230,0.45)]")}>
@@ -297,7 +393,7 @@ export function ActionRow({
             href={href}
             className="block min-w-0 truncate text-[15px] font-medium tracking-[-0.15px] text-[#666] hover:underline"
           >
-            {action.title}
+            {description}
           </Link>
           {subtitle ? (
             <p className="truncate text-[12px] font-medium tracking-[-0.12px] text-[#999]">
@@ -305,19 +401,24 @@ export function ActionRow({
             </p>
           ) : null}
         </div>
-        <RationaleTip text={action.rationale} />
+        <RationaleTip text={tip} />
       </div>
+      <span className="w-[72px] shrink-0 text-center text-[12px] font-medium tracking-[-0.12px] text-[#999]">
+        {confidenceMeta(confidence).label}
+      </span>
       <Link
         href={href}
         tabIndex={-1}
         className="w-[100px] shrink-0 text-right text-[14px] font-medium tracking-[-0.14px] text-[#999]"
       >
-        {formatCompactEuro(action.recommended_amount)}
+        {action.recommended_amount > 0
+          ? formatCompactEuro(action.recommended_amount)
+          : "—"}
       </Link>
       <Link
         href={href}
         tabIndex={-1}
-        className="flex w-[100px] shrink-0 items-center justify-end"
+        className="flex w-[80px] shrink-0 items-center justify-end"
       >
         <span
           className={cn(
@@ -380,7 +481,7 @@ export function AccionesCard<T extends ActionRecommendation>({
 }) {
   return (
     <section
-      className={cn(fichaCardClass, "h-[300px] w-[425px] max-w-full shrink-0")}
+      className={cn(fichaCardClass, "min-h-[220px] w-full")}
       aria-labelledby="acciones-recomendadas"
     >
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-[15px]">
@@ -391,9 +492,10 @@ export function AccionesCard<T extends ActionRecommendation>({
           Acciones recomendadas
         </h2>
         <div className="flex items-center px-2.5 text-[14px] font-medium tracking-[-0.14px] text-[#999]">
-          <span className="min-w-0 flex-1">Tipo</span>
+          <span className="min-w-0 flex-1">Acción</span>
+          <span className="w-[72px] text-center">Conf.</span>
           <span className="w-[100px] text-right">Importe</span>
-          <span className="w-[100px] text-right">Puntuación</span>
+          <span className="w-[80px] text-right">Δ</span>
         </div>
         {loading ? (
           <>
@@ -422,12 +524,17 @@ export function AccionesCard<T extends ActionRecommendation>({
 export function TrajectoryCard({
   history,
   projection,
+  signalDots,
 }: {
   history: ScoreSnapshot["history"];
   projection: ScoreSnapshot["projection_6m"];
+  signalDots?: SignalDotMonth[];
 }) {
   const [range, setRange] = useState<TrajectoryRange>(3);
   const sliced = sliceHistory(history, range);
+  const slicedDots = (signalDots ?? []).filter((d) =>
+    sliced.some((h) => h.month === d.month)
+  );
 
   return (
     <section
@@ -476,6 +583,7 @@ export function TrajectoryCard({
         <ScoreTrajectory
           history={sliced}
           projection={projection}
+          signalDots={slicedDots}
           embat
           className="h-full"
         />
@@ -640,7 +748,7 @@ export function DealFichaCard({
         <p className="text-[12px] text-[#999]">
           Impacto what-if (no recalcula el índice de salud oficial)
         </p>
-        <ScoreUplift uplift={deal.uplift} toBand={deal.projected_band} />
+        <ScoreUplift uplift={deal.uplift} to={deal.projected_score} />
       </div>
     </section>
   );

@@ -17,60 +17,53 @@ export const ProductTermsSchema = z.object({
   collateral: z.enum(["none", "personal", "asset", "receivables"]),
 });
 
-/** Quantity agent structured decision — amount before any product exists. */
+/** Quantity agent — exact ideal amount (no min/max). */
 export const QuantityDecisionSchema = z.object({
   company_id: z.string(),
   action_kind: ActionKindSchema,
   ideal_amount: z.number().positive(),
-  amount_min: z.number().nonnegative(),
-  amount_max: z.number().positive(),
-  /** Why not more — required to prevent "more is always better". */
-  ceiling_reason: z.string().min(8),
-  rationale: z.string().min(8),
+  /** Why this ticket (incl. why not more). */
+  reasoning: z.string().min(8),
   risks: z.array(z.string()).optional().default([]),
 });
 
 export type QuantityDecision = z.infer<typeof QuantityDecisionSchema>;
 
 /**
- * Offering agent output: a quote against a catalog product_id.
- * label/description/kind/issuer are filled from the catalog at reassemble time;
- * optional fields kept for backward compatibility with warm JSON.
+ * Offering agent output: point terms against a catalog product_id.
+ * No rationale — these are terms, not marketing copy.
  */
-export const OfferDecisionSchema = z.object({
+export const TermQuoteSchema = z.object({
   product_id: z.string(),
-  /** Optional — server fills from catalog when missing. */
-  issuer_id: z.string().optional(),
-  issuer_name: z.string().optional(),
-  kind: ActionKindSchema.optional(),
-  label: z.string().optional(),
-  description: z.string().optional(),
-  amount_min: z.number().nonnegative(),
-  amount_max: z.number().positive(),
-  issuer_terms: ProductTermsSchema,
-  client_ideal_terms: ProductTermsSchema,
-  /** Why this issuer would underwrite — never a match score. */
-  issuer_rationale: z.string().min(8),
+  amount: z.number().positive(),
+  interest_rate: z.number().min(0).max(0.5),
+  /** ISO date YYYY-MM-DD */
+  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  /** ISO date YYYY-MM-DD */
+  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
-export const OffersDecisionSchema = z.object({
+export const TermsDecisionSchema = z.object({
   company_id: z.string(),
   action_kind: ActionKindSchema,
   target_amount: z.number().positive(),
-  offers: z.array(OfferDecisionSchema).min(1).max(8),
+  terms: z.array(TermQuoteSchema).min(1).max(8),
 });
 
-export type OffersDecision = z.infer<typeof OffersDecisionSchema>;
-export type OfferDecision = z.infer<typeof OfferDecisionSchema>;
+export type TermsDecision = z.infer<typeof TermsDecisionSchema>;
+export type TermQuote = z.infer<typeof TermQuoteSchema>;
 
+/** @deprecated alias — prefer TermsDecisionSchema */
+export const OfferDecisionSchema = TermQuoteSchema;
+/** @deprecated alias */
+export const OffersDecisionSchema = TermsDecisionSchema;
+export type OffersDecision = TermsDecision;
+export type OfferDecision = TermQuote;
+
+/** Match agent — reasoning only; match% is computed server-side. */
 export const RankedOfferSchema = z.object({
   product_id: z.string(),
-  /** Deterministic match from compute_match tool — not invented. */
-  match: z.number().min(0).max(1),
-  client_fit: z.number().min(0).max(1),
-  issuer_appetite: z.number().min(0).max(1),
-  rationale: z.string().min(4),
-  risks: z.array(z.string()).optional().default([]),
+  reasoning: z.string().min(4),
 });
 
 export const RankingDecisionSchema = z.object({
@@ -91,7 +84,8 @@ export const RecommendationDecisionSchema = z.object({
   action_id: z.string(),
   action_kind: ActionKindSchema,
   quantity: QuantityDecisionSchema,
-  offers: z.array(OfferDecisionSchema).min(1),
+  /** Point terms from the offering stage. */
+  terms: z.array(TermQuoteSchema).min(1),
   ranking: z.array(RankedOfferSchema).min(1),
   headline: z.string().min(8),
 });
@@ -102,12 +96,14 @@ export type RecommendationDecision = z.infer<
 
 /** Ficha actions: agent writes copy; server keeps amounts/uplift from the tool. */
 export const FichaActionPickSchema = z.object({
-  kind: ActionKindSchema,
-  title: z.string().min(4),
-  /** Why this action for THIS company — no invented amounts. Used as tooltip. */
-  rationale: z.string().min(8),
-  /** Preferred tooltip copy when present; falls back to rationale. */
-  reasoning: z.string().min(8).optional(),
+  /** Action kind (same as grounded `kind`). */
+  action: ActionKindSchema,
+  description: z.string().min(4),
+  reasoning: z.string().min(8),
+  /** Ignored if not a valid Confidence enum — server uses snapshot.confidence. */
+  confidence: z.enum(["high", "medium", "low"]).optional(),
+  /** Optional; server keeps grounded amount when missing. */
+  amount: z.number().positive().optional(),
 });
 
 export const FichaActionsDecisionSchema = z.object({

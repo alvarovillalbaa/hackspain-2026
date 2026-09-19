@@ -18,8 +18,11 @@ export const ConfidenceSchema = z.enum(["high", "medium", "low"]);
 export const DataOriginSchema = z.enum(["ml", "llm", "eve", "deterministic"]);
 
 export const SubScoresSchema = z.object({
-  bankability: z.number(),
-  business_profile: z.number(),
+  liquidity: z.number(),
+  collections: z.number(),
+  payments: z.number(),
+  debt: z.number(),
+  activity: z.number(),
 });
 
 export const DimensionsSchema = z.object({
@@ -28,6 +31,13 @@ export const DimensionsSchema = z.object({
   payments: z.number(),
   debt: z.number(),
   activity: z.number(),
+});
+
+export const ScoreSignalsSchema = z.object({
+  cash_buffer_days: z.number().nullable(),
+  overdue_flow_rate_3m: z.number().nullable(),
+  dscr_6m: z.number().nullable(),
+  net_cash_flow_ratio_3m: z.number().nullable(),
 });
 
 export const Projection6mSchema = z.object({
@@ -93,6 +103,9 @@ export const ScoreSnapshotSchema = z.object({
   trend: TrendSchema,
   watch: z.string().nullable(),
   confidence: ConfidenceSchema,
+  n_signals: z.number().int().nonnegative(),
+  n_red: z.number().int().nonnegative(),
+  signals: ScoreSignalsSchema,
   sub_scores: SubScoresSchema,
   dimensions: DimensionsSchema,
   peer_percentile: z.number(),

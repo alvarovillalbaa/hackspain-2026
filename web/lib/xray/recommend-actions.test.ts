@@ -21,7 +21,21 @@ function snapshot(over: Partial<ScoreSnapshot> = {}): ScoreSnapshot {
     trend: "flat",
     watch: null,
     confidence: "high",
-    sub_scores: { bankability: 50, business_profile: 50 },
+    sub_scores: {
+    liquidity: 50,
+    collections: 50,
+    payments: 50,
+    debt: 50,
+    activity: 50,
+  },
+  n_signals: 4,
+  n_red: 0,
+  signals: {
+    cash_buffer_days: 10,
+    overdue_flow_rate_3m: 0.02,
+    dscr_6m: 1.5,
+    net_cash_flow_ratio_3m: 0.1,
+  },
     dimensions,
     peer_percentile: 40,
     projection_6m: { p10: 40, p50: 50, p90: 60 },
@@ -72,7 +86,7 @@ describe("recommendActions", () => {
     expect(a.origin).toBe("deterministic");
   });
 
-  it("lets the agent write the title and reasoning without touching amounts or grounded rationale", () => {
+  it("lets the agent write description and reasoning without touching amounts or grounded rationale", () => {
     const facts: CompanyFacts = {
       ...emptyFacts,
       invoice_aging: { ...emptyFacts.invoice_aging, issued_overdue: 80_000 },
@@ -80,28 +94,32 @@ describe("recommendActions", () => {
     const ground = recommendActions({ snapshot: snapshot(), facts, exported: null });
     const [a] = applyAgentCopy(ground, [
       {
-        kind: "factoring",
-        title: "Cobrar ya lo vencido",
-        rationale: "Hay vencido emitido que frena cobros.",
+        action: "factoring",
+        description: "Cobrar ya lo vencido",
+        reasoning: "Hay vencido emitido que frena cobros.",
       },
-      { kind: "new_debt", title: "Inventada", rationale: "esta kind no estaba en ground" },
+      {
+        action: "new_debt",
+        description: "Inventada",
+        reasoning: "esta kind no estaba en ground",
+      },
     ]);
     expect(a.title).toBe("Cobrar ya lo vencido");
+    expect(a.description).toBe("Cobrar ya lo vencido");
     expect(a.rationale).toBe(ground[0]!.rationale);
     expect(a.reasoning).toBe("Hay vencido emitido que frena cobros.");
     expect(a.recommended_amount).toBe(80_000);
     expect(a.origin).toBe("eve");
     expect(
       applyAgentCopy(ground, [
-        { kind: "new_debt", title: "x", rationale: "no existe aquí" },
+        { action: "new_debt", description: "xxxx", reasoning: "no existe aquí" },
       ])
     ).toEqual([]);
 
     const [preferred] = applyAgentCopy(ground, [
       {
-        kind: "factoring",
-        title: "Cobrar ya lo vencido",
-        rationale: "Texto largo de respaldo para rationale.",
+        action: "factoring",
+        description: "Cobrar ya lo vencido",
         reasoning: "Tooltip preferido del agente.",
       },
     ]);

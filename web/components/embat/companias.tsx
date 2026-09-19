@@ -28,14 +28,14 @@ import { useSearch } from "@/components/xray/search-context";
 import { useCompanies } from "@/hooks/xray/use-companies";
 import { useCompanySummaries } from "@/hooks/xray/use-company-summaries";
 import { useSelection } from "@/hooks/xray/use-selection";
-import { BANDS, outlookMeta, scoreToBand } from "@/lib/xray/bands";
+import { outlookMeta } from "@/lib/xray/bands";
 import type { CompanySummary } from "@/lib/xray/company-summary";
 import { MAX_COMPARE, compareHref } from "@/lib/xray/compare";
 import {
   formatCompactEuro,
   formatRatePct,
 } from "@/lib/xray/format";
-import type { Band, Outlook } from "@/lib/xray/types";
+import type { Outlook } from "@/lib/xray/types";
 import { cn } from "@/lib/utils";
 
 type OutlookFilter = Outlook | "all";
@@ -47,7 +47,6 @@ interface Filters {
   outlook: OutlookFilter;
   minRate: number | null;
   minCash: number | null;
-  band: Band | "all";
   currency: string;
   origin: OriginFilter;
 }
@@ -58,7 +57,6 @@ const EMPTY_FILTERS: Filters = {
   outlook: "all",
   minRate: null,
   minCash: null,
-  band: "all",
   currency: "all",
   origin: "all",
 };
@@ -66,7 +64,6 @@ const EMPTY_FILTERS: Filters = {
 type TableRow = CompanySummary & {
   currency: string;
   imported?: boolean;
-  band: Band;
 };
 
 function stubSummary(
@@ -109,7 +106,6 @@ function matchesFilters(row: TableRow, filters: Filters): boolean {
   if (filters.minCash != null && row.cash_close < filters.minCash) {
     return false;
   }
-  if (filters.band !== "all" && row.band !== filters.band) return false;
   if (filters.currency !== "all" && row.currency !== filters.currency) {
     return false;
   }
@@ -251,30 +247,6 @@ export function CompaniasToolbar({
       </FilterChip>
       <FilterChip
         icon="/embat/icon-filter.svg"
-        label="Banda"
-        active={filters.band !== "all"}
-      >
-        {(close) => (
-          <div className="flex max-h-64 w-full flex-col gap-1 overflow-auto">
-            <FilterOptionButtons
-              value={filters.band}
-              options={[
-                { value: "all", label: "Todas" },
-                ...BANDS.map((b) => ({ value: b.band, label: b.band })),
-              ]}
-              onSelect={(value) => {
-                setFilters((f) => ({
-                  ...f,
-                  band: value as Band | "all",
-                }));
-                close();
-              }}
-            />
-          </div>
-        )}
-      </FilterChip>
-      <FilterChip
-        icon="/embat/icon-filter.svg"
         label="Divisa"
         active={filters.currency !== "all"}
       >
@@ -368,7 +340,6 @@ export function useCompaniasState() {
         ...row,
         currency: ref?.currency ?? "EUR",
         imported: ref?.imported,
-        band: ref?.band ?? scoreToBand(row.score),
       };
     });
   }, [data, companies, byCompany]);

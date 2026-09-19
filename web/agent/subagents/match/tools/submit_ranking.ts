@@ -3,7 +3,7 @@ import { RankingDecisionSchema } from "#lib/schemas";
 
 export default defineTool({
   description:
-    "Submit the final ranking. match/client_fit/issuer_appetite must equal compute_match outputs.",
+    "Submit reasoning per product_id. Do not include match%; the server recomputes and sorts.",
   inputSchema: RankingDecisionSchema,
   label: {
     start: ({ company_id, ranking }) =>

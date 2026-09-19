@@ -29,9 +29,13 @@ export type DimensionKey =
   | "debt"
   | "activity";
 
+/** 0–100 per dimension (same keys as Dimensions, scaled). */
 export interface SubScores {
-  bankability: number;
-  business_profile: number;
+  liquidity: number;
+  collections: number;
+  payments: number;
+  debt: number;
+  activity: number;
 }
 
 export interface Dimensions {
@@ -40,6 +44,13 @@ export interface Dimensions {
   payments: number;
   debt: number;
   activity: number;
+}
+
+export interface ScoreSignals {
+  cash_buffer_days: number | null;
+  overdue_flow_rate_3m: number | null;
+  dscr_6m: number | null;
+  net_cash_flow_ratio_3m: number | null;
 }
 
 export interface Projection6m {
@@ -90,6 +101,9 @@ export interface ScoreSnapshot {
   trend: Trend;
   watch: string | null;
   confidence: Confidence;
+  n_signals: number;
+  n_red: number;
+  signals: ScoreSignals;
   sub_scores: SubScores;
   dimensions: Dimensions;
   peer_percentile: number;
@@ -137,8 +151,12 @@ export interface ActionRecommendation {
   title: string;
   /** Grounded deterministic "why" (amounts, screens). */
   rationale: string;
+  /** Eve-authored description (short). Falls back to title. */
+  description?: string;
   /** Eve-authored reasoning for tooltips; falls back to rationale in UI. */
   reasoning?: string;
+  /** Snapshot confidence at recommendation time. */
+  confidence?: Confidence;
   /** Base score uplift at the recommended amount (points). */
   uplift: number;
   recommended_amount: number;
@@ -260,6 +278,9 @@ export interface ProductMatch {
   rationale?: string;
   /** Agent-authored risks (eve path only). */
   risks?: string[];
+  /** Quoted term window (YYYY-MM-DD), when from offering stage. */
+  start_date?: string;
+  end_date?: string;
 }
 
 export interface NegotiationLever {

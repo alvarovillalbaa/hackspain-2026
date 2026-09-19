@@ -79,10 +79,11 @@ async function runEveFicha(
   currency?: string
 ): Promise<
   {
-    kind: ActionRecommendation["kind"];
-    title: string;
-    rationale: string;
-    reasoning?: string;
+    action: ActionRecommendation["kind"];
+    description: string;
+    reasoning: string;
+    confidence?: "high" | "medium" | "low";
+    amount?: number;
   }[]
 > {
   const aging = facts?.invoice_aging;
@@ -100,14 +101,14 @@ async function runEveFicha(
     : 0;
   const client = await createEveClient();
   const message = [
-    `Ficha de ${companyId}. Elige las acciones y ESCRIBE título + rationale (y opcionalmente reasoning) de cada una.`,
+    `Ficha de ${companyId}. Elige las acciones y ESCRIBE description + reasoning de cada una.`,
     JSON.stringify({
       company_id: snapshot.company_id,
       month: snapshot.month,
       score: snapshot.score,
-      band: snapshot.band,
       outlook: snapshot.outlook,
       trend: snapshot.trend,
+      confidence: snapshot.confidence,
       drivers: snapshot.drivers,
       facts: facts && {
         currency,
@@ -117,8 +118,8 @@ async function runEveFicha(
         has_debt: debt > 0,
       },
     }),
-    "Llama a get_recommended_actions. Responde con company_id y actions[{kind,title,rationale,reasoning?}].",
-    "kind debe existir en el tool. Tú redactas title (frase corta) y rationale/reasoning (tooltip: por qué esta acción para ESTA empresa).",
+    "Llama a get_recommended_actions. Responde con company_id y actions[{action,description,reasoning,confidence?}].",
+    "action (=kind) debe existir en el tool. Tú redactas description (frase corta) y reasoning (tooltip: por qué esta acción para ESTA empresa).",
     "No inventes importes ni el score. Cita señales/hechos del JSON o del tool.",
     "Si has_invoices es false, no digas circulante. Si has_debt es false, no digas refinanciar.",
     "No copies un título genérico. Máximo 4. Si el tool está vacío, actions: []. No invoques quantity, offering ni match.",

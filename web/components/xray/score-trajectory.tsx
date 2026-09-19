@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Area,
   CartesianGrid,
@@ -10,10 +11,13 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  Scatter,
 } from "recharts";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { alignHistories } from "@/lib/xray/compare";
-import { formatMonth } from "@/lib/xray/format";
-import type { HistoryPoint, Projection6m } from "@/lib/xray/types";
+import { formatMonth, formatSignedNumber } from "@/lib/xray/format";
+import { driverIsGood, signalLabel } from "@/lib/xray/signal-labels";
+import type { Driver, HistoryPoint, Projection6m } from "@/lib/xray/types";
 import { cn } from "@/lib/utils";
 
 export type TrajectorySeries = {
@@ -22,16 +26,25 @@ export type TrajectorySeries = {
   color?: string;
 };
 
+export type SignalDotMonth = {
+  month: string;
+  score: number;
+  drivers: Driver[];
+};
+
 export function ScoreTrajectory({
   history,
   projection,
   series,
+  signalDots,
   embat = false,
   className,
 }: {
   history?: HistoryPoint[];
   projection?: Projection6m;
   series?: TrajectorySeries[];
+  /** Clickable driver months on the score line. */
+  signalDots?: SignalDotMonth[];
   embat?: boolean;
   className?: string;
 }) {
@@ -42,6 +55,7 @@ export function ScoreTrajectory({
     <SingleTrajectory
       history={history ?? []}
       projection={projection}
+      signalDots={signalDots}
       embat={embat}
       className={className}
     />
@@ -112,25 +126,73 @@ function CompareTrajectory({
   );
 }
 
+function DotMarker({
+  cx,
+  cy,
+  payload,
+  onSelect,
+}: {
+  cx?: number;
+  cy?: number;
+  payload?: { month?: string; drivers?: Driver[]; score?: number };
+  onSelect?: (month: string, drivers: Driver[]) => void;
+}) {
+  if (cx == null || cy == null || !payload?.drivers?.length) return null;
+  const good = payload.drivers.every((d) => driverIsGood(d.signal, d.delta));
+  const bad = payload.drivers.every((d) => !driverIsGood(d.signal, d.delta));
+  const fill = good ? "#00a14e" : bad ? "#e61847" : "#ef8000";
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={6}
+      fill={fill}
+      stroke="#fff"
+      strokeWidth={2}
+      style={{ cursor: "pointer" }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect?.(payload.month!, payload.drivers!);
+      }}
+    />
+  );
+}
+
 function SingleTrajectory({
   history,
   projection,
+  signalDots,
   embat = false,
   className,
 }: {
   history: HistoryPoint[];
   projection?: Projection6m;
+  signalDots?: SignalDotMonth[];
   embat?: boolean;
   className?: string;
 }) {
+  const [openDot, setOpenDot] = useState<{
+    month: string;
+    drivers: Driver[];
+  } | null>(null);
+
+  const dotsByMonth = new Map(
+    (signalDots ?? []).map((d) => [d.month, d] as const)
+  );
+
   const last = history[history.length - 1];
-  const data = history.map((h) => ({
-    month: h.month,
-    score: h.score,
-    p10: undefined as number | undefined,
-    p50: undefined as number | undefined,
-    p90: undefined as number | undefined,
-  }));
+  const data = history.map((h) => {
+    const dot = dotsByMonth.get(h.month);
+    return {
+      month: h.month,
+      score: h.score,
+      p10: undefined as number | undefined,
+      p50: undefined as number | undefined,
+      p90: undefined as number | undefined,
+      signalScore: dot ? h.score : undefined,
+      drivers: dot?.drivers,
+    };
+  });
 
   if (last && projection) {
     const [y, m] = last.month.split("-").map(Number);
@@ -153,6 +215,8 @@ function SingleTrajectory({
       p10: projection.p10,
       p50: projection.p50,
       p90: projection.p90,
+      signalScore: undefined,
+      drivers: undefined,
     });
   }
 
@@ -187,7 +251,7 @@ function SingleTrajectory({
       };
 
   const chart = (
-    <div className={cn("h-56 w-full", className)}>
+    <div className={cn("relative h-56 w-full", className)}>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid stroke={grid} strokeDasharray="3 3" vertical={false} />
@@ -247,8 +311,78 @@ function SingleTrajectory({
             strokeWidth={2}
             connectNulls
           />
+          {signalDots && signalDots.length > 0 ? (
+            <Scatter
+              dataKey="signalScore"
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              shape={(props: any) => (
+                <DotMarker
+                  cx={props.cx}
+                  cy={props.cy}
+                  payload={props.payload}
+                  onSelect={(month, drivers) => setOpenDot({ month, drivers })}
+                />
+              )}
+            />
+          ) : null}
         </ComposedChart>
       </ResponsiveContainer>
+
+      {openDot ? (
+        <Popover open onOpenChange={(o) => !o && setOpenDot(null)}>
+          <PopoverTrigger
+            render={
+              <button
+                type="button"
+                className="absolute inset-0 z-10 cursor-default opacity-0"
+                aria-label="Cerrar señal"
+              />
+            }
+          />
+          <PopoverContent
+            align="center"
+            side="top"
+            className="z-50 w-[280px] rounded-xl border border-[#dce0e6] bg-white p-3 text-[13px] shadow-sm"
+          >
+            <p className="mb-2 font-medium text-black">
+              Señales · {formatMonth(openDot.month)}
+            </p>
+            <ul className="flex flex-col gap-2">
+              {openDot.drivers.map((d) => {
+                const good = driverIsGood(d.signal, d.delta);
+                return (
+                  <li
+                    key={`${d.signal}-${d.since}`}
+                    className="flex items-start justify-between gap-2"
+                  >
+                    <span className="min-w-0">
+                      <span className="font-medium text-[#666]">
+                        {signalLabel(d.signal)}
+                      </span>
+                      <span
+                        className={cn(
+                          "mt-0.5 block text-[11px]",
+                          good ? "text-[#00a14e]" : "text-[#e61847]"
+                        )}
+                      >
+                        {good ? "Buena" : "Mala"} para el índice
+                      </span>
+                    </span>
+                    <span
+                      className={cn(
+                        "shrink-0 tabular-nums font-medium",
+                        good ? "text-[#00a14e]" : "text-[#e61847]"
+                      )}
+                    >
+                      {formatSignedNumber(d.delta)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </PopoverContent>
+        </Popover>
+      ) : null}
     </div>
   );
 

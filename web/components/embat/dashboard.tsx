@@ -2,8 +2,8 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { statusClass } from "@/components/embat/chrome";
 import { useCompanySummaries } from "@/hooks/xray/use-company-summaries";
 import { useWatchQueue } from "@/hooks/xray/use-watch-queue";
@@ -79,9 +79,9 @@ export function Dashboard() {
               value={formatCompactEuro(kpis.cash_close_sum)}
             />
             <KpiCard
-              label="Alertas en seguimiento"
-              value={String(kpis.watch_count)}
-              hint={`${kpis.outlook.positive}↑ · ${kpis.outlook.stable}→ · ${kpis.outlook.negative}↓`}
+              label="Outlook cartera"
+              value={`${kpis.outlook.positive}↑`}
+              hint={`${kpis.outlook.stable}→ · ${kpis.outlook.negative}↓`}
             />
           </>
         )}
@@ -110,58 +110,6 @@ export function Dashboard() {
               </div>
             ))}
           </div>
-        </section>
-
-        <section className="flex min-w-[280px] flex-1 flex-col gap-3 rounded-2xl border border-border bg-white p-[15px] shadow-sm">
-          <div className="flex items-center justify-between px-2.5">
-            <h2 className="text-[14px] font-medium tracking-[-0.14px] text-muted-foreground">
-              Top alertas
-            </h2>
-            <Link
-              href="/watchers"
-              className="text-[12px] font-medium text-primary hover:text-primary/80"
-            >
-              Ver todas
-            </Link>
-          </div>
-          {loading ? (
-            <Skeleton className="h-20 rounded-xl bg-muted" />
-          ) : kpis.top_alerts.length === 0 ? (
-            <p className="px-2.5 text-[14px] text-muted-foreground">
-              Sin alertas activas.
-            </p>
-          ) : (
-            <ul className="flex flex-col gap-1">
-              {kpis.top_alerts.map((a) => (
-                <li key={a.company_id}>
-                  <Link
-                    href={`/c/${a.company_id}`}
-                    className="flex items-start justify-between gap-2 rounded-xl px-2.5 py-2 hover:bg-muted/50"
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate text-[14px] font-medium text-black">
-                        {a.name}
-                      </span>
-                      <span className="block truncate text-[12px] text-muted-foreground">
-                        {a.message}
-                      </span>
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "shrink-0 rounded-xl",
-                        a.severity === "critical"
-                          ? statusClass("negative")
-                          : statusClass("stable")
-                      )}
-                    >
-                      {a.severity === "critical" ? "Crítica" : "Aviso"}
-                    </Badge>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
         </section>
       </div>
 

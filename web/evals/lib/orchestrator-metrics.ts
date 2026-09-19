@@ -2,11 +2,9 @@ import type { RecommendationDecision } from "../../agent/lib/schemas";
 import { RecommendationDecisionSchema } from "../../agent/lib/schemas";
 import { reassembleMatches } from "../../lib/xray/reassemble";
 import {
-  computeMatch,
   defaultFitContext,
   solveIdealAmount,
 } from "../../lib/xray/match";
-import { getProduct, toProductOffer } from "../../lib/xray/catalog";
 import type { ProductOffer } from "../../lib/xray/types";
 import {
   cvWithin,
@@ -63,12 +61,10 @@ export function analystPrompt(companyId: string): string {
     score: snapshot.score,
     outlook: snapshot.outlook,
     trend: snapshot.trend,
-    watch: snapshot.watch,
     confidence: snapshot.confidence,
     peer_percentile: snapshot.peer_percentile,
     dimensions: snapshot.dimensions,
     drivers: snapshot.drivers,
-    band: snapshot.band,
   };
   return [
     `Analiza la salud financiera de ${companyId}.`,
@@ -84,42 +80,81 @@ export function parseDecision(
   raw: unknown,
   c: ManifestCase
 ): RecommendationDecision {
+  const migrated = migrateWarmDecision(raw);
   return RecommendationDecisionSchema.parse({
-    ...(raw as object),
+    ...migrated,
     company_id: c.company_id,
     action_id: c.action_id,
     action_kind: c.action_kind,
   });
 }
 
-function offerToProduct(
-  offer: RecommendationDecision["offers"][number]
-): ProductOffer | null {
-  const catalogProduct = getProduct(offer.product_id);
-  if (!catalogProduct) return null;
-  return toProductOffer(catalogProduct, {
-    amount_min: offer.amount_min,
-    amount_max: offer.amount_max,
-    issuer_terms: offer.issuer_terms,
-    client_ideal_terms: offer.client_ideal_terms,
-  });
+/** Map pre-terms warm JSON (offers + ceiling_reason) onto the live schema. */
+function migrateWarmDecision(raw: unknown): Record<string, unknown> {
+  if (!raw || typeof raw !== "object") return {};
+  const rec = { ...(raw as Record<string, unknown>) };
+  const quantity = rec.quantity;
+  if (quantity && typeof quantity === "object") {
+    const q = quantity as Record<string, unknown>;
+    if (q.reasoning == null) {
+      q.reasoning =
+        (typeof q.rationale === "string" && q.rationale) ||
+        (typeof q.ceiling_reason === "string" && q.ceiling_reason) ||
+        "Warm fixture amount";
+    }
+    delete q.amount_min;
+    delete q.amount_max;
+    delete q.ceiling_reason;
+    delete q.rationale;
+    rec.quantity = q;
+  }
+  if (!rec.terms && Array.isArray(rec.offers)) {
+    rec.terms = (rec.offers as Record<string, unknown>[]).map((o) => {
+      const issuer = (o.issuer_terms ?? {}) as Record<string, unknown>;
+      const termMonths =
+        typeof issuer.term_months === "number" ? issuer.term_months : 36;
+      const start = "2026-09-01";
+      const endDate = new Date(Date.UTC(2026, 8 + termMonths, 1));
+      return {
+        product_id: o.product_id,
+        amount:
+          typeof o.amount_min === "number"
+            ? o.amount_min
+            : typeof rec.quantity === "object" &&
+                rec.quantity &&
+                typeof (rec.quantity as { ideal_amount?: number }).ideal_amount ===
+                  "number"
+              ? (rec.quantity as { ideal_amount: number }).ideal_amount
+              : 100_000,
+        interest_rate:
+          typeof issuer.rate_annual === "number" ? issuer.rate_annual : 0.05,
+        start_date: start,
+        end_date: endDate.toISOString().slice(0, 10),
+      };
+    });
+    delete rec.offers;
+  }
+  if (Array.isArray(rec.ranking)) {
+    rec.ranking = (rec.ranking as Record<string, unknown>[]).map((r) => ({
+      product_id: r.product_id,
+      reasoning:
+        (typeof r.reasoning === "string" && r.reasoning) ||
+        (typeof r.rationale === "string" && r.rationale) ||
+        "Warm fixture ranking",
+    }));
+  }
+  return rec;
 }
 
 export interface OrchestratorMetrics {
   idealAmounts: number[];
-  amountMins: number[];
-  amountMaxs: number[];
   winnerMatches: number[];
-  winnerClientFits: number[];
-  winnerIssuerAppetites: number[];
   winnerRates: number[];
-  winnerFees: number[];
   winnerTerms: number[];
   winnerProductIds: string[];
   actionKinds: string[];
   issuerMultisets: string[];
   rankingOrders: string[];
-  maxMatchFidelityErr: number;
   maxAmountFidelityErr: number;
 }
 
@@ -136,85 +171,34 @@ export function collectOrchestratorMetrics(
 
   const metrics: OrchestratorMetrics = {
     idealAmounts: [],
-    amountMins: [],
-    amountMaxs: [],
     winnerMatches: [],
-    winnerClientFits: [],
-    winnerIssuerAppetites: [],
     winnerRates: [],
-    winnerFees: [],
     winnerTerms: [],
     winnerProductIds: [],
     actionKinds: [],
     issuerMultisets: [],
     rankingOrders: [],
-    maxMatchFidelityErr: 0,
     maxAmountFidelityErr: 0,
   };
 
   for (const d of decisions) {
     metrics.idealAmounts.push(d.quantity.ideal_amount);
-    metrics.amountMins.push(d.quantity.amount_min);
-    metrics.amountMaxs.push(d.quantity.amount_max);
     metrics.actionKinds.push(d.action_kind);
 
-    const winner = d.ranking[0];
+    const reassembled = reassembleMatches(d, snapshot, action);
+    const winner = reassembled[0];
     if (!winner) continue;
-    metrics.winnerProductIds.push(winner.product_id);
-    metrics.winnerMatches.push(winner.match);
-    metrics.winnerClientFits.push(winner.client_fit);
-    metrics.winnerIssuerAppetites.push(winner.issuer_appetite);
-    metrics.rankingOrders.push(d.ranking.map((r) => r.product_id).join(">"));
-
-    const offer = d.offers.find((o) => o.product_id === winner.product_id);
-    if (offer) {
-      metrics.winnerRates.push(offer.issuer_terms.rate_annual);
-      metrics.winnerFees.push(offer.issuer_terms.fees_bps);
-      metrics.winnerTerms.push(offer.issuer_terms.term_months);
-    }
-
+    metrics.winnerProductIds.push(winner.product.product_id);
+    metrics.winnerMatches.push(winner.breakdown.match);
+    metrics.winnerRates.push(winner.product.issuer_terms.rate_annual);
+    metrics.winnerTerms.push(winner.product.issuer_terms.term_months);
+    metrics.rankingOrders.push(
+      reassembled.map((m) => m.product.product_id).join(">")
+    );
     metrics.issuerMultisets.push(
-      [...d.offers.map((o) => o.issuer_id)].sort().join(",")
+      [...d.terms.map((t) => t.product_id)].sort().join(",")
     );
 
-    const reassembled = reassembleMatches(d, snapshot, action);
-    for (const ranked of d.ranking) {
-      const ground = reassembled.find(
-        (m) => m.product.product_id === ranked.product_id
-      );
-      if (!ground) continue;
-      metrics.maxMatchFidelityErr = Math.max(
-        metrics.maxMatchFidelityErr,
-        relErr(ranked.match, ground.breakdown.match),
-        relErr(ranked.client_fit, ground.breakdown.client_fit),
-        relErr(ranked.issuer_appetite, ground.breakdown.issuer_appetite)
-      );
-    }
-
-    if (offer) {
-      const product = offerToProduct(offer);
-      if (product) {
-        const ctx = defaultFitContext(snapshot);
-        const amt = Math.max(
-          product.amount_min,
-          Math.min(product.amount_max, d.quantity.ideal_amount)
-        );
-        const breakdown = computeMatch(
-          product,
-          amt,
-          snapshot.band,
-          offer.issuer_terms,
-          ctx
-        );
-        metrics.maxMatchFidelityErr = Math.max(
-          metrics.maxMatchFidelityErr,
-          relErr(winner.match, breakdown.match)
-        );
-      }
-    }
-
-    // Amount fidelity vs the quantity subagent's solver shell (same as
-    // agent/subagents/quantity/tools/solve_amount.ts) — not the winner product.
     {
       const ctx = defaultFitContext(snapshot);
       const solverProduct: ProductOffer = {
@@ -223,8 +207,8 @@ export function collectOrchestratorMetrics(
           id: "solver",
           name: "solver",
           risk_appetite: [snapshot.band],
-          ticket_min: d.quantity.amount_min,
-          ticket_max: d.quantity.amount_max,
+          ticket_min: Math.round(d.quantity.ideal_amount * 0.5),
+          ticket_max: Math.round(d.quantity.ideal_amount * 2),
           ticket_sweet_spot: action.recommended_amount,
           margin_target_bps: 200,
         },
@@ -245,8 +229,8 @@ export function collectOrchestratorMetrics(
           amortization: "constant_quote",
           collateral: "none",
         },
-        amount_min: d.quantity.amount_min,
-        amount_max: d.quantity.amount_max,
+        amount_min: Math.round(d.quantity.ideal_amount * 0.5),
+        amount_max: Math.round(d.quantity.ideal_amount * 2),
       };
       const expectedAmount = solveIdealAmount(
         snapshot,
@@ -271,13 +255,8 @@ export function orchestratorGates(m: OrchestratorMetrics): {
 }[] {
   const continuous: [string, number[]][] = [
     ["quantity.ideal_amount", m.idealAmounts],
-    ["quantity.amount_min", m.amountMins],
-    ["quantity.amount_max", m.amountMaxs],
     ["winner.match", m.winnerMatches],
-    ["winner.client_fit", m.winnerClientFits],
-    ["winner.issuer_appetite", m.winnerIssuerAppetites],
     ["winner.rate_annual", m.winnerRates],
-    ["winner.fees_bps", m.winnerFees],
     ["winner.term_months", m.winnerTerms],
   ];
 
@@ -304,11 +283,6 @@ export function orchestratorGates(m: OrchestratorMetrics): {
       label: "unanimous:issuer_multiset",
       ok: isUnanimous(m.issuerMultisets),
       detail: m.issuerMultisets.join("|"),
-    },
-    {
-      label: "fidelity:match",
-      ok: m.maxMatchFidelityErr <= REL_ERR_MAX,
-      detail: `maxRelErr=${m.maxMatchFidelityErr.toFixed(4)}`,
     },
     {
       label: "fidelity:ideal_amount",

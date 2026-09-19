@@ -1,3 +1,4 @@
+import type { GroupScore } from "../group-score";
 import type { PeerCohort } from "../peers";
 import type {
   ActionRecommendation,
@@ -45,6 +46,10 @@ export const mockProvider = {
     _k?: number
   ): Promise<PeerCohort | null> {
     return null;
+  },
+
+  async getGroupScore(groupId: string): Promise<GroupScore> {
+    throw new Error(`Group not found: ${groupId}`);
   },
 
   async listActions(companyId: string): Promise<ActionRecommendation[]> {

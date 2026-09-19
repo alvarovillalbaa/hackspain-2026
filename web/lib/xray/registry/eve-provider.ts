@@ -1,3 +1,4 @@
+import type { GroupScore } from "../group-score";
 import type { PeerCohort } from "../peers";
 import type {
   ActionRecommendation,
@@ -49,6 +50,12 @@ export const eveProvider = {
     } catch {
       return null;
     }
+  },
+
+  async getGroupScore(groupId: string): Promise<GroupScore> {
+    return apiGet<GroupScore>(
+      `/api/xray/groups/${encodeURIComponent(groupId)}`
+    );
   },
 
   async listActions(companyId: string): Promise<ActionRecommendation[]> {

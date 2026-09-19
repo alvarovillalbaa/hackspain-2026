@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { PlusIcon, SearchIcon } from "lucide-react";
 import { AppShell } from "@/components/xray/app-shell";
 import { CompanyCard } from "@/components/xray/company-card";
 import { ImportDialog } from "@/components/xray/import/import-dialog";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Empty,
@@ -17,6 +18,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCompanies } from "@/hooks/xray/use-companies";
 import type { CompanyRef } from "@/lib/xray/types";
+import { cn } from "@/lib/utils";
 
 export default function PortfolioPage() {
   const { data, loading, addImported } = useCompanies();
@@ -91,14 +93,22 @@ export default function PortfolioPage() {
         <div className="space-y-10">
           {grouped.map(([groupId, companies]) => (
             <section key={groupId} className="space-y-3">
-              <div className="flex items-baseline justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <h2 className="font-mono text-xs tracking-wide text-muted-foreground uppercase">
                   {groupId}
                 </h2>
-                <span className="text-xs text-muted-foreground">
-                  {companies.length} empresa
-                  {companies.length === 1 ? "" : "s"}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {companies.length} empresa
+                    {companies.length === 1 ? "" : "s"}
+                  </span>
+                  <Link
+                    href={`/g/${groupId}`}
+                    className={cn(buttonVariants({ variant: "outline", size: "xs" }))}
+                  >
+                    Ver grupo
+                  </Link>
+                </div>
               </div>
               <div className="space-y-2">
                 {companies.map((c) => (

@@ -29,10 +29,11 @@ import pandas as pd
 from pydantic import BaseModel, ConfigDict, Field
 
 from xray import events, explain, features, policies, projection, rules
-from xray.data import data_dir, load, repo_root
+from xray.data import artifacts_dir, data_dir, load, repo_root
 
 KEYS = ["company_id", "month"]
 DEFAULT_OUT = repo_root() / "web" / "lib" / "xray" / "dataset" / "scores.json"
+DEFAULT_METRICS_OUT = DEFAULT_OUT.parent / "metrics.json"
 
 
 class CashQuantiles(BaseModel):
@@ -73,6 +74,116 @@ class TreasuryProjection(BaseModel):
     recommended: TreasuryAlternative
     alternatives: list[TreasuryAlternative]
     cash_projection_6m: CashQuantiles
+
+
+class LeadTimeMetrics(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)
+
+    n_events: int
+    share_crossing: float
+    share_late: float
+    share_chronic: float
+    share_no_history: float
+    median_crossing: float | None
+    p25_crossing: float | None
+    p75_crossing: float | None
+    cutoff: float
+
+
+class PersistenceMetrics(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)
+
+    base_rate: float
+    horizon_months: int
+    p_red_given_red: dict[str, float | None]  # k = "1" … "6"
+
+
+class ProjectionMetricsOut(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)
+
+    n: int
+    coverage_80: float | None = None
+    mean_width: float | None = None
+    mae_p50: float | None = None
+    pinball: float | None = None
+    martingale_baseline: dict[str, float | None] | None = None
+
+
+class WatchMetricsOut(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)
+
+    share_rows_with_watch: float
+    n_watch: int
+    p_red_3m_given_watch: float | None
+    p_red_3m_given_no_watch: float | None
+    kinds: dict[str, int] = {}
+
+
+class MethodMetrics(BaseModel):
+    """Subconjunto fijo de `metrics.json` que publica la cartera y cita Eve (rules_spec.md §12)."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
+
+    score_model: str
+    generated_from: str
+    train_until: str
+    test_months: list[str]
+    n_rows: int
+    n_companies: int
+    n_events: int
+    auc6_own: float | None
+    auc6_external: float | None
+    auc1_external: float | None
+    lead_time: LeadTimeMetrics
+    persistence: PersistenceMetrics
+    directionality: dict[str, float | None]
+    projection: ProjectionMetricsOut | None
+    watch: WatchMetricsOut | None
+
+
+def method_metrics(evals_metrics: dict, name: str = "rules", source: str = "artifacts/evals/metrics.json") -> dict:
+    """De `metrics.json` (una clave por modelo) al objeto que va al fact pack."""
+    m = evals_metrics[name]
+
+    def _auc(table: dict, h: int) -> float | None:
+        v = (table.get(str(h)) or {}).get("auc")
+        return None if v is None else float(v)
+
+    per = m["persistence"]
+    doc = MethodMetrics(
+        score_model=name,
+        generated_from=source,
+        train_until=m["train_until"],
+        test_months=list(m.get("test_months") or []),
+        n_rows=int(m["n_rows"]),
+        n_companies=int(m["n_companies"]),
+        n_events=int(m["n_events"]),
+        auc6_own=_auc(m.get("auc_by_horizon", {}), 6),
+        auc6_external=_auc(m.get("auc_external_by_horizon", {}), 6),
+        auc1_external=_auc(m.get("auc_external_by_horizon", {}), 1),
+        lead_time=m["lead_time"],
+        persistence={
+            "base_rate": per["base_rate"],
+            "horizon_months": per["horizon_months"],
+            "p_red_given_red": {k: per["p_red_given_red"].get(k) for k in ("1", "2", "3", "4", "5", "6")},
+        },
+        directionality={k: v for k, v in m["directionality"].items() if k.startswith("p_red_t6_given_")},
+        projection=m.get("projection"),
+        watch=m.get("watch"),
+    )
+    return doc.model_dump(mode="json")
+
+
+def write_method_metrics(src: Path, dst: Path, name: str = "rules") -> bool:
+    """Escribe el fichero de métricas del pack desde `metrics.json`; False y aviso si no existe."""
+    if not src.exists():
+        print(f"aviso: no encuentro {src}; el pack se queda sin métricas del método (uv run xray-evals)")
+        return False
+    data = method_metrics(json.loads(src.read_text(encoding="utf-8")), name, source=str(src))
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    dst.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    print(f"Wrote method metrics → {dst}")
+    return True
 
 
 def _treasury_records(
@@ -341,6 +452,10 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="xray-export-web", description="Export Health Scorer → web fact pack")
     ap.add_argument("--data-dir", default=None, help="CSV root (default: docs/data/raw or XRAY_DATA_DIR)")
     ap.add_argument("--out", default=str(DEFAULT_OUT), help="scores.json path")
+    ap.add_argument("--metrics", default=str(artifacts_dir() / "evals" / "metrics.json"),
+                    help="metrics.json de xray-evals; si no existe, el pack no lleva métricas")
+    ap.add_argument("--metrics-out", default=str(DEFAULT_METRICS_OUT), help="metrics.json del fact pack")
+    ap.add_argument("--metrics-name", default="rules")
     args = ap.parse_args(argv)
 
     dd = args.data_dir
@@ -359,6 +474,7 @@ def main(argv: list[str] | None = None) -> int:
         f"Wrote {len(records)} companies → {out} ({size_kb:.0f} KB) · "
         f"score p50={float(np.median(scores)):.1f} · origin=ml"
     )
+    write_method_metrics(Path(args.metrics), Path(args.metrics_out), args.metrics_name)
     return 0
 
 

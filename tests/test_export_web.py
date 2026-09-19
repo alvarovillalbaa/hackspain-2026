@@ -183,3 +183,25 @@ def test_watch_from_events_reaches_the_record_and_expires():
     old = pd.DataFrame({"company_id": ["MOCK_DIP"], "month": ["2026-04"], "kind": ["large_maturity"]})
     expired = {r["company_id"]: r["watch"] for r in records_from_scored(rules.run(feats, events_ext=old))}
     assert expired["MOCK_DIP"] is None
+
+
+def test_method_metrics_publish_the_fixed_subset_and_skip_when_evals_are_missing(tmp_path):
+    from xray import evals
+    from xray.export_web import write_method_metrics
+
+    metrics, _, _ = evals.run_all(features.load_fixture())
+    src = tmp_path / "metrics.json"
+    evals.write_metrics(metrics, "rules", src)
+    dst = tmp_path / "pack" / "metrics.json"
+    assert write_method_metrics(src, dst) is True
+    doc = json.loads(dst.read_text(encoding="utf-8"))
+    assert doc["score_model"] == "rules" and doc["train_until"] == "2025-08"
+    assert doc["n_companies"] == 3 and doc["n_rows"] == 41
+    assert set(doc["lead_time"]) >= {"n_events", "share_crossing", "share_chronic", "share_late",
+                                     "share_no_history", "median_crossing", "cutoff"}
+    assert list(doc["persistence"]["p_red_given_red"]) == ["1", "2", "3", "4", "5", "6"]
+    assert set(doc["directionality"]) >= {"p_red_t6_given_negative", "p_red_t6_given_stable", "p_red_t6_given_positive"}
+    assert "projection" in doc and "watch" in doc and "auc6_external" in doc
+    assert "reliability" not in doc and "auc_by_horizon" not in doc  # subconjunto fijo, no el volcado entero
+    assert write_method_metrics(tmp_path / "missing.json", tmp_path / "other.json") is False
+    assert not (tmp_path / "other.json").exists()

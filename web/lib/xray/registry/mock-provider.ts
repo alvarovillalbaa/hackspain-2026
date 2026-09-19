@@ -1,3 +1,5 @@
+import type { GroupScore } from "../group-score";
+import type { PeerCohort } from "../peers";
 import type {
   ActionRecommendation,
   AmortizeContext,
@@ -8,6 +10,7 @@ import type {
   ProductMatch,
   ScoreSnapshot,
   TermContext,
+  WatchQueueItem,
 } from "../types";
 import { DEMO_COMPANIES, IMPORTABLE_COMPANIES } from "./companies";
 import { SCORE_BY_ID } from "./scores";
@@ -38,6 +41,17 @@ export const mockProvider = {
     const score = SCORE_BY_ID[companyId];
     if (!score) throw new Error(`Company not found: ${companyId}`);
     return score;
+  },
+
+  async getPeers(
+    _companyId: string,
+    _k?: number
+  ): Promise<PeerCohort | null> {
+    return null;
+  },
+
+  async getGroupScore(groupId: string): Promise<GroupScore> {
+    throw new Error(`Group not found: ${groupId}`);
   },
 
   async listActions(companyId: string): Promise<ActionRecommendation[]> {
@@ -137,6 +151,11 @@ export const mockProvider = {
       dscr_6m: 1.35,
       overdue_flow_rate_3m: 0.18,
     };
+  },
+
+  async listWatchQueue(): Promise<WatchQueueItem[]> {
+    await delay();
+    return [];
   },
 
   async getNegotiation(

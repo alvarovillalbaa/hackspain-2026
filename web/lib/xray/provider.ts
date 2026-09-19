@@ -1,3 +1,5 @@
+import type { GroupScore } from "./group-score";
+import type { PeerCohort } from "./peers";
 import type {
   ActionRecommendation,
   AmortizeContext,
@@ -9,6 +11,7 @@ import type {
   ProductMatch,
   ScoreSnapshot,
   TermContext,
+  WatchQueueItem,
 } from "./types";
 import { eveProvider } from "./registry/eve-provider";
 
@@ -20,6 +23,8 @@ import { eveProvider } from "./registry/eve-provider";
 export interface XrayProvider {
   listCompanies(): Promise<CompanyRef[]>;
   getScore(companyId: string): Promise<ScoreSnapshot>;
+  getPeers(companyId: string, k?: number): Promise<PeerCohort | null>;
+  getGroupScore(groupId: string): Promise<GroupScore>;
   listActions(companyId: string): Promise<ActionRecommendation[]>;
   listProducts(
     companyId: string,
@@ -34,6 +39,7 @@ export interface XrayProvider {
   getAmortizeContext(companyId: string): Promise<AmortizeContext>;
   /** Slim facts for company-side term-improvement tips. */
   getTermContext?(companyId: string): Promise<TermContext>;
+  listWatchQueue(): Promise<WatchQueueItem[]>;
   importCompanies(req: ImportRequest): Promise<ImportResult>;
   listImportable?(): Promise<CompanyRef[]>;
 }

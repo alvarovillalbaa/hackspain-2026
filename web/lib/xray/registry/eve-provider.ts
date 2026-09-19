@@ -1,3 +1,5 @@
+import type { GroupScore } from "../group-score";
+import type { PeerCohort } from "../peers";
 import type {
   ActionRecommendation,
   AmortizeContext,
@@ -9,6 +11,7 @@ import type {
   ProductMatch,
   ScoreSnapshot,
   TermContext,
+  WatchQueueItem,
 } from "../types";
 import { leversFromMatch } from "../negotiation";
 
@@ -40,6 +43,23 @@ export const eveProvider = {
   async getScore(companyId: string): Promise<ScoreSnapshot> {
     return apiGet<ScoreSnapshot>(
       `/api/xray/score/${encodeURIComponent(companyId)}`
+    );
+  },
+
+  async getPeers(companyId: string, k?: number): Promise<PeerCohort | null> {
+    const q = k != null ? `?k=${k}` : "";
+    try {
+      return await apiGet<PeerCohort>(
+        `/api/xray/peers/${encodeURIComponent(companyId)}${q}`
+      );
+    } catch {
+      return null;
+    }
+  },
+
+  async getGroupScore(groupId: string): Promise<GroupScore> {
+    return apiGet<GroupScore>(
+      `/api/xray/groups/${encodeURIComponent(groupId)}`
     );
   },
 
@@ -82,6 +102,10 @@ export const eveProvider = {
     return apiGet<TermContext>(
       `/api/xray/term-context/${encodeURIComponent(companyId)}`
     );
+  },
+
+  async listWatchQueue(): Promise<WatchQueueItem[]> {
+    return apiGet<WatchQueueItem[]>("/api/xray/watch");
   },
 
   async getNegotiation(

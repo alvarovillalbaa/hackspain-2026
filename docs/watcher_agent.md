@@ -32,10 +32,14 @@ curl -X POST http://localhost:2000/eve/v1/dev/schedules/portfolio-watch
 ```
 
 Fan-out: `Authorization: Bearer $WATCH_DISPATCH_SECRET` → `/internal/watch`.
+Ajustes guarda un Incoming Webhook; al conectar (y al abrir X Ray) se mandan las alertas solas. Dedupe `(company_id, rule_id, month)`.
 
 ## Env
 
 ```bash
+# Incoming Webhook (Ajustes, o env). Preferido frente al bot OAuth.
+# SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
+
 SLACK_BOT_TOKEN= SLACK_SIGNING_SECRET= SLACK_ALERT_CHANNEL_ID=
 RESEND_API_KEY= ALERT_EMAIL_FROM= ALERT_EMAIL_TO=
 WATCH_DISPATCH_SECRET=
@@ -44,6 +48,7 @@ WATCH_DISPATCH_URL=http://127.0.0.1:2000/internal/watch
 ```
 
 Canal sin env → se omite; el otro sigue. Sin hits → el schedule no envía.
+Con webhook en Ajustes, las alertas van solas a Slack (`flushWatchToSlack`); no hay cola en el portfolio.
 
 ## Test
 

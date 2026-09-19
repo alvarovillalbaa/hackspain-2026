@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { PlusIcon, SearchIcon } from "lucide-react";
 import { AppShell } from "@/components/xray/app-shell";
 import { CompanyCard } from "@/components/xray/company-card";
 import { ImportDialog } from "@/components/xray/import/import-dialog";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -23,8 +24,11 @@ import {
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCompanies } from "@/hooks/xray/use-companies";
+import { useSelection } from "@/hooks/xray/use-selection";
 import { BANDS } from "@/lib/xray/bands";
+import { MAX_COMPARE, compareHref } from "@/lib/xray/compare";
 import type { Band, CompanyRef } from "@/lib/xray/types";
+import { cn } from "@/lib/utils";
 
 const ALL = "__all__";
 
@@ -35,6 +39,7 @@ type GroupRow = {
 
 export default function PortfolioPage() {
   const { data, groupId, loading, refresh, addImported } = useCompanies();
+  const selection = useSelection<string>([], MAX_COMPARE);
   const [query, setQuery] = useState("");
   const [band, setBand] = useState(ALL);
   const [currency, setCurrency] = useState(ALL);
@@ -178,6 +183,16 @@ export default function PortfolioPage() {
         </div>
       }
     >
+      <div className="mb-6 space-y-2">
+        <h1 className="font-heading text-3xl font-semibold tracking-tight">
+          Portfolio
+        </h1>
+        <p className="max-w-xl text-sm text-muted-foreground">
+          Abre una empresa del grupo, marca hasta {MAX_COMPARE} para compararlas
+          o importa un CSV.
+        </p>
+      </div>
+
       {loading ? (
         <div className="space-y-3">
           <Skeleton className="h-16 w-full rounded-2xl" />
@@ -198,18 +213,59 @@ export default function PortfolioPage() {
           </EmptyContent>
         </Empty>
       ) : (
-        <div className="space-y-2">
-          <div className="mb-3 flex items-baseline justify-between">
+        <div className={cn("space-y-2", selection.count > 0 && "pb-20")}>
+          <div className="mb-3 flex items-baseline justify-between gap-3">
             <span className="text-xs text-muted-foreground">
               {companies.length} empresa{companies.length === 1 ? "" : "s"}
               {groupId ? ` · ${groupId}` : ""}
             </span>
+            {groupId ? (
+              <Link
+                href={`/g/${groupId}`}
+                className={cn(buttonVariants({ variant: "outline", size: "xs" }))}
+              >
+                Ver grupo
+              </Link>
+            ) : null}
           </div>
-          {companies.map((c) => (
-            <CompanyCard key={c.company_id} company={c} />
-          ))}
+          {companies.map((c) => {
+            const checked = selection.isSelected(c.company_id);
+            return (
+              <CompanyCard
+                key={c.company_id}
+                company={c}
+                selected={checked}
+                onToggleSelect={() => selection.toggle(c.company_id)}
+                selectDisabled={!checked && selection.count >= MAX_COMPARE}
+              />
+            );
+          })}
         </div>
       )}
+
+      {selection.count > 0 ? (
+        <div className="sticky bottom-4 z-30 flex items-center justify-between gap-3 rounded-2xl border border-border bg-background/95 px-4 py-3 shadow-sm backdrop-blur-md">
+          <p className="text-sm text-muted-foreground">
+            {selection.count}/{MAX_COMPARE} seleccionadas
+            {selection.count < 2 ? " · elige al menos 2" : ""}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="ghost" onClick={selection.clear}>
+              Limpiar
+            </Button>
+            <Link
+              href={compareHref(selection.values)}
+              aria-disabled={selection.count < 2}
+              className={cn(
+                buttonVariants({ size: "sm" }),
+                selection.count < 2 && "pointer-events-none opacity-50"
+              )}
+            >
+              Comparar
+            </Link>
+          </div>
+        </div>
+      ) : null}
 
       <ImportDialog
         open={importOpen}

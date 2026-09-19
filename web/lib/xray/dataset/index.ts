@@ -1,5 +1,13 @@
 import "server-only";
 
+import {
+  nearestPeers,
+  parseK,
+  peerRowsFromPack,
+  type PeerCohort,
+  type PeerCompany,
+} from "../peers";
+import { rollupGroup, type GroupScore } from "../group-score";
 import type { CompanyRef, ScoreSnapshot } from "../types";
 import { snapshotFromExported } from "../snapshot";
 import type {
@@ -103,4 +111,38 @@ export function buildScoreSnapshot(companyId: string): ScoreSnapshot | null {
 
 export function hasDataset(): boolean {
   return companies.length > 0 && scoresList.length > 0;
+}
+
+let peerUniverseCache: PeerCompany[] | null = null;
+
+function peerUniverse(): PeerCompany[] {
+  if (peerUniverseCache) return peerUniverseCache;
+  peerUniverseCache = peerRowsFromPack(companies, factsList, scoresList);
+  return peerUniverseCache;
+}
+
+export function getPeerCohort(
+  companyId: string,
+  k?: unknown
+): PeerCohort | null {
+  return nearestPeers(companyId, peerUniverse(), parseK(k));
+}
+
+export function getGroupScore(groupId: string): GroupScore | null {
+  const members = companies
+    .filter((c) => c.group_id === groupId)
+    .flatMap((c) => {
+      const score = scoresById.get(c.company_id);
+      if (!score) return [];
+      const facts = factsById.get(c.company_id);
+      return [
+        {
+          company_id: c.company_id,
+          name: c.name,
+          score,
+          inflow: facts?.monthly_inflow_avg_3m ?? 0,
+        },
+      ];
+    });
+  return rollupGroup(groupId, members);
 }

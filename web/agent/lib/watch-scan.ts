@@ -5,6 +5,7 @@
 import { getScore } from "./facts";
 import {
   evaluateWatch,
+  rankWatchAlerts,
   selectSweepHits,
   type WatchAlert,
 } from "./watch-rules";
@@ -15,8 +16,7 @@ import type { ExportedScore } from "../../lib/xray/dataset/types";
 
 const scoresList = scoresJson as ExportedScore[];
 
-/** Evaluate every scored company; return at most `limit` companies' hits. */
-export async function scanPortfolioWatch(limit = 8): Promise<WatchAlert[]> {
+async function collectWatchAlerts(): Promise<WatchAlert[]> {
   const packs = await listImportedPacks();
   const seen = new Set<string>();
   const all: WatchAlert[] = [];
@@ -39,5 +39,15 @@ export async function scanPortfolioWatch(limit = 8): Promise<WatchAlert[]> {
       ...evaluateWatch(snapshot, { dscr_6m: row.signals.dscr_6m })
     );
   }
-  return selectSweepHits(all, limit);
+  return all;
+}
+
+/** Evaluate every scored company; return at most `limit` companies' hits. */
+export async function scanPortfolioWatch(limit = 8): Promise<WatchAlert[]> {
+  return selectSweepHits(await collectWatchAlerts(), limit);
+}
+
+/** Full ranked hit list for Slack flush (no cron cap). */
+export async function scanAllWatchHits(): Promise<WatchAlert[]> {
+  return rankWatchAlerts(await collectWatchAlerts());
 }

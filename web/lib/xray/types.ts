@@ -59,6 +59,21 @@ export interface Alert {
   message: string;
 }
 
+/** One company in the portfolio watch queue (grouped evaluateWatch hits). */
+export type WatchRuleId =
+  | "outlook_negative_worsening"
+  | "watch_event"
+  | "dscr_floor";
+
+export interface WatchQueueItem {
+  company_id: string;
+  name: string;
+  score: number | null;
+  severity: "warning" | "critical";
+  rules: WatchRuleId[];
+  message: string;
+}
+
 /** Exact contract from docs/plan.md §6 — GET /score/{company_id}. */
 export interface ScoreSnapshot {
   company_id: string;

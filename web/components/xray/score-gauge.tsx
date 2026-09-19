@@ -18,6 +18,7 @@ export function ScoreGauge({
   reasoning,
   size = "md",
   className,
+  color = "var(--foreground)",
 }: {
   score: number;
   band?: Band;
@@ -26,9 +27,10 @@ export function ScoreGauge({
   reasoning?: string | null;
   size?: "sm" | "md";
   className?: string;
+  color?: string;
 }) {
   const meta = band ? bandMeta(band) : null;
-  const data = [{ name: "score", value: score, fill: "var(--foreground)" }];
+  const data = [{ name: "score", value: score, fill: color }];
   const box = size === "sm" ? "h-28 w-28" : "h-48 w-48";
   const scoreClass =
     size === "sm"

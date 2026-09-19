@@ -8,6 +8,8 @@ export interface DatasetCompany {
   country: string | null;
   currency: string;
   n_companies_in_group: number;
+  /** Alta en plataforma (YYYY-MM-DD). Missing in packs built before this field. */
+  created_at?: string | null;
 }
 
 /** Per-company dimensions + signals (legacy shape; prefer ExportedScore). */

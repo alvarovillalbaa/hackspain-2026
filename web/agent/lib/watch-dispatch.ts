@@ -4,6 +4,9 @@
  */
 import type { WatchAlert } from "./watch-rules";
 import { filterUnsentAlerts, markAlertSent } from "./alert-log";
+import { resolveSlackWebhook } from "../../lib/xray/slack-settings";
+import { postSlackWebhook } from "../../lib/xray/slack-webhook";
+import { formatSlackQueue, groupWatchQueue } from "../../lib/xray/watch-queue";
 
 export type NotifyChannel = "slack" | "email";
 
@@ -124,16 +127,31 @@ export async function dispatchHits(
   const wantEmail = args.notify.includes("email");
 
   if (wantSlack) {
-    await trySend(
-      "slack",
-      Boolean(args.slackChannel && args.slackChannelId && slackConfigured()),
-      () =>
-        args
-          .to(args.slackChannel, { channelId: args.slackChannelId })
-          .send(message, { auth: args.appAuth }),
-      used,
-      errors
-    );
+    const hook = resolveSlackWebhook();
+    if (hook) {
+      await trySend(
+        "slack",
+        true,
+        () =>
+          postSlackWebhook(
+            hook.url,
+            args.copy ?? formatSlackQueue(groupWatchQueue(unsent, {}))
+          ),
+        used,
+        errors
+      );
+    } else {
+      await trySend(
+        "slack",
+        Boolean(args.slackChannel && args.slackChannelId && slackConfigured()),
+        () =>
+          args
+            .to(args.slackChannel, { channelId: args.slackChannelId })
+            .send(message, { auth: args.appAuth }),
+        used,
+        errors
+      );
+    }
   }
 
   if (wantEmail) {

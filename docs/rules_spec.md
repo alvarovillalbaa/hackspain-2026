@@ -18,7 +18,7 @@
 | `rules` | `score(indexed, model, events=None, cfg=None)` | Nivel, score, outlook, trend, watch, confidence |
 | `rules` | `run(features, events=None, model=None, cfg=None)` | Encadena todo; ajusta si no recibe modelo |
 | `rules` | `RulesModel.save(path)` / `RulesModel.load(path)` | JSON con nudos del mapa y corte |
-| `evals` | `xray-evals` (CLI) | AUC(h) propia y externa, lead time en tres cifras, horizonte de persistencia, direccionalidad, dispersión por grupos → `artifacts/evals/metrics.json` |
+| `evals` | `xray-evals` (CLI) | AUC(h) propia y externa, lead time en tres cifras, horizonte de persistencia, direccionalidad, dispersión por grupos, fiabilidad del mapa (19 sep, noche) → `artifacts/evals/metrics.json` |
 | `score` | `xray-score` (CLI) / `score_table()` | Puntuador por lotes; con `--extra` ranquea las empresas nuevas contra el perfil de referencia del modelo (19 sep) |
 | `profile` | `RankProfile.fit / rank` | Población de referencia por mes y señal; viaja dentro de `RulesModel` (19 sep, tarde) |
 | `explain` | `drivers`, `drivers_json`, `group_rollup` | Atribución exacta por señal para el campo `drivers` y vista por grupo (19 sep, tarde) |
@@ -67,6 +67,7 @@ Un DataFrame plano por `(company_id, month)` con: `rank_*` (4), `red_*` (4), `n_
 - **Horizonte de persistencia** = P(rojo en t+k | rojo en t) frente a la tasa base, k = 1…12; se reporta el mayor k con lift ≥ 2×.
 - **Direccionalidad** (19 sep, mañana) = Spearman entre Δscore(t−3→t) y Δnivel(t→t+6) y, sobre todo, P(mes rojo en t+6 | outlook) y P(mes rojo en t+6 | trend), en test. La versión anterior, P(nivel baja | outlook), salía invertida (40 % con negativo frente a 55 % con estable) porque un índice de rangos acotado revierte a la media.
 - **Dispersión por grupos** (antes «GroupKFold»): por `group_id`, 5 pliegues, se ajusta el mapa con las filas de train de los otros cuatro grupos y se evalúa AUC(6) en el grupo retenido. Como el mapa es monótono, mide la variabilidad entre subpoblaciones, no la generalización del ajuste; solo la mediría si se calibraran los pesos.
+- **Fiabilidad del mapa** (19 sep, noche): `evals.reliability` da, en test, el score medio frente a la etiqueta realizada media por decil de score (calibración fuera de train: desvío medio 0,9 pts sobre la tabla real) y la etiqueta media por decil de **nivel sin suavizar**, con el número de bajadas entre deciles vecinos: es el chequeo crudo del único supuesto del mapa (0 bajadas en 9 escalones). Lectura y justificación en [model_card.md](model_card.md) §4–§5.
 - Salida: `artifacts/evals/metrics.json` con una clave por modelo (`rules`; ML-1 añade `gbm`) y tabla impresa. Diagnóstico adicional: recuento de eventos con los umbrales absolutos del preview.
 
 ## 9. Tests (escritos antes que el código, en este orden)
@@ -86,8 +87,8 @@ Un DataFrame plano por `(company_id, month)` con: `rank_*` (4), `red_*` (4), `n_
 
 ## 10. Proceso
 
-- Rama `feat/rules-score` apilada sobre `feat/features-seam-propuesta` (PR #16), porque depende del contrato. Si ML-1 renombra columnas en la revisión, los tests dicen dónde.
-- Sin `features.build()` las evals corren sobre la fixture. Si el slice #2 no tiene rama a las 14:00 del sábado, ML-2 escribe el builder desde las funciones del notebook y lo avisa.
+- Todo vive en la rama `tianwei-model` (PR #19), que sustituye a las PR apiladas #16–#18. Si se renombra una columna del contrato, los tests dicen dónde.
+- `features.build()` existe desde el 19 sep (tarde): las evals y el puntuador leen `artifacts/features.parquet` por defecto; los tests siguen corriendo sobre la fixture sin dataset.
 - Pregunta abierta 6 de `docs/tech_stack.md` (calibración de pesos) se resuelve pasando otro `RulesConfig`, no editando el módulo. Cerrada el 19 sep (mañana): pesos iguales pierden 0,008 de AUC(6); no se calibran.
 
 ## 11. Actualización 19 sep 2026 (mañana): decisiones de la revisión
@@ -113,3 +114,9 @@ Números en la tabla provisional, meses de test 2025-09…2026-02, antes → des
 - **Perfil de rangos por mes** (`xray/profile.py`, guardado en `RulesModel.rank_profile`): las empresas nuevas se ranquean contra la población de referencia de su mes con la misma convención de empates que el rango dentro del mes, así que una copia de una empresa de referencia obtiene su misma puntuación y dos empresas nuevas del mismo lote no se influyen. `rules.run(rank_against=modelo.profile())` es el camino; `xray-score --extra` lo usa. Para un mes sin referencia, el más cercano. Sustituye al ranking sobre la unión de la mañana.
 - **`xray/explain.py`**: `drivers()` reparte exactamente el cambio de score entre t−3 y t entre las cuatro señales (peso × Δ media móvil del rango × pendiente del mapa) con `since` = primer mes de la racha roja; `drivers_json()` es el campo `drivers` del JSON de `/score`; `group_rollup()` es la vista por grupo del monitor (score ponderado por entradas, mínimo, empresa más débil, cuota negativa).
 - Sigue pendiente: extracción de eventos de watch desde los CSV, bandas ancladas a PD (slice #5) y la propuesta de `revision_objetivo_score.md`.
+
+### 11.2 Hecho por la noche (19 sep): ficha del modelo
+
+- **[model_card.md](model_card.md)** reúne lo que no estaba escrito: qué significa el número, condiciones de validez, los seis pasos con su parámetro, la calibración con la forma del mapa y su fiabilidad en test, once supuestos con justificación, chequeo y modo de fallo, la evaluación sobre la tabla real y qué actualizar cuando cambie el modelo.
+- **Identidad nivel(t+6) = etiqueta(t)**: como `level_window == horizon`, el score de dentro de 6 meses es exactamente el mapa aplicado a `label_t6` (diferencia 0,000 en 13.682 filas). `tests/test_rules.py` lo afirma; es lo que permite leer la proyección del score de los cuantiles de la etiqueta (campo `projection_6m` del contrato, pendiente).
+- **`evals.reliability`** en `xray-evals` y en `metrics.json` (§8).

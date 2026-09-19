@@ -188,6 +188,7 @@ async function main() {
     country: string | null;
     currency: string;
     n_companies_in_group: number;
+    created_at: string | null;
   }[] = [];
   const companyIds: string[] = [];
   for await (const row of streamCsv(join(DATA_DIR, "companies.csv"))) {
@@ -200,6 +201,7 @@ async function main() {
       country: row.country || null,
       currency: row.currency || "EUR",
       n_companies_in_group: groupSize.get(row.group_id!) ?? 1,
+      created_at: row.created_at?.slice(0, 10) || null,
     });
   }
   console.log(`companies: ${companies.length}`);

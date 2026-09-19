@@ -1,3 +1,4 @@
+import type { PeerCohort } from "./peers";
 import type {
   ActionRecommendation,
   AmortizeContext,
@@ -19,6 +20,7 @@ import { eveProvider } from "./registry/eve-provider";
 export interface XrayProvider {
   listCompanies(): Promise<CompanyRef[]>;
   getScore(companyId: string): Promise<ScoreSnapshot>;
+  getPeers(companyId: string, k?: number): Promise<PeerCohort | null>;
   listActions(companyId: string): Promise<ActionRecommendation[]>;
   listProducts(
     companyId: string,

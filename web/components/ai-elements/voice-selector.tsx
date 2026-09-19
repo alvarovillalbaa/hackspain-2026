@@ -60,6 +60,8 @@ export type VoiceSelectorProps = ComponentProps<typeof Dialog> & {
   value?: string;
   defaultValue?: string;
   onValueChange?: (value: string | undefined) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
 export const VoiceSelector = ({

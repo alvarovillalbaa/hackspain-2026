@@ -408,6 +408,10 @@ export const usePromptInputReferencedSources = () => {
   return ctx;
 };
 
+type MenuItemSelectEvent = Parameters<
+  NonNullable<ComponentProps<typeof DropdownMenuItem>["onSelect"]>
+>[0];
+
 export type PromptInputActionAddAttachmentsProps = ComponentProps<
   typeof DropdownMenuItem
 > & {
@@ -421,7 +425,7 @@ export const PromptInputActionAddAttachments = ({
   const attachments = usePromptInputAttachments();
 
   const handleSelect = useCallback(
-    (e: Event) => {
+    (e: MenuItemSelectEvent) => {
       e.preventDefault();
       attachments.openFileDialog();
     },
@@ -449,7 +453,7 @@ export const PromptInputActionAddScreenshot = ({
   const attachments = usePromptInputAttachments();
 
   const handleSelect = useCallback(
-    async (event: Event) => {
+    async (event: MenuItemSelectEvent) => {
       onSelect?.(event);
       if (event.defaultPrevented) {
         return;
@@ -1204,6 +1208,10 @@ export const PromptInputActionMenuItem = ({
 // Note: Actions that perform side-effects (like opening a file dialog)
 // are provided in opt-in modules (e.g., prompt-input-attachments).
 
+type InputGroupButtonClickEvent = Parameters<
+  NonNullable<ComponentProps<typeof InputGroupButton>["onClick"]>
+>[0];
+
 export type PromptInputSubmitProps = ComponentProps<typeof InputGroupButton> & {
   status?: ChatStatus;
   onStop?: () => void;
@@ -1232,7 +1240,7 @@ export const PromptInputSubmit = ({
   }
 
   const handleClick = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
+    (e: InputGroupButtonClickEvent) => {
       if (isGenerating && onStop) {
         e.preventDefault();
         onStop();

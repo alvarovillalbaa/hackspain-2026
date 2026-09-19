@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import {
   buildScoreSnapshot,
+  getCompanyFacts,
+  getDatasetCompany,
+  getExportedScore,
   hasDataset,
 } from "@/lib/xray/dataset";
+import { listCompanyActions } from "@/lib/xray/recommend-actions";
 import { actionsForSnapshot } from "@/lib/xray/registry/actions";
 import { SCORE_BY_ID } from "@/lib/xray/registry/scores";
 import { mockProvider } from "@/lib/xray/registry/mock-provider";
@@ -20,7 +24,13 @@ export async function GET(_req: Request, ctx: Ctx) {
     if (!snapshot) {
       return NextResponse.json({ error: "company not found" }, { status: 404 });
     }
-    const actions = actionsForSnapshot(snapshot);
+    const actions = listCompanyActions(
+      snapshot,
+      getCompanyFacts(companyId),
+      getExportedScore(companyId),
+      getDatasetCompany(companyId)?.currency,
+      actionsForSnapshot
+    );
     return NextResponse.json(actions);
   } catch (err) {
     console.warn("[actions] fallback to mock:", err);

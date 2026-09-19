@@ -4,7 +4,7 @@ import type {
   ScoreSnapshot,
 } from "../types";
 import { SCORE_BY_ID } from "./scores";
-import { applyAction, upliftPoints } from "../scoring";
+import { radarUplift } from "../scoring";
 
 const TEMPLATES: Omit<ActionRecommendation, "id" | "uplift" | "origin">[] = [
   {
@@ -74,15 +74,12 @@ export function actionsForSnapshot(
     return scoreB - scoreA;
   });
 
-  return ranked.slice(0, 4).map((t, i) => {
-    const after = applyAction(snapshot, t, t.recommended_amount);
-    return {
-      ...t,
-      id: `${companyId}-${t.kind}-${i}`,
-      uplift: upliftPoints(snapshot, after),
-      origin: (i === 0 ? "eve" : i === 1 ? "llm" : "deterministic") as ActionRecommendation["origin"],
-    };
-  });
+  return ranked.slice(0, 4).map((t, i) => ({
+    ...t,
+    id: `${companyId}-${t.kind}-${i}`,
+    uplift: radarUplift(snapshot, t),
+    origin: (i === 0 ? "eve" : i === 1 ? "llm" : "deterministic") as ActionRecommendation["origin"],
+  }));
 }
 
 function actionsFor(companyId: string): ActionRecommendation[] {

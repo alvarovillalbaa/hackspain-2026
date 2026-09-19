@@ -94,3 +94,20 @@ export function upliftPoints(
 ): number {
   return Math.round((after.score - before.score) * 10) / 10;
 }
+
+/**
+ * Uplift of the radar what-if, not vs the Health Scorer number.
+ * Dataset snapshots have score from xray (0–100 isotonic) while applyAction
+ * recomposes from dimensions; subtracting those two produced fake negative pts.
+ */
+export function radarUplift(
+  snapshot: ScoreSnapshot,
+  action: Pick<ActionRecommendation, "dimension_deltas" | "recommended_amount">,
+  amount?: number
+): number {
+  const baseline: ScoreSnapshot = {
+    ...snapshot,
+    score: scoreFromDimensions(snapshot.dimensions),
+  };
+  return upliftPoints(baseline, applyAction(baseline, action, amount));
+}

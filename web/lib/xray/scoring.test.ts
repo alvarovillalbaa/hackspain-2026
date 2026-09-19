@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyAction, scoreFromDimensions, upliftPoints } from "./scoring";
+import { applyAction, scoreFromDimensions, upliftPoints, radarUplift } from "./scoring";
 import { scoreToBand } from "./bands";
 import type { ScoreSnapshot } from "./types";
 
@@ -65,5 +65,12 @@ describe("applyAction", () => {
     const low = scoreFromDimensions({ ...base.dimensions, debt: 0.2 });
     const high = scoreFromDimensions({ ...base.dimensions, debt: 0.8 });
     expect(high).toBeGreaterThan(low);
+  });
+
+  it("radarUplift stays non-negative when snapshot.score is the Health Scorer, not the radar", () => {
+    const scorer = { ...base, score: 90 };
+    const action = { recommended_amount: 100_000, dimension_deltas: { debt: 0.1, liquidity: 0.05 } };
+    expect(upliftPoints(scorer, applyAction(scorer, action))).toBeLessThan(0);
+    expect(radarUplift(scorer, action)).toBeGreaterThan(0);
   });
 });

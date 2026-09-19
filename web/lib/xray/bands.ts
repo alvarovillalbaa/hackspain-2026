@@ -79,6 +79,21 @@ export function outlookMeta(outlook: Outlook): OutlookMeta {
   }
 }
 
+const WATCH_LABELS: Record<string, { label: string; description: string }> = {
+  large_maturity: {
+    label: "Watch · vencimiento",
+    description: "Vencimiento grande de un contrato a menos de 90 días; el watch dura tres meses desde el evento",
+  },
+  main_customer_lost: {
+    label: "Watch · cliente principal",
+    description: "Un cliente recurrente que pesaba al menos el 20 % de la facturación lleva tres meses sin facturar",
+  },
+  expensive_new_debt: {
+    label: "Watch · deuda cara",
+    description: "Alta de deuda con un tipo de contrato por encima del percentil 75 de los contratos de la cartera",
+  },
+};
+
 export function watchMeta(watch: string | null): {
   active: boolean;
   label: string;
@@ -87,11 +102,7 @@ export function watchMeta(watch: string | null): {
   if (!watch) {
     return { active: false, label: "Sin watch", description: "Ningún evento discreto abierto" };
   }
-  return {
-    active: true,
-    label: "Watch",
-    description: watch,
-  };
+  return { active: true, ...(WATCH_LABELS[watch] ?? { label: "Watch", description: watch }) };
 }
 
 export { BANDS };

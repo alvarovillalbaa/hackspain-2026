@@ -8,6 +8,7 @@ import type {
   CompanyRef,
   ImportRequest,
   ImportResult,
+  MethodMetrics,
   NegotiationContext,
   NegotiationLever,
   ProductMatch,
@@ -44,6 +45,8 @@ export interface XrayProvider {
   /** Slim facts for company-side term-improvement tips. */
   getTermContext?(companyId: string): Promise<TermContext>;
   listWatchQueue(): Promise<WatchQueueItem[]>;
+  /** Métricas del método del fact pack (null si el pack no las lleva). */
+  getMethodMetrics(): Promise<MethodMetrics | null>;
   importCompanies(req: ImportRequest): Promise<ImportResult>;
   listImportable?(): Promise<CompanyRef[]>;
 }

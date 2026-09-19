@@ -137,3 +137,51 @@ export const ActionRecommendationSchema = z.object({
   dimension_deltas: DimensionsSchema.partial(),
   origin: DataOriginSchema,
 });
+
+const nullableNumber = z.number().nullable();
+
+/** Zod mirror of `xray.evals` MethodMetrics — the pack-level metrics.json. */
+export const MethodMetricsSchema = z.object({
+  score_model: z.string(),
+  generated_from: z.string(),
+  train_until: z.string(),
+  test_months: z.array(z.string()),
+  n_rows: z.number().int().nonnegative(),
+  n_companies: z.number().int().nonnegative(),
+  n_events: z.number().int().nonnegative(),
+  auc6_own: nullableNumber,
+  auc6_external: nullableNumber,
+  auc1_external: nullableNumber,
+  lead_time: z.object({
+    n_events: z.number().int().nonnegative(),
+    share_crossing: z.number(),
+    share_late: z.number(),
+    share_chronic: z.number(),
+    share_no_history: z.number(),
+    median_crossing: nullableNumber,
+    p25_crossing: nullableNumber,
+    p75_crossing: nullableNumber,
+    cutoff: z.number(),
+  }),
+  persistence: z.object({
+    base_rate: z.number(),
+    horizon_months: z.number().int(),
+    p_red_given_red: z.record(z.string(), nullableNumber),
+  }),
+  directionality: z.record(z.string(), nullableNumber),
+  projection: z.object({
+    n: z.number().int().nonnegative(),
+    coverage_80: nullableNumber.optional(),
+    mean_width: nullableNumber.optional(),
+    mae_p50: nullableNumber.optional(),
+    pinball: nullableNumber.optional(),
+    martingale_baseline: z.record(z.string(), nullableNumber).nullable().optional(),
+  }).nullable(),
+  watch: z.object({
+    share_rows_with_watch: z.number(),
+    n_watch: z.number().int().nonnegative(),
+    p_red_3m_given_watch: nullableNumber,
+    p_red_3m_given_no_watch: nullableNumber,
+    kinds: z.record(z.string(), z.number().int()).default({}),
+  }).nullable(),
+});

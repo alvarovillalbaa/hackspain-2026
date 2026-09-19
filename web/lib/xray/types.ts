@@ -1,7 +1,8 @@
 import type { z } from "zod";
-import type { TreasuryProjectionSchema } from "./schemas";
+import type { MethodMetricsSchema, TreasuryProjectionSchema } from "./schemas";
 
 export type TreasuryProjection = z.infer<typeof TreasuryProjectionSchema>;
+export type MethodMetrics = z.infer<typeof MethodMetricsSchema>;
 
 /** Provenance tag for every data block — greppable when wiring real systems. */
 export type DataOrigin = "ml" | "llm" | "eve" | "deterministic";

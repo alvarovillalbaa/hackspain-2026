@@ -8,6 +8,7 @@ import type {
   CompanyRef,
   ImportRequest,
   ImportResult,
+  MethodMetrics,
   NegotiationContext,
   NegotiationLever,
   ProductMatch,
@@ -48,6 +49,11 @@ export const eveProvider = {
 
   async listCompanySummaries(): Promise<CompanySummary[]> {
     return apiGet<CompanySummary[]>("/api/xray/companies/summaries");
+  },
+
+  async getMethodMetrics(): Promise<MethodMetrics | null> {
+    const json = await apiGet<{ metrics: MethodMetrics | null }>("/api/xray/metrics");
+    return json.metrics ?? null;
   },
 
   async getScore(companyId: string): Promise<ScoreSnapshot> {

@@ -33,6 +33,9 @@ TREND_t    = (19 sep, mañana) improving / flat / worsening = media de (índice 
 
 WATCH_t    = evento discreto (vencimiento grande < 90 días, pérdida del cliente principal, nueva deuda cara)
              → resolución obligatoria en ≤ 3 meses; objetivo ~60% acaban en bajada
+             → (19 sep, noche, #31) los eventos salen de `xray/events.py` (tres tipos, umbrales en
+               `EventsConfig`), `projection_6m` son los cuantiles del score a t+6 por tramo de nivel
+               guardados en `RulesModel`, y el fact pack lleva `metrics.json` con la evaluación del método
 
 SCORE_t    = 0–100 continuo = E[NIVEL_{t+6}]   ← leaderboard
              = pronóstico de persistencia del índice de estado por reglas calibradas (18 sep, noche);
@@ -132,6 +135,8 @@ SCORE_t    = 0–100 continuo = E[NIVEL_{t+6}]   ← leaderboard
 **Integración MPC (19 sep 2026, #6 / #8):** la ficha añade `treasury` al fact pack, al resultado de ingest y a `ScoreSnapshot`, validado en Python y Zod. Compara la acción elegida con no actuar: coste financiero, frecuencia simulada de saldo mínimo negativo, DSCR agregado y cuantiles de caja en EUR. Se reutiliza el escenario del notebook 04 (`λ = 0,5 × mediana de cargos`, `μ = λ/4`, 500 caminos, seis meses, semilla 0); estas preferencias no son parámetros estimados. Se publica como simulación **no calibrada**, sin presentarla como PD ni efecto causal. No cambia el score, su proyección en puntos, las ofertas del marketplace ni promociona NTK; la calibración de #26 sigue diferida. Sin divisa EUR confirmada, sin flujos utilizables o con menos de seis meses de flujos y sin pool previo, `treasury` es `null`, no una simulación inventada. El pool nunca toma meses posteriores al origen de la empresa.
 
 **Catálogo de productos (19 sep, noche):** los *product offerings* son un registro estático de entidades financieras × SKUs con **rangos** (`web/lib/xray/dataset/product_catalog.json`). El subagente `offering` no crea productos: selecciona del catálogo y cotiza términos puntuales dentro de esos rangos; `reassemble` / `deterministicMarketplace` descartan ids desconocidos y clampan tipos/plazos.
+
+(19 sep, noche, #31) El registro por empresa conserva esta forma; el pack además gana `metrics.json` (subconjunto fijo de `metrics.json` de evals), validado con Zod en la web.
 
 Front y back arrancan el viernes sobre stubs con datos ficticios. `score.py` produce el CSV del leaderboard sin tocar la web.
 

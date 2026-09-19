@@ -7,6 +7,7 @@ Módulos previstos (ver docs/plan.md):
 - labels      índice de estado, evento, etiqueta t+6        (slice 4)
 - model       score 0–100 y SHAP                            (slice 4)
 - explain     drivers exactos por señal (campo drivers del JSON) y agregación por grupo (slices 9, 10)
+- events      eventos de watch desde los CSV: events_ext(company_id, month, kind) (slice 14)
 - bands       banda + outlook + watch                       (slice 5)
 - projection  proyección de caja Monte Carlo y what-if      (slice 6, entregado en esta rama)
 - adoption    eventos de adopción leídos de los movimientos (experimentos de producto, pista A)

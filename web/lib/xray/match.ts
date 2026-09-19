@@ -65,7 +65,7 @@ export interface FitContext {
 }
 
 /**
- * Degraded context for callers with no fact pack (mock provider, fixtures).
+ * Degraded context for callers with no fact pack (tests / evals fixtures).
  * Shapes the company's finances out of its score dimensions, so the euros are
  * plausible but invented: never use it on the demo path.
  */

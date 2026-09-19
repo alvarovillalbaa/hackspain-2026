@@ -39,7 +39,7 @@ Fact pack (`companies.json` / `facts.json` / `scores.json`) sigue en git. Sin `B
 export const provider: XrayProvider = eveProvider;
 ```
 
-`eveProvider` solo habla con `/api/xray/*` (el fact pack no entra en el bundle del browser). `mockProvider` existe para tests; **no** es el provider activo.
+`eveProvider` solo habla con `/api/xray/*` (el fact pack no entra en el bundle del browser). No hay `mockProvider`: el portfolio sale de `lib/xray/dataset/` (Health Scorer + facts de `docs/data/raw`).
 
 Métodos: `listCompanies`, `getScore`, `listActions`, `listProducts`, `getNegotiation`, `getAmortizeContext`, `importCompanies`.
 

@@ -17,8 +17,8 @@ import { eveProvider } from "./registry/eve-provider";
 
 /**
  * Single seam between UI and data.
- * Swap `provider` assignment when wiring ML / API / LLM / EVE.
- * Screens must never import from `registry/` directly.
+ * Live path is eveProvider → /api/xray/* → fact pack (Health Scorer export)
+ * + in-repo/Blob store (agent output). Screens must never import registry/.
  */
 export interface XrayProvider {
   listCompanies(): Promise<CompanyRef[]>;
@@ -44,5 +44,4 @@ export interface XrayProvider {
   listImportable?(): Promise<CompanyRef[]>;
 }
 
-/** ← única línea a cambiar al cablear sistemas reales */
 export const provider: XrayProvider = eveProvider;

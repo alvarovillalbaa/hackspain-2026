@@ -360,7 +360,7 @@ Sin auth de producto. Canal Eve: OIDC Vercel + `localDev` + `placeholderAuth`. W
 export const provider: XrayProvider = eveProvider;
 ```
 
-Pantallas y `components/xray/**` **no** importan `lib/xray/registry/`. `eveProvider` solo hace HTTP a `/api/xray/*`, así el fact pack **no entra en el bundle del browser**. Existe `mockProvider` + test; no está activo. Cableado de pantallas: [`frontend_v0.md`](frontend_v0.md).
+Pantallas y `components/xray/**` **no** importan `lib/xray/registry/`. `eveProvider` solo hace HTTP a `/api/xray/*`, así el fact pack **no entra en el bundle del browser**. No hay mock de cartera. Cableado de pantallas: [`frontend_v0.md`](frontend_v0.md).
 
 Hooks: `hooks/xray/use-companies`, `use-company-score`, `use-actions`, `use-product-matches`, `use-csv-preview`, `use-column-mapping`, `use-amortize-context`, `use-selection`. IDs importados también en `localStorage` (`xray.imported.v0`).
 

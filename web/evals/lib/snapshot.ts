@@ -112,7 +112,7 @@ const TEMPLATES: Omit<ActionRecommendation, "id" | "uplift" | "origin">[] = [
   },
 ];
 
-/** Same ranking as registry/actions.actionsForSnapshot, without server-only. */
+/** Eval-only action ranking when the calibration fixture has no fact pack. */
 export function evalActionsForSnapshot(
   snapshot: ScoreSnapshot
 ): ActionRecommendation[] {

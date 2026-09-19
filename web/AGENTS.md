@@ -24,7 +24,7 @@ Mutable demo state persists to Vercel Blob when `BLOB_READ_WRITE_TOKEN` is set (
 
 ## X Ray demo seam
 
-All demo data goes through `lib/xray/provider.ts` (`export const provider = eveProvider`). Screens and `components/xray/**` must **never** import `lib/xray/registry/` — only the provider does. `mockProvider` exists for tests, not the demo. Ficha JSON is `ScoreSnapshot` (`lib/xray/schemas.ts`) via `snapshotFromExported`; the Health Scorer export has no `band`.
+All demo data goes through `lib/xray/provider.ts` (`export const provider = eveProvider`). Screens and `components/xray/**` must **never** import `lib/xray/registry/` — only the provider does. No mock portfolio: companies/scores/facts come from `lib/xray/dataset/` (built from `docs/data/raw`). Ficha JSON is `ScoreSnapshot` (`lib/xray/schemas.ts`) via `snapshotFromExported`; the Health Scorer export has no `band`.
 
 ## Read the eve docs before writing agent code
 

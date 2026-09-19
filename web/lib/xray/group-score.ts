@@ -139,23 +139,19 @@ export function rollupGroup(
       a.company_id.localeCompare(b.company_id)
   )[0]!;
 
-  const dimKeys: (keyof Dimensions)[] = [
-    "liquidity",
-    "collections",
-    "payments",
-    "debt",
-    "activity",
-  ];
-  const dimensions = Object.fromEntries(
-    dimKeys.map((k) => [
-      k,
-      round3(
-        weightedMean(
-          weighted.map((m) => ({ value: m.score.dimensions[k], weight: m.weight }))
-        )
-      ),
-    ])
-  ) as Dimensions;
+  const dim = (k: keyof Dimensions) =>
+    round3(
+      weightedMean(
+        weighted.map((m) => ({ value: m.score.dimensions[k], weight: m.weight }))
+      )
+    );
+  const dimensions: Dimensions = {
+    liquidity: dim("liquidity"),
+    collections: dim("collections"),
+    payments: dim("payments"),
+    debt: dim("debt"),
+    activity: dim("activity"),
+  };
 
   const month = weighted
     .map((m) => m.score.month)

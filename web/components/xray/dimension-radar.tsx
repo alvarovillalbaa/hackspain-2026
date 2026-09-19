@@ -18,20 +18,50 @@ const LABELS: Record<keyof Dimensions, string> = {
   activity: "Actividad",
 };
 
+export type RadarSeries = {
+  name: string;
+  dimensions: Dimensions;
+  color?: string;
+};
+
 export function DimensionRadar({
   dimensions,
   compare,
+  series,
 }: {
-  dimensions: Dimensions;
-  /** Optional second series (e.g. after action). */
+  dimensions?: Dimensions;
   compare?: Dimensions;
+  series?: RadarSeries[];
 }) {
-  const hasCompare = compare != null;
-  const data = (Object.keys(LABELS) as (keyof Dimensions)[]).map((key) => ({
-    dim: LABELS[key],
-    value: Math.round(dimensions[key] * 100),
-    compare: hasCompare ? Math.round(compare[key] * 100) : undefined,
-  }));
+  const resolved: RadarSeries[] =
+    series ??
+    (dimensions
+      ? [
+          {
+            name: compare ? "Antes" : "Actual",
+            dimensions,
+            color: compare ? "var(--muted-foreground)" : "var(--foreground)",
+          },
+          ...(compare
+            ? [
+                {
+                  name: "Después",
+                  dimensions: compare,
+                  color: "var(--foreground)",
+                },
+              ]
+            : []),
+        ]
+      : []);
+
+  const many = resolved.length > 1;
+  const data = (Object.keys(LABELS) as (keyof Dimensions)[]).map((key) => {
+    const row: Record<string, string | number> = { dim: LABELS[key] };
+    resolved.forEach((s, i) => {
+      row[`v${i}`] = Math.round(s.dimensions[key] * 100);
+    });
+    return row;
+  });
 
   return (
     <div className="h-64 w-full">
@@ -42,31 +72,24 @@ export function DimensionRadar({
             dataKey="dim"
             tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
           />
-          <Radar
-            name="Antes"
-            dataKey="value"
-            stroke="var(--muted-foreground)"
-            fill="var(--muted-foreground)"
-            fillOpacity={hasCompare ? 0.08 : 0.12}
-            strokeWidth={hasCompare ? 1 : 2}
-          />
-          {hasCompare ? (
-            <>
-              <Radar
-                name="Después"
-                dataKey="compare"
-                stroke="var(--foreground)"
-                fill="var(--foreground)"
-                fillOpacity={0.14}
-                strokeWidth={2}
-              />
-              <Legend
-                wrapperStyle={{
-                  fontSize: 11,
-                  color: "var(--muted-foreground)",
-                }}
-              />
-            </>
+          {resolved.map((s, i) => (
+            <Radar
+              key={s.name}
+              name={s.name}
+              dataKey={`v${i}`}
+              stroke={s.color ?? "var(--foreground)"}
+              fill={s.color ?? "var(--foreground)"}
+              fillOpacity={many ? 0.08 : 0.12}
+              strokeWidth={many && i === 0 ? 1.5 : 2}
+            />
+          ))}
+          {many ? (
+            <Legend
+              wrapperStyle={{
+                fontSize: 11,
+                color: "var(--muted-foreground)",
+              }}
+            />
           ) : null}
         </RadarChart>
       </ResponsiveContainer>

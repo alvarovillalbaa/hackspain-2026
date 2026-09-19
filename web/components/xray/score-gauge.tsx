@@ -14,13 +14,15 @@ export function ScoreGauge({
   score,
   band,
   className,
+  color = "var(--foreground)",
 }: {
   score: number;
   band: Band;
   className?: string;
+  color?: string;
 }) {
   const meta = bandMeta(band);
-  const data = [{ name: "score", value: score, fill: "var(--foreground)" }];
+  const data = [{ name: "score", value: score, fill: color }];
 
   return (
     <div className={cn("relative flex flex-col items-center", className)}>

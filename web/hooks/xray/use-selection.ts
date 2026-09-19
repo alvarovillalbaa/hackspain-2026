@@ -2,21 +2,30 @@
 
 import { useCallback, useMemo, useState } from "react";
 
-export function useSelection<T extends string>(initial: T[] = []) {
+export function useSelection<T extends string>(initial: T[] = [], max?: number) {
   const [selected, setSelected] = useState<Set<T>>(() => new Set(initial));
 
-  const toggle = useCallback((id: T) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
+  const toggle = useCallback(
+    (id: T) => {
+      setSelected((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else if (max == null || next.size < max) next.add(id);
+        return next;
+      });
+    },
+    [max]
+  );
 
-  const select = useCallback((id: T) => {
-    setSelected((prev) => new Set(prev).add(id));
-  }, []);
+  const select = useCallback(
+    (id: T) => {
+      setSelected((prev) => {
+        if (prev.has(id) || (max != null && prev.size >= max)) return prev;
+        return new Set(prev).add(id);
+      });
+    },
+    [max]
+  );
 
   const deselect = useCallback((id: T) => {
     setSelected((prev) => {

@@ -20,4 +20,15 @@ describe("useSelection", () => {
     act(() => result.current.setAll(["x", "y"]));
     expect(result.current.values.sort()).toEqual(["x", "y"]);
   });
+
+  it("refuses a fourth id when max is 3", () => {
+    const { result } = renderHook(() => useSelection<string>(["a", "b"], 3));
+    act(() => result.current.toggle("c"));
+    act(() => result.current.toggle("d"));
+    expect(result.current.values.sort()).toEqual(["a", "b", "c"]);
+    act(() => result.current.select("d"));
+    expect(result.current.count).toBe(3);
+    act(() => result.current.toggle("a"));
+    expect(result.current.isSelected("a")).toBe(false);
+  });
 });

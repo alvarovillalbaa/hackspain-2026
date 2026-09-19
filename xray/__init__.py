@@ -9,7 +9,7 @@ Módulos previstos (ver docs/plan.md):
 - projection  proyección de caja Monte Carlo y what-if      (slice 6)
 - rates       curva banda → tipo justo                      (slice 7)
 - evals       AUC(h), lead time, persistencia; CLI xray-evals   (slices 4 y 15)
-- score       entrypoint del leaderboard                    (slice 11)
+- score       puntuador por lotes; CLI xray-score, ranking sobre la unión (slice 11)
 """
 
 __version__ = "0.1.0"

@@ -37,6 +37,7 @@ dev = [
 [project.scripts]
 xray-cache = "xray.data:main"
 xray-evals = "xray.evals:main"
+xray-score = "xray.score:main"
 
 [build-system]
 requires = ["hatchling"]

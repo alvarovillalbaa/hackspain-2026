@@ -29,7 +29,7 @@ KEYS = ["company_id", "month"]
 @dataclass(frozen=True)
 class Column:
     name: str
-    kind: str  # "key" | "int" | "eur" | "ratio" | "share" | "flag"
+    kind: str  # "key" | "int" | "eur" | "ratio" | "share" | "signed" | "flag"  (signed: real con signo)
     nullable: bool
     requires: str | None  # bandera has_* que tiene que ser True para que no sea NaN
     doc: str
@@ -65,7 +65,19 @@ COLUMNS: tuple[Column, ...] = (
            "operating_inflows de 6 meses / debt_service_6m_eur. NaN si no hay servicio de deuda. Señal (iii)."),
     # --- actividad (señal iv) ------------------------------------------------------------
     Column("inflows_yoy_change", "ratio", True, "has_prior_year",
-           "operating_inflows_eur / mismo mes del año anterior − 1. NaN sin mes anterior. Señal (iv)."),
+           "operating_inflows_eur / mismo mes del año anterior − 1. NaN sin mes anterior. Pantalla; "
+           "fue la señal (iv) hasta el 19 sep."),
+    # --- señales v2 (19 sep, tras la revisión): las que lee el índice de estado ----------
+    Column("net_cash_flow_ratio_3m", "signed", True, None,
+           "(operating_inflows − outflows) de los últimos 3 meses / outflows de esos 3 meses; ≥ −1. "
+           "NaN si los cargos suman 0. Señal (iv). La calcula `derive()` desde el contrato."),
+    Column("cash_buffer_days", "signed", True, None,
+           "min_balance_eur / (outflows_eur / 30): días de caja al ritmo de cargos del mes, negativo si "
+           "el mínimo lo es. NaN si outflows_eur == 0. Señal (i). La calcula `derive()`."),
+    Column("overdue_flow_rate_3m", "share", True, "has_invoices",
+           "Importe de recibidas vencidas en los últimos 3 meses (este incluido) aún impagado a fin de "
+           "mes / importe vencido en esos 3 meses. NaN si no venció nada. Señal (ii). "
+           "Referencia: `overdue_flow_rate()`."),
     # --- extras nulos por defecto; libres de crecer -------------------------------------
     Column("credit_line_usage", "share", True, "has_credit_line",
            "Dispuesto / concedido a fin de mes, sumado sobre las líneas de la empresa. Driver top del plan §2."),
@@ -80,12 +92,14 @@ COLUMNS: tuple[Column, ...] = (
 
 COLUMN_NAMES: list[str] = [c.name for c in COLUMNS]
 SIGNAL_COLUMNS: list[str] = [
-    "min_balance_eur",
-    "overdue_received_ratio_3m",
+    "cash_buffer_days",
+    "overdue_flow_rate_3m",
     "dscr_6m",
-    "inflows_yoy_change",
+    "net_cash_flow_ratio_3m",
 ]
-"""Las cuatro señales del índice de estado (docs/plan.md §2), en el orden del plan."""
+"""Las cuatro señales del índice de estado en el orden del plan §2 (i)–(iv). Versión 2 del 19 sep:
+liquidez en días de caja, vencidas como tasa de flujo, actividad como flujo neto de caja; los
+euros y el interanual siguen en la tabla para la pantalla."""
 
 FIXTURE_PATH = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "features_mock.csv"
 
@@ -134,6 +148,8 @@ def validate(df: pd.DataFrame) -> pd.DataFrame:
         errors.append("months_negative_6m > 6")
     if (df["inflows_yoy_change"].dropna() < -1).any():
         errors.append("inflows_yoy_change < −1 (no se puede caer más del 100%)")
+    if (df["net_cash_flow_ratio_3m"].dropna() < -1).any():
+        errors.append("net_cash_flow_ratio_3m < −1 (las entradas no pueden ser negativas)")
 
     ordered = df.sort_values(KEYS)
     for cid, g in ordered.groupby("company_id", sort=False):
@@ -148,6 +164,58 @@ def validate(df: pd.DataFrame) -> pd.DataFrame:
     if errors:
         raise ValueError("features no cumple el contrato:\n  - " + "\n  - ".join(errors))
     return df
+
+
+def derive(df: pd.DataFrame) -> pd.DataFrame:
+    """Añade (o recalcula) las dos señales v2 que salen de columnas del contrato.
+
+    `net_cash_flow_ratio_3m` y `cash_buffer_days` se definen por fórmula sobre
+    `operating_inflows_eur`, `outflows_eur` y `min_balance_eur`, así que cualquier builder las
+    obtiene llamando aquí. Devuelve una copia con las filas en su orden original.
+    """
+    out = df.copy()
+    s = out.sort_values(KEYS)
+    g = s.groupby("company_id", sort=False)
+    in3 = g["operating_inflows_eur"].transform(lambda x: x.rolling(3, min_periods=1).sum())
+    out3 = g["outflows_eur"].transform(lambda x: x.rolling(3, min_periods=1).sum())
+    out["net_cash_flow_ratio_3m"] = (in3 - out3) / out3.where(out3 > 0)
+    out["cash_buffer_days"] = s["min_balance_eur"] / (s["outflows_eur"] / 30).where(s["outflows_eur"] > 0)
+    return out
+
+
+OVERDUE_FLOW_COLUMNS = ["company_id", "month", "due_3m_eur", "unpaid_3m_eur", "overdue_flow_rate_3m"]
+
+
+def overdue_flow_rate(invoices: pd.DataFrame, months, window: int = 3) -> pd.DataFrame:
+    """Implementación de referencia de `overdue_flow_rate_3m` desde `invoices` (`xray.data.load`).
+
+    Una factura recibida cuenta como vencida desde el mes de `due_date` y como impagada hasta el
+    mes de `payment_date` si `status == "paid"`; si no está pagada (overdue, pending) sigue impagada
+    hasta el final, porque su `payment_date` no es real (docs/plan.md §5). Para cada mes m:
+    importe vencido en [m−2, m] aún impagado a fin de m / importe vencido en [m−2, m].
+    Devuelve solo los meses con algo vencido; el builder hace el merge y deja NaN donde no hay.
+    """
+    months = pd.PeriodIndex([str(m) for m in months], freq="M")
+    rec = invoices[(invoices["direction"] == "received") & invoices["due_date"].notna()].copy()
+    if rec.empty:
+        return pd.DataFrame(columns=OVERDUE_FLOW_COLUMNS)
+    rec["a"] = rec["amount"].abs()
+    rec["due_m"] = rec["due_date"].dt.to_period("M")
+    paid_ok = rec["status"].eq("paid") & rec["payment_date"].notna()
+    rec["pay_m"] = rec["payment_date"].dt.to_period("M").where(paid_ok)
+    parts = []
+    for offset in range(window):
+        t = rec.assign(m=rec["due_m"] + offset)
+        t = t[t["m"].isin(months)]
+        unpaid = t["pay_m"].isna() | (t["pay_m"] > t["m"])
+        parts.append(pd.DataFrame({"company_id": t["company_id"], "m": t["m"], "a": t["a"],
+                                   "unpaid_a": t["a"].where(unpaid, 0.0)}))
+    t = pd.concat(parts, ignore_index=True)
+    agg = (t.groupby(["company_id", "m"], sort=True)
+             .agg(due_3m_eur=("a", "sum"), unpaid_3m_eur=("unpaid_a", "sum")).reset_index())
+    agg["overdue_flow_rate_3m"] = agg["unpaid_3m_eur"] / agg["due_3m_eur"].where(agg["due_3m_eur"] > 0)
+    agg["month"] = agg["m"].astype(str)
+    return agg[OVERDUE_FLOW_COLUMNS]
 
 
 def build(*args, **kwargs) -> pd.DataFrame:  # pragma: no cover - lo implementa el slice #2

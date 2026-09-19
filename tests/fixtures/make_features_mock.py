@@ -14,6 +14,11 @@ Las tres historias, pensadas para los tests de tabla de los slices #15, #4 y #5:
                       negativo desde el tercer mes rojo.
   MOCK_SHORT          5 m. Sin deuda ni línea, con facturas, sin año anterior. dscr e
                       inflows_yoy_change son NaN por cobertura, no por dato malo → confidence baja.
+
+Señales v2 (19 sep): las dos empresas de 18 meses tienen cargos fijos de 90 K al mes, así que
+cuando caen las entradas el flujo neto de caja (`net_cash_flow_ratio_3m`) se vuelve negativo y los
+días de caja (`cash_buffer_days`) siguen al mínimo. Las dos las calcula `features.derive()`; la
+tasa de vencidas (`overdue_flow_rate_3m`) se dibuja a mano con la misma serie que el stock.
 """
 
 from __future__ import annotations
@@ -25,7 +30,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from xray.features import COLUMN_NAMES, FIXTURE_PATH, validate
+from xray.features import COLUMN_NAMES, FIXTURE_PATH, derive, validate
 
 RECEIVED_PER_MONTH = 60_000.0  # compras mensuales de las dos empresas de 18 meses
 
@@ -46,12 +51,13 @@ def _company(
     has_debt: bool,
     has_invoices: bool,
     has_credit_line: bool,
+    outflows: list[float] | None = None,  # por defecto el 90% de las entradas
 ) -> pd.DataFrame:
     n = len(inflows)
     months = _months(start, n)
     inflows_a = np.array(inflows, dtype=float)
     min_a = np.array(min_balance, dtype=float)
-    outflows = np.round(inflows_a * 0.9, 2)
+    outflows_a = np.array(outflows, dtype=float) if outflows is not None else np.round(inflows_a * 0.9, 2)
     eom = np.round(min_a + 0.35 * inflows_a, 2)  # el cierre queda por encima del mínimo
 
     neg = (min_a < 0).astype(int)
@@ -64,10 +70,12 @@ def _company(
         received_3m = [RECEIVED_PER_MONTH * min(3, i + 1) for i in range(n)]
         ratio = np.array(overdue_ratio, dtype=float)
         overdue = np.round(ratio * np.array(received_3m), 2)
+        flow_rate = ratio.copy()  # la tasa de flujo se dibuja con la misma serie que el stock
     else:
         received_3m = [np.nan] * n
         ratio = np.full(n, np.nan)
         overdue = np.full(n, np.nan)
+        flow_rate = np.full(n, np.nan)
 
     if has_debt:
         monthly = np.array(debt_service, dtype=float)  # cuota + intereses de cada mes
@@ -78,13 +86,13 @@ def _company(
         ds = np.full(n, np.nan)
         dscr = np.full(n, np.nan)
 
-    return pd.DataFrame(
+    df = pd.DataFrame(
         {
             "company_id": cid,
             "month": months,
             "months_of_history": np.arange(1, n + 1),
             "operating_inflows_eur": inflows_a,
-            "outflows_eur": outflows,
+            "outflows_eur": outflows_a,
             "eom_balance_eur": eom,
             "min_balance_eur": min_a,
             "months_negative_6m": months_negative_6m,
@@ -94,6 +102,7 @@ def _company(
             "debt_service_6m_eur": ds,
             "dscr_6m": dscr,
             "inflows_yoy_change": yoy,
+            "overdue_flow_rate_3m": flow_rate,
             "credit_line_usage": credit_line_usage if has_credit_line else [np.nan] * n,
             "top_customer_share_12m": top_share if has_invoices else [np.nan] * n,
             "has_invoices": has_invoices,
@@ -102,10 +111,12 @@ def _company(
             "has_prior_year": has_prior_year,
         }
     )
+    return derive(df)
 
 
 def build() -> pd.DataFrame:
     base_inflows = [100_000.0] * 18
+    fixed_outflows = [90_000.0] * 18  # los cargos no bajan cuando bajan las entradas
     healthy_min = [25_000.0] * 18
     healthy_overdue = [0.10] * 18
     healthy_service = [25_000.0] * 18  # servicio mensual; 150 K en 6 m → DSCR = 4
@@ -124,6 +135,7 @@ def build() -> pd.DataFrame:
     dip = _company(
         "MOCK_DIP", "2025-03", dip_inflows, dip_min, dip_overdue, healthy_service,
         dip_usage, healthy_share, has_debt=True, has_invoices=True, has_credit_line=True,
+        outflows=fixed_outflows,
     )
 
     # --- MOCK_DETERIORATION: seis meses rojos seguidos, 2026-03 → 2026-08 (índices 12..17) ---
@@ -141,6 +153,7 @@ def build() -> pd.DataFrame:
     det = _company(
         "MOCK_DETERIORATION", "2025-03", det_inflows, det_min, det_overdue, det_service,
         det_usage, healthy_share, has_debt=True, has_invoices=True, has_credit_line=True,
+        outflows=fixed_outflows,
     )
 
     # --- MOCK_SHORT: cinco meses, sin deuda, sin año anterior --------------------------------

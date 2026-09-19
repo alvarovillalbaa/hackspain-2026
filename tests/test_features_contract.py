@@ -25,11 +25,78 @@ def test_fixture_has_three_designed_companies(mock):
     assert lengths == {"MOCK_DIP": 18, "MOCK_DETERIORATION": 18, "MOCK_SHORT": 5}
 
 
-def test_signals_are_the_four_from_plan(mock):
+def test_signals_are_the_four_v2_from_the_review(mock):
     assert features.SIGNAL_COLUMNS == [
-        "min_balance_eur", "overdue_received_ratio_3m", "dscr_6m", "inflows_yoy_change",
+        "cash_buffer_days", "overdue_flow_rate_3m", "dscr_6m", "net_cash_flow_ratio_3m",
     ]
     assert set(features.SIGNAL_COLUMNS) <= set(mock.columns)
+
+
+def test_fixture_deterioration_turns_the_v2_signals_red(mock):
+    det = mock[mock["company_id"] == "MOCK_DETERIORATION"].set_index("month")
+    assert det.loc["2026-08", "cash_buffer_days"] < 0
+    assert det.loc["2026-08", "net_cash_flow_ratio_3m"] < -0.2
+    assert det.loc["2026-08", "overdue_flow_rate_3m"] > 0.5
+    dip = mock[mock["company_id"] == "MOCK_DIP"].set_index("month")
+    assert dip["overdue_flow_rate_3m"].max() < 0.25
+    assert (dip["cash_buffer_days"] < 0).sum() == 1
+
+
+def test_derive_computes_net_cash_flow_and_buffer_days_from_contract_columns():
+    df = pd.DataFrame({
+        "company_id": ["a"] * 3,
+        "month": ["2025-01", "2025-02", "2025-03"],
+        "operating_inflows_eur": [100.0, 100.0, 40.0],
+        "outflows_eur": [80.0, 80.0, 80.0],
+        "min_balance_eur": [40.0, -8.0, 0.0],
+    })
+    out = features.derive(df)
+    # mes 1: (100 − 80) / 80; mes 3: (240 − 240) / 240 = 0
+    assert out["net_cash_flow_ratio_3m"].tolist() == pytest.approx([0.25, 0.25, 0.0])
+    assert out["cash_buffer_days"].tolist() == pytest.approx([15.0, -3.0, 0.0])
+
+
+def test_derive_is_nan_when_outflows_are_zero_and_keeps_row_order():
+    df = pd.DataFrame({
+        "company_id": ["b", "a"],
+        "month": ["2025-01", "2025-01"],
+        "operating_inflows_eur": [10.0, 10.0],
+        "outflows_eur": [0.0, 20.0],
+        "min_balance_eur": [5.0, 5.0],
+    })
+    out = features.derive(df)
+    assert list(out["company_id"]) == ["b", "a"]
+    assert np.isnan(out.loc[0, "net_cash_flow_ratio_3m"]) and np.isnan(out.loc[0, "cash_buffer_days"])
+    assert out.loc[1, "cash_buffer_days"] == pytest.approx(7.5)
+
+
+def test_overdue_flow_rate_counts_invoices_due_in_the_last_three_months_unpaid_at_month_end():
+    inv = pd.DataFrame({
+        "company_id": ["a", "a", "a", "a"],
+        "direction": ["received", "received", "received", "issued"],
+        "amount": [-100.0, -300.0, -50.0, 999.0],
+        "status": ["paid", "overdue", "paid", "overdue"],
+        "due_date": pd.to_datetime(["2025-01-15", "2025-02-10", "2025-03-05", "2025-01-01"]),
+        "payment_date": pd.to_datetime(["2025-01-20", "2025-02-10", "2025-04-02", "2025-01-01"]),
+    })
+    out = features.overdue_flow_rate(inv, ["2025-01", "2025-02", "2025-03", "2025-04"]).set_index("month")
+    # ene: vence 100, pagada en enero → 0/100 · feb: vencen 100+300, la de 300 sigue impagada → 300/400
+    # mar: vencen 100+300+50, la de 50 se paga en abril → 350/450 · abr: ventana feb–abr → 300/350
+    assert out.loc["2025-01", "overdue_flow_rate_3m"] == pytest.approx(0.0)
+    assert out.loc["2025-02", "overdue_flow_rate_3m"] == pytest.approx(0.75)
+    assert out.loc["2025-03", "overdue_flow_rate_3m"] == pytest.approx(350 / 450)
+    assert out.loc["2025-04", "overdue_flow_rate_3m"] == pytest.approx(300 / 350)
+    assert out["due_3m_eur"].tolist() == pytest.approx([100.0, 400.0, 450.0, 350.0])
+
+
+def test_validate_accepts_negative_buffer_days_and_rejects_rate_above_one(mock):
+    ok = mock.copy()
+    ok.loc[0, "cash_buffer_days"] = -12.0
+    features.validate(ok)
+    broken = mock.copy()
+    broken.loc[0, "overdue_flow_rate_3m"] = 1.5
+    with pytest.raises(ValueError, match="cuota > 1"):
+        features.validate(broken)
 
 
 def test_dip_is_a_dip_not_a_deterioration(mock):

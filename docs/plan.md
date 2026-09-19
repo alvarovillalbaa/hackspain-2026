@@ -2,6 +2,7 @@
 
 > Decisiones cerradas el viernes 18 sep 2026 tras cuatro rondas de revisión.
 > **Actualización 18 sep 2026 (noche):** hallazgos de `notebooks/01_dataset_tianwei.ipynb` §9–§15 y del test de retardos dentro de empresa. Los cambios van marcados con «(18 sep, noche)»; el resultado clave está en §5 y cambia §2 (outlook), §4, §8 y §9.
+> **Actualización 19 sep 2026 (mañana):** revisión del score por reglas sobre la tabla provisional real (ML-2). Los cambios van marcados con «(19 sep, mañana)» y el detalle está en [rules_spec.md](rules_spec.md) §11: señales v2, una señal basta, outlook positivo tras un rojo, `trend`, AUC externa, lead time en tres cifras, y el hecho nuevo de §5: Embat no tiene algoritmo de scoring.
 > Documentos relacionados: [../CONTEXTO_RETO.md](../CONTEXTO_RETO.md) (enunciado), [investigacion_score.md](investigacion_score.md) (evidencia), [ideas_equipo.md](ideas_equipo.md) (brainstorming original).
 
 ## 1. Qué construimos
@@ -23,6 +24,10 @@ NIVEL_t    = media móvil 6–12 m de un índice de estado (bancabilidad; perfil
 OUTLOOK_t  = persistencia del estado, no pendiente (18 sep, noche): nº de meses en rojo de los últimos 6
              → Negativo si ≥ 3 y el último es rojo; Positivo si los últimos 3 son verdes tras una racha roja; Estable en otro caso
              → objetivo: ~20–30% de los negativos acaban en bajada a 12 m
+             → (19 sep, mañana) racha roja = ≥ 1 rojo en t−5…t−3; leído como persistencia: P(rojo en t+6) 65% negativo · 8% estable · 14% positivo
+
+TREND_t    = (19 sep, mañana) improving / flat / worsening = media de (índice − nivel) en 3 meses frente a ±0,10
+             → la capa rápida para «quién mejora»: va a la ficha y al monitor, no al score
 
 WATCH_t    = evento discreto (vencimiento grande < 90 días, pérdida del cliente principal, nueva deuda cara)
              → resolución obligatoria en ≤ 3 meses; objetivo ~60% acaban en bajada
@@ -42,6 +47,7 @@ SCORE_t    = 0–100 continuo = E[NIVEL_{t+6}]   ← leaderboard
 - Índice de estado mensual con cuatro señales: (i) saldo mínimo reconstruido (días de colchón, meses en negativo); (ii) facturas recibidas vencidas (pendiente con `due_date` pasado / recibido 3 m); (iii) cobertura del servicio de deuda (entradas operativas = abonos `collection`, `bulk_collection`, `pos_settlement`, `cash_settlement` / `debt_repayment` + `interest_charge`); (iv) caída de entradas vs. mismo mes año anterior.
 - **Evento de deterioro = ≥ 2 de las 4 señales en rojo durante ≥ 2 meses seguidos.** El índice continuo es la etiqueta de regresión a t+6; el evento sirve para AUC(h) y lead time.
 - **Normalización (18 sep, noche):** para etiqueta y modelo cada señal entra como **rango percentil dentro del mes**, porque la reconstrucción de saldo deriva hacia la foto final (§5). Las pantallas muestran los euros en bruto.
+- **Señales v2 (19 sep, mañana):** (i) días de caja = mínimo reconstruido / cargos diarios del mes; (ii) tasa de vencidas de flujo = vencido en los últimos 3 meses aún impagado / vencido en esos 3 meses; (iii) cobertura del servicio de deuda, igual; (iv) flujo neto de caja de 3 meses / cargos de 3 meses. Los euros, el stock de vencidas y el interanual siguen en la tabla para la pantalla. Motivo: el interanual tenía cobertura 0 % en todo el tramo de train, el rango del saldo en euros mezclaba tamaño con liquidez y el stock de vencidas crecía sin límite hacia la foto. Medido contra el saldo bruto pasando a negativo a 6 meses (un resultado que el score no construye), AUC 0,63 → 0,68 en test; empresas sin score 112 → 1. Con una sola señal ya hay índice; `confidence` marca la cobertura. Detalle en `rules_spec.md` §11.
 
 **Especificación operativa (19 sep, ML-2):** rojo por percentil dentro del mes (rango ≤ 0,20), mes rojo = ≥ 2 señales rojas, evento con regla de hueco de 2 meses verdes, etiqueta = nivel a t+6 con los 6 meses presentes, outlook por persistencia y watch desde tabla de eventos aparte. Detalle en [rules_spec.md](rules_spec.md).
 
@@ -64,9 +70,11 @@ SCORE_t    = 0–100 continuo = E[NIVEL_{t+6}]   ← leaderboard
 - **Lead time por evento:** primer mes en que el score cruza umbral *y se mantiene*; mediana y percentiles. Objetivo: mediana ≥ 3 meses. Se espera pequeño en este dataset; se reporta tal cual salga.
 - **Horizonte de persistencia (18 sep, noche):** meses k durante los que P(rojo en t+k | rojo en t) sigue por encima del umbral. Es la anticipación que este dataset soporta: P(saldo < 0 a 6 m | saldo < 0 hoy) = 47% frente a 2%. Es el número de «anticipación en meses» del pitch.
 - **Reglas vs modelo (sábado 18:00, 18 sep noche):** el modelo GBM sustituye al score por reglas solo si lo supera en AUC(6) del split temporal por ≥ 0,03 sin perder en estabilidad; si no, es una transparencia.
-- **Direccionalidad:** Spearman entre Δscore(t−3→t) y Δíndice realizado(t→t+6); P(bajada | outlook negativo) vs P(bajada | estable).
+- **Direccionalidad:** Spearman entre Δscore(t−3→t) y Δíndice realizado(t→t+6); P(bajada | outlook negativo) vs P(bajada | estable). **(19 sep, mañana)** la segunda salía invertida (40 % frente a 55 %) por reversión a la media de un índice acotado: pasa a **P(mes rojo en t+6 | outlook)** y **| trend**: 65 % negativo · 8 % estable · 14 % positivo.
+- **AUC externa (19 sep, mañana):** el evento de AUC(h) sale de los mismos rangos que promedia el score, así que 0,75 mide sobre todo persistencia. Se reporta también AUC(h) contra «el saldo mínimo bruto pasa a negativo en (t, t+h]», que el score no construye: 0,68 a 6 meses (0,72 a 1 mes). Se cuentan las dos; se titula con la externa.
+- **Lead time en tres cifras (19 sep, mañana):** el cruce se mide desde el último mes por encima del corte (desde el primero de la historia contaba a las empresas crónicamente bajas, el 49 % de los eventos): crónicos 15 %, con cruce de ≥ 2 meses 7 % (mediana 3 meses), tardíos 51 %; el 27 % restante son eventos en el primer mes de historia, no anticipables. Es la anticipación que este dataset tiene y así se dice.
 - **Estabilidad:** matriz de transición mensual entre bandas, % reversiones en ≤ 3 meses, PSI con umbral calculado para n/m/bins.
-- **Validación (c):** temporal (train meses 1–12, test 13–18, ~680 empresas con ≥ 18 m) **y** GroupKFold por `group_id`; el número que se cuenta al jurado es el temporal. El modelo debe funcionar con 3–6 meses de historial y marcar la confianza (campo `confidence` del contrato, §6).
+- **Validación (c):** temporal (train meses 1–12, test 13–18, ~680 empresas con ≥ 18 m) **y** GroupKFold por `group_id`; el número que se cuenta al jurado es el temporal. (19 sep, mañana: el mapa isotónico es monótono y ningún parámetro ajustado mueve el ranking, así que GroupKFold se reporta como dispersión entre subpoblaciones, 0,68 ± 0,04, no como generalización.) El modelo debe funcionar con 3–6 meses de historial y marcar la confianza (campo `confidence` del contrato, §6).
 
 ## 5. Hechos del dataset que condicionan el trabajo
 
@@ -85,6 +93,9 @@ SCORE_t    = 0–100 continuo = E[NIVEL_{t+6}]   ← leaderboard
 | Evento (≥ 2 de 4 en rojo, ≥ 2 meses) sobre las señales preview | 222 eventos en 177 empresas: bastan para AUC(h). |
 | Vencidas a proveedores: 44% de las empresas con vencido > 3 meses de compras en 2026-08; el stock crece hacia la foto porque las no pagadas se concentran en vencimientos de 2026 | Ratio válido en corte transversal; en el tiempo, como rango dentro del mes. |
 | Concentración de clientes: el 57% depende de un cliente para > 50% de la facturación; «pérdida del cliente principal» sin condición de recurrencia salta en un tercio de las empresas cada mes | Watch solo si el cliente era recurrente (factura en ≥ 6 de 12 meses) y ≥ 20% de la facturación: afecta al 8–12% mensual. |
+| **Embat no tiene algoritmo de scoring y valora el producto construido sobre el score más que el número** (19 sep, mañana) | El leaderboard deja de ser objetivo: `xray-score` es el puntuador por lotes de la API y el monitor (con `--extra` ranquea empresas nuevas sobre la unión con la referencia). Lo que el score tiene que ser es estable y explicable en pantalla. |
+| 2026-09 tiene un solo día de movimientos (19 sep, mañana) | La tabla de features termina en el último mes completo, 2026-08; la foto de `balances.csv` es su cierre. |
+| Las banderas rojas co-ocurren a 0,9–1,8× de la independencia (19 sep, mañana) | Un mes rojo son dos síntomas persistentes que coinciden, no un co-movimiento; la tasa de mes rojo sube con el número de señales que tiene la empresa. Se dice así en el pitch. |
 
 ## 6. Contrato de la API (fijado el viernes)
 
@@ -93,7 +104,7 @@ SCORE_t    = 0–100 continuo = E[NIVEL_{t+6}]   ← leaderboard
 ```json
 {
   "company_id": "...", "month": "2026-09",
-  "score": 62.4, "band": "BB", "outlook": "negative", "watch": null,
+  "score": 62.4, "band": "BB", "outlook": "negative", "trend": "worsening", "watch": null,
   "confidence": "high",
   "sub_scores": {"bankability": 58, "business_profile": 71},
   "dimensions": {"liquidity": 0.4, "collections": 0.7, "payments": 0.3, "debt": 0.5, "activity": 0.6},
@@ -107,6 +118,8 @@ SCORE_t    = 0–100 continuo = E[NIVEL_{t+6}]   ← leaderboard
 ```
 
 `confidence` ∈ {`high`, `medium`, `low`} (18 sep, noche): meses de historial y cobertura de las cuatro señales; lo leen el front y las guardias de Eve.
+
+`trend` ∈ {`improving`, `flat`, `worsening`} (19 sep, mañana): media de (índice − nivel) de los últimos 3 meses frente a ±0,10. Es la señal de «mejora» de la ficha y el disparador del monitor; no toca el score. Cambio de contrato anunciado antes de que exista `api/` o el esquema zod de `web/`: hoy es solo documentación y stubs.
 
 Front y back arrancan el viernes sobre stubs con datos ficticios. `score.py` produce el CSV del leaderboard sin tocar la web.
 
@@ -146,7 +159,7 @@ Empresa de demo **elegida a mano** con una de reserva, **ambas con contrato en `
 |---|---|
 | El dataset no reproduce los patrones y el modelo no anticipa | **Ya ocurre (18 sep, noche):** el score por reglas calibradas es el camino principal; el modelo GBM es el retador y solo sustituye si gana por ≥ 0,03 de AUC(6) (§4). Se dice en el pitch. |
 | El front no llega | Ficha y refinanciación en Streamlit sobre el mismo JSON. |
-| El script del leaderboard pide otro formato | `score.py` aislado; se adapta en una hora. |
+| El script del leaderboard pide otro formato | `score.py` aislado; se adapta en una hora. (19 sep, mañana: Embat no tiene script de scoring; `xray-score` escribe la tabla para la API y el monitor y el formato vive en `_write_table`.) |
 
 ## 10. Riesgos que se dicen en el pitch
 

@@ -125,7 +125,7 @@ Endpoints: `GET /companies` · `GET /score/{company_id}` · `GET /debt/{company_
 ```json
 {
   "company_id": "…", "month": "2026-09",
-  "score": 62.4, "band": "BB", "outlook": "negative", "watch": null,
+  "score": 62.4, "band": "BB", "outlook": "negative", "trend": "worsening", "watch": null,
   "sub_scores": {"bankability": 58, "business_profile": 71},
   "dimensions": {"liquidity": 0.4, "collections": 0.7, "payments": 0.3, "debt": 0.5, "activity": 0.6},
   "peer_percentile": 41,
@@ -203,7 +203,7 @@ Reglas: pydantic lo valida al salir, zod al entrar; `explanation` llega por `/ex
 3. **Esquema Supabase mínimo** *(full-stack, sábado mañana)*: confirmar las tres tablas o reducir a una.
 4. **Formato del leaderboard** *(ML-1, cuando llegue el script de Embat)*.
 5. **¿Polars en `features`?** *(ML-1, solo si la construcción tarda > 2 min)*.
-6. **Calibración de los pesos del índice de estado** *(ML-2, domingo 10:00; añadida el 18 sep, noche)*: la v1 usa pesos fijos por el orden de evidencia del plan §2 y un único mapa isotónico del índice suavizado al índice realizado a t+6. Candidato para después: búsqueda de pesos que maximice el Spearman con el índice a t+6 en los meses de train, **restringida a ese orden de evidencia**, para que siga siendo «reglas calibradas» y no una regresión con otro nombre. Si la restricción cuesta mucha correlación, se dice en el pitch.
+6. **Calibración de los pesos del índice de estado** *(ML-2, domingo 10:00; añadida el 18 sep, noche)*: la v1 usa pesos fijos por el orden de evidencia del plan §2 y un único mapa isotónico del índice suavizado al índice realizado a t+6. Candidato para después: búsqueda de pesos que maximice el Spearman con el índice a t+6 en los meses de train, **restringida a ese orden de evidencia**, para que siga siendo «reglas calibradas» y no una regresión con otro nombre. Si la restricción cuesta mucha correlación, se dice en el pitch. **Resuelta el 19 sep (mañana):** pesos iguales pierden 0,008 de AUC(6) frente a los del plan; no se calibran. Consecuencia: el mapa isotónico es monótono y ningún parámetro ajustado mueve el ranking, así que GroupKFold se reporta como dispersión entre subpoblaciones, no como generalización (`rules_spec.md` §8 y §11).
 
 ## 11. Calendario del stack
 

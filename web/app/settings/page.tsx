@@ -2,18 +2,13 @@
 
 import { useState } from "react";
 import { AppShell } from "@/components/xray/app-shell";
-import { Badge } from "@/components/ui/badge";
+import { statusClass } from "@/components/embat/chrome";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useSlackStatus } from "@/hooks/xray/use-slack-status";
+import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
   const { status, loading, refresh } = useSlackStatus();
@@ -75,61 +70,79 @@ export default function SettingsPage() {
 
   return (
     <AppShell crumbs={[{ label: "Ajustes" }]}>
-      <Card className="max-w-xl">
-        <CardHeader>
-          <div className="flex items-center justify-between gap-3">
-            <CardTitle>Slack</CardTitle>
-            {loading ? null : status.connected ? (
-              <Badge>Conectado</Badge>
-            ) : (
-              <Badge variant="outline">Sin conectar</Badge>
-            )}
+      <section className="max-w-xl rounded-2xl border border-border bg-white p-5 shadow-sm">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="text-[14px] font-medium tracking-[-0.14px] text-black">
+            Slack
+          </h2>
+          {loading ? null : (
+            <Badge
+              variant="outline"
+              className={cn(
+                "rounded-xl",
+                status.connected
+                  ? statusClass("positive")
+                  : "border-border text-muted-foreground"
+              )}
+            >
+              {status.connected ? "Conectado" : "Sin conectar"}
+            </Badge>
+          )}
+        </div>
+        <p className="mb-4 text-[13px] tracking-[-0.13px] text-muted-foreground">
+          Incoming Webhook (Apps → Incoming Webhooks). Al guardar se mandan las
+          alertas abiertas. Luego, al abrir X Ray y cada mañana laborable.
+        </p>
+        <form className="space-y-4" onSubmit={save}>
+          <Field>
+            <FieldLabel
+              htmlFor="slack-webhook"
+              className="text-[13px] font-medium text-muted-foreground"
+            >
+              Incoming Webhook
+            </FieldLabel>
+            <Input
+              id="slack-webhook"
+              type="password"
+              autoComplete="off"
+              value={webhook}
+              onChange={(e) => setWebhook(e.target.value)}
+              placeholder="https://hooks.slack.com/services/…"
+              disabled={locked || busy != null}
+              required
+              className="rounded-xl border-border text-[13px] shadow-sm"
+            />
+            <FieldDescription className="text-[12px] text-muted-foreground">
+              {locked
+                ? "Este entorno ya tiene SLACK_WEBHOOK_URL. El formulario no lo pisa."
+                : "Solo se aceptan URLs de hooks.slack.com. No se vuelve a mostrar."}
+            </FieldDescription>
+          </Field>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="submit"
+              size="sm"
+              className="rounded-xl"
+              disabled={locked || busy != null || !webhook}
+            >
+              {busy === "save" ? "Conectando…" : "Conectar"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => void disconnect()}
+              disabled={locked || !status.connected || busy != null}
+            >
+              {busy === "clear" ? "…" : "Desconectar"}
+            </Button>
           </div>
-          <CardDescription>
-            Incoming Webhook (Apps → Incoming Webhooks). Al guardar se mandan
-            las alertas abiertas. Luego, al abrir X Ray y cada mañana laborable.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form className="space-y-4" onSubmit={save}>
-            <Field>
-              <FieldLabel htmlFor="slack-webhook">Incoming Webhook</FieldLabel>
-              <Input
-                id="slack-webhook"
-                type="password"
-                autoComplete="off"
-                value={webhook}
-                onChange={(e) => setWebhook(e.target.value)}
-                placeholder="https://hooks.slack.com/services/…"
-                disabled={locked || busy != null}
-                required
-              />
-              <FieldDescription>
-                {locked
-                  ? "Este entorno ya tiene SLACK_WEBHOOK_URL. El formulario no lo pisa."
-                  : "Solo se aceptan URLs de hooks.slack.com. No se vuelve a mostrar."}
-              </FieldDescription>
-            </Field>
-            <div className="flex flex-wrap gap-2">
-              <Button type="submit" disabled={locked || busy != null || !webhook}>
-                {busy === "save" ? "Conectando…" : "Conectar"}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => void disconnect()}
-                disabled={locked || !status.connected || busy != null}
-              >
-                {busy === "clear" ? "…" : "Desconectar"}
-              </Button>
-            </div>
-            <div aria-live="polite" className="min-h-5 text-sm">
-              {error ? <p className="text-destructive">{error}</p> : null}
-              {notice ? <p className="text-muted-foreground">{notice}</p> : null}
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+          <div aria-live="polite" className="min-h-5 text-[13px]">
+            {error ? <p className="text-destructive">{error}</p> : null}
+            {notice ? <p className="text-muted-foreground">{notice}</p> : null}
+          </div>
+        </form>
+      </section>
     </AppShell>
   );
 }

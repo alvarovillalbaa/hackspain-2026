@@ -62,13 +62,13 @@ export function scoreSubtitle(
   peers?: PeerCohort | null
 ): string {
   if (peers && peers.k > 0) {
-    return `Financial Health Score · confianza ${snapshot.confidence} · ${formatDelta(peers.delta)} vs ${peers.k} similares`;
+    return `Índice de salud · confianza ${snapshot.confidence} · ${formatDelta(peers.delta)} vs ${peers.k} similares`;
   }
-  return `Financial Health Score · confianza ${snapshot.confidence} · peer p${snapshot.peer_percentile}`;
+  return `Índice de salud · confianza ${snapshot.confidence} · peer p${snapshot.peer_percentile}`;
 }
 
 function subScoreReasoning(label: string, value: number): string {
-  return `${label}: ${formatNumber(value)} / 100. Componente del Health Score (no es el mapa isotónico).`;
+  return `${label}: ${formatNumber(value)} / 100. Componente del índice de salud (no es el mapa isotónico).`;
 }
 
 function dimensionReasoning(key: DimensionKey, value: number): string {
@@ -95,24 +95,24 @@ export function SubScoresCard({ subScores }: { subScores: SubScores }) {
   return (
     <Card size="sm">
       <CardHeader>
-        <CardTitle>Sub-scores</CardTitle>
+        <CardTitle>Desglose</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <Progress value={subScores.bankability}>
           <div className="flex w-full items-center gap-2">
-            <ProgressLabel>Bankability</ProgressLabel>
+            <ProgressLabel>Financiabilidad</ProgressLabel>
             <ReasoningHint
-              text={subScoreReasoning("Bankability", subScores.bankability)}
+              text={subScoreReasoning("Financiabilidad", subScores.bankability)}
             />
             <ProgressValue />
           </div>
         </Progress>
         <Progress value={subScores.business_profile}>
           <div className="flex w-full items-center gap-2">
-            <ProgressLabel>Business</ProgressLabel>
+            <ProgressLabel>Perfil de negocio</ProgressLabel>
             <ReasoningHint
               text={subScoreReasoning(
-                "Business profile",
+                "Perfil de negocio",
                 subScores.business_profile
               )}
             />
@@ -184,7 +184,7 @@ export function TreasuryCard({ treasury }: { treasury: TreasuryProjection }) {
         </p>
         <p className="text-xs text-muted-foreground">
           Frecuencias simuladas no calibradas; no son probabilidades de impago ni efectos causales.
-          Esta comparación no recalcula el Health Score ni ejecuta ofertas.
+          Esta comparación no recalcula el índice de salud ni ejecuta ofertas.
           {" "}Preferencias del escenario (λ / μ): {formatCurrency(treasury.risk_weight, currency)}
           {" / "}{formatCurrency(treasury.dscr_weight, currency)}; no son parámetros estimados.
         </p>
@@ -217,7 +217,7 @@ export function ScoreHeader({
       <div className="flex items-center gap-2">
         <ScoreBandBadge band={snapshot.band} />
         <OutlookBadge outlook={snapshot.outlook} />
-        {watch.active ? <Badge variant="destructive">Watch</Badge> : null}
+        {watch.active ? <Badge variant="destructive">En seguimiento</Badge> : null}
       </div>
     </div>
   );
@@ -234,7 +234,7 @@ function GaugeModePills({
     <div className="flex flex-wrap gap-2">
       {(
         [
-          ["score", "Health Score"],
+          ["score", "Índice de salud"],
           ["dimensions", "Dimensiones"],
         ] as const
       ).map(([id, label]) => (
@@ -381,7 +381,7 @@ export function TrajectoryPanel({
             <CardTitle>Trayectoria</CardTitle>
             <CardDescription>
               {series && series.length > 0
-                ? "Histórico del Health Score"
+                ? "Histórico del índice de salud"
                 : "Histórico + abanico a 6 meses"}
             </CardDescription>
           </div>
@@ -409,7 +409,7 @@ export function DriversPanel({
   return (
     <Card size={compact ? "sm" : "default"}>
       <CardHeader>
-        <CardTitle>Drivers</CardTitle>
+        <CardTitle>Actualizaciones</CardTitle>
         {!compact ? (
           <CardDescription>Señales que mueven el score</CardDescription>
         ) : null}

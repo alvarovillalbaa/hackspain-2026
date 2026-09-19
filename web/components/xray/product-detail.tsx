@@ -1,11 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Separator } from "@/components/ui/separator";
-import { formatCurrency } from "@/lib/xray/format";
+import { ContratarPrestamoDialog } from "@/components/embat/contratar-prestamo";
+import { Button } from "@/components/ui/button";
+import { embatDisplayClass } from "@/components/embat/font";
+import { formatCompactEuro, formatCurrency } from "@/lib/xray/format";
 import { termImprovements } from "@/lib/xray/term-improvements";
 import { saveDeal } from "@/lib/xray/deals";
+import { useCompanySummaries } from "@/hooks/xray/use-company-summaries";
 import type {
   NegotiationLever,
   ProductMatch,
@@ -15,7 +18,6 @@ import type {
 import { MatchBreakdownBars } from "./match-breakdown";
 import { NegotiationLevers } from "./negotiation-levers";
 import { TermImprovementList } from "./term-improvement-list";
-import { OfferRequestBar } from "./offer-request-bar";
 import { ReasoningHint } from "./reasoning-hint";
 import { ScoreDeltaBar } from "./score-delta-bar";
 import { ScoreUplift } from "./score-uplift";
@@ -37,6 +39,10 @@ export function ProductDetail({
   actionId: string;
 }) {
   const router = useRouter();
+  const [hireOpen, setHireOpen] = useState(false);
+  const { data: summaries } = useCompanySummaries();
+  const currentRate =
+    summaries.find((s) => s.company_id === companyId)?.implied_rate ?? null;
 
   const tips = useMemo(() => {
     if (!score) return [];
@@ -67,26 +73,32 @@ export function ProductDetail({
   };
 
   return (
-    <div className="pb-8">
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <div className="mb-1 flex items-center gap-2 font-mono text-xs text-muted-foreground">
-            <span>{match.product.product_id}</span>
+    <div className="flex flex-col gap-[30px] pb-8">
+      <div className="flex flex-wrap items-start justify-between gap-4 px-5">
+        <div className="min-w-0">
+          <div className="mb-1 flex items-center gap-2 text-[12px] font-medium tracking-[-0.12px] text-[#999]">
+            <span className="font-mono">{match.product.product_id}</span>
             <ReasoningHint text={reasoning || null} />
           </div>
-          <h1 className="font-heading text-2xl font-semibold tracking-tight">
+          <h1
+            className={`${embatDisplayClass} text-[20px] font-medium tracking-[-0.3px] text-black`}
+          >
             {match.product.label}
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {match.product.description} · {formatCurrency(match.amount)}
+          <p className="mt-1 text-[14px] tracking-[-0.14px] text-[#666]">
+            {match.product.description} ·{" "}
+            {formatCurrency(match.amount) || formatCompactEuro(match.amount)}
           </p>
         </div>
+        <Button className="rounded-xl" onClick={() => setHireOpen(true)}>
+          Contratar préstamo
+        </Button>
       </div>
 
-      <div className="mb-6 space-y-3 rounded-2xl bg-muted/40 px-4 py-3">
+      <div className="mx-5 space-y-3 rounded-2xl border border-border bg-white px-4 py-3 shadow-sm">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
-            Uplift proyectado del score
+          <span className="text-[14px] font-medium tracking-[-0.14px] text-muted-foreground">
+            Mejora proyectada del score
           </span>
           <ScoreUplift uplift={match.uplift} toBand={match.projected_band} />
         </div>
@@ -99,18 +111,18 @@ export function ProductDetail({
         ) : null}
       </div>
 
-      <section className="mb-8 space-y-3">
-        <h2 className="font-heading text-sm font-medium">Match bilateral</h2>
+      <section className="mx-5 space-y-3">
+        <h2 className="text-[14px] font-medium tracking-[-0.14px] text-muted-foreground">
+          Encaje bilateral
+        </h2>
         <MatchBreakdownBars breakdown={match.breakdown} />
       </section>
 
-      <Separator className="mb-8" />
-
-      <section className="mb-8 space-y-3">
-        <h2 className="font-heading text-sm font-medium">
+      <section className="mx-5 space-y-3">
+        <h2 className="text-[14px] font-medium tracking-[-0.14px] text-[#999]">
           Términos — emisor vs ideal cliente
         </h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-[13px] tracking-[-0.13px] text-[#666]">
           La oferta del emisor maximiza su margen; el ideal del cliente maximiza
           el uplift del score bajo DSCR ≥ 1,2×. El hueco es la superficie de
           negociación.
@@ -121,21 +133,27 @@ export function ProductDetail({
         />
       </section>
 
-      <section className="mb-8 space-y-3">
-        <h2 className="font-heading text-sm font-medium">
+      <section className="mx-5 space-y-3">
+        <h2 className="text-[14px] font-medium tracking-[-0.14px] text-[#999]">
           Cómo mejorar los términos (lado empresa)
         </h2>
         <TermImprovementList tips={tips} />
       </section>
 
-      <section className="mb-4 space-y-3">
-        <h2 className="font-heading text-sm font-medium">
+      <section className="mx-5 space-y-3">
+        <h2 className="text-[14px] font-medium tracking-[-0.14px] text-[#999]">
           Palancas para negociar términos
         </h2>
         <NegotiationLevers levers={levers} />
       </section>
 
-      <OfferRequestBar onApprove={approve} />
+      <ContratarPrestamoDialog
+        match={match}
+        currentRate={currentRate}
+        open={hireOpen}
+        onOpenChange={setHireOpen}
+        onApprove={approve}
+      />
     </div>
   );
 }

@@ -1,17 +1,30 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { SearchIcon } from "lucide-react";
 import { ImportDialog } from "@/components/xray/import/import-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
-  EmbatButton,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemSeparator,
+  ItemTitle,
+} from "@/components/ui/item";
+import {
   EmbatIcon,
   FilterChip,
   FilterField,
   statusClass,
 } from "@/components/embat/chrome";
+import { useSearch } from "@/components/xray/search-context";
 import { useCompanies } from "@/hooks/xray/use-companies";
 import { useCompanySummaries } from "@/hooks/xray/use-company-summaries";
 import { useSelection } from "@/hooks/xray/use-selection";
@@ -21,10 +34,8 @@ import { MAX_COMPARE, compareHref } from "@/lib/xray/compare";
 import {
   formatCompactEuro,
   formatRatePct,
-  formatSlashDateFromMonth,
 } from "@/lib/xray/format";
 import type { Band, Outlook } from "@/lib/xray/types";
-import { embatDisplayClass } from "@/components/embat/font";
 import { cn } from "@/lib/utils";
 
 type OutlookFilter = Outlook | "all";
@@ -79,20 +90,7 @@ function stubSummary(
   };
 }
 
-function matchesFilters(
-  row: TableRow,
-  query: string,
-  filters: Filters
-): boolean {
-  const q = query.trim().toLowerCase();
-  if (
-    q &&
-    !row.name.toLowerCase().includes(q) &&
-    !row.company_id.toLowerCase().includes(q) &&
-    !row.group_id.toLowerCase().includes(q)
-  ) {
-    return false;
-  }
+function matchesFilters(row: TableRow, filters: Filters): boolean {
   if (
     filters.name &&
     !row.name.toLowerCase().includes(filters.name.toLowerCase())
@@ -120,12 +118,231 @@ function matchesFilters(
   return true;
 }
 
-export function Companias({ className }: { className?: string }) {
-  const router = useRouter();
+function FilterOptionButtons({
+  options,
+  value,
+  onSelect,
+}: {
+  options: { value: string; label: string }[];
+  value: string;
+  onSelect: (value: string) => void;
+}) {
+  return (
+    <div className="flex w-full flex-col gap-1">
+      {options.map((opt) => (
+        <Button
+          key={opt.value}
+          type="button"
+          size="sm"
+          variant={value === opt.value ? "default" : "outline"}
+          className="w-full justify-start rounded-xl"
+          onClick={() => onSelect(opt.value)}
+        >
+          {opt.label}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+export function CompaniasToolbar({
+  filters,
+  setFilters,
+  currencies,
+  onImport,
+}: {
+  filters: Filters;
+  setFilters: React.Dispatch<React.SetStateAction<Filters>>;
+  currencies: string[];
+  onImport: () => void;
+}): ReactNode {
+  const { openSearch } = useSearch();
+
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <FilterChip
+        icon="/embat/icon-score.svg"
+        label="Puntuación"
+        active={filters.minScore != null}
+      >
+        {(close) => (
+          <FilterField
+            placeholder="Puntuación mín."
+            defaultValue={filters.minScore?.toString() ?? ""}
+            inputMode="decimal"
+            onApply={(value) => {
+              const n = Number(value.replace(",", "."));
+              setFilters((f) => ({
+                ...f,
+                minScore: value.trim() && Number.isFinite(n) ? n : null,
+              }));
+              close();
+            }}
+          />
+        )}
+      </FilterChip>
+      <FilterChip
+        icon="/embat/icon-status.svg"
+        label="Estado"
+        active={filters.outlook !== "all"}
+      >
+        {(close) => (
+          <FilterOptionButtons
+            value={filters.outlook}
+            options={[
+              { value: "all", label: "Todos" },
+              { value: "positive", label: outlookMeta("positive").label },
+              { value: "stable", label: outlookMeta("stable").label },
+              { value: "negative", label: outlookMeta("negative").label },
+            ]}
+            onSelect={(value) => {
+              setFilters((f) => ({
+                ...f,
+                outlook: value as OutlookFilter,
+              }));
+              close();
+            }}
+          />
+        )}
+      </FilterChip>
+      <FilterChip
+        icon="/embat/icon-rate.svg"
+        label="Tipo Actual"
+        active={filters.minRate != null}
+      >
+        {(close) => (
+          <FilterField
+            placeholder="Tipo mín. (%)"
+            defaultValue={
+              filters.minRate != null ? String(filters.minRate * 100) : ""
+            }
+            inputMode="decimal"
+            onApply={(value) => {
+              const n = Number(value.replace(",", "."));
+              setFilters((f) => ({
+                ...f,
+                minRate: value.trim() && Number.isFinite(n) ? n / 100 : null,
+              }));
+              close();
+            }}
+          />
+        )}
+      </FilterChip>
+      <FilterChip
+        icon="/embat/icon-filter.svg"
+        label="Cierre año"
+        active={filters.minCash != null}
+      >
+        {(close) => (
+          <FilterField
+            placeholder="Cierre mín. (€)"
+            defaultValue={filters.minCash?.toString() ?? ""}
+            inputMode="numeric"
+            onApply={(value) => {
+              const n = Number(value.replace(",", "."));
+              setFilters((f) => ({
+                ...f,
+                minCash: value.trim() && Number.isFinite(n) ? n : null,
+              }));
+              close();
+            }}
+          />
+        )}
+      </FilterChip>
+      <FilterChip
+        icon="/embat/icon-filter.svg"
+        label="Banda"
+        active={filters.band !== "all"}
+      >
+        {(close) => (
+          <div className="flex max-h-64 w-full flex-col gap-1 overflow-auto">
+            <FilterOptionButtons
+              value={filters.band}
+              options={[
+                { value: "all", label: "Todas" },
+                ...BANDS.map((b) => ({ value: b.band, label: b.band })),
+              ]}
+              onSelect={(value) => {
+                setFilters((f) => ({
+                  ...f,
+                  band: value as Band | "all",
+                }));
+                close();
+              }}
+            />
+          </div>
+        )}
+      </FilterChip>
+      <FilterChip
+        icon="/embat/icon-filter.svg"
+        label="Divisa"
+        active={filters.currency !== "all"}
+      >
+        {(close) => (
+          <FilterOptionButtons
+            value={filters.currency}
+            options={[
+              { value: "all", label: "Todas" },
+              ...currencies.map((c) => ({ value: c, label: c })),
+            ]}
+            onSelect={(value) => {
+              setFilters((f) => ({ ...f, currency: value }));
+              close();
+            }}
+          />
+        )}
+      </FilterChip>
+      <FilterChip
+        icon="/embat/icon-filter.svg"
+        label="Origen"
+        active={filters.origin !== "all"}
+      >
+        {(close) => (
+          <FilterOptionButtons
+            value={filters.origin}
+            options={[
+              { value: "all", label: "Catálogo + import" },
+              { value: "catalog", label: "Catálogo" },
+              { value: "imported", label: "Importadas" },
+            ]}
+            onSelect={(value) => {
+              setFilters((f) => ({
+                ...f,
+                origin: value as OriginFilter,
+              }));
+              close();
+            }}
+          />
+        )}
+      </FilterChip>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className="rounded-xl"
+        aria-label="Buscar empresa"
+        onClick={openSearch}
+      >
+        <SearchIcon className="size-4" />
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="gap-1.5 rounded-xl"
+        onClick={onImport}
+      >
+        <EmbatIcon src="/embat/icon-import.svg" />
+        Importar
+      </Button>
+    </div>
+  );
+}
+
+export function useCompaniasState() {
   const { data, loading, error } = useCompanySummaries();
   const { data: companies, addImported } = useCompanies();
   const selection = useSelection<string>([], MAX_COMPARE);
-  const [query, setQuery] = useState("");
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [importOpen, setImportOpen] = useState(false);
 
@@ -157,439 +374,156 @@ export function Companias({ className }: { className?: string }) {
   }, [data, companies, byCompany]);
 
   const rows = useMemo(
-    () => merged.filter((c) => matchesFilters(c, query, filters)),
-    [merged, query, filters]
+    () => merged.filter((c) => matchesFilters(c, filters)),
+    [merged, filters]
   );
 
-  const updatedAt = merged[0]?.month
-    ? formatSlashDateFromMonth(merged[0].month)
-    : null;
+  return {
+    rows,
+    loading,
+    error,
+    selection,
+    filters,
+    setFilters,
+    currencies,
+    companies,
+    addImported,
+    importOpen,
+    setImportOpen,
+  };
+}
+
+export function Companias({
+  className,
+  state,
+}: {
+  className?: string;
+  state: ReturnType<typeof useCompaniasState>;
+}) {
+  const router = useRouter();
+  const {
+    rows,
+    loading,
+    error,
+    selection,
+    companies,
+    addImported,
+    importOpen,
+    setImportOpen,
+  } = state;
 
   return (
-    <>
-      <section
-        className={cn(
-          "flex w-full flex-col overflow-hidden rounded-[8px] border border-[#dce0e6] bg-white shadow-[0px_1px_2px_0px_rgba(13,19,30,0.1)]",
-          className
-        )}
-      >
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#dce0e6] px-5 py-[15px]">
-          <div className="flex items-center gap-2.5">
-            <h1
-              className={`${embatDisplayClass} shrink-0 text-[20px] font-medium tracking-[-0.3px] text-nowrap text-black`}
-            >
-              Compañías
-            </h1>
-            {updatedAt ? (
-              <p className="shrink-0 rounded-[4px] border border-[rgba(17,168,255,0.2)] bg-[rgba(17,168,255,0.05)] px-[3px] py-0.5 text-[12px] font-medium tracking-[-0.18px] text-nowrap text-[#11a8ff]">
-                Última actualización: {updatedAt}
-              </p>
-            ) : null}
-          </div>
-          <div className="flex shrink-0 items-center gap-2.5">
-            <label className="flex w-[180px] items-center gap-[5px] rounded-[4px] border border-[#dce0e6] bg-white px-[5px] py-[2px]">
-              <span className="sr-only">Buscar compañía</span>
-              <EmbatIcon src="/embat/icon-search.svg" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar compañía"
-                className="min-w-0 flex-1 bg-transparent text-[13px] font-medium tracking-[-0.13px] text-black outline-none placeholder:text-[#666]"
-              />
-            </label>
-            <button
-              type="button"
-              onClick={() => setImportOpen(true)}
-              className="inline-flex items-center gap-[5px] rounded-[4px] border border-[#dce0e6] bg-white px-[5px] py-[2px] text-[13px] font-medium tracking-[-0.13px] text-[#666]"
-            >
-              <EmbatIcon src="/embat/icon-import.svg" />
-              Importar Compañía
-            </button>
-          </div>
-        </header>
-
-        <div className="flex flex-wrap items-center gap-2.5 border-b border-[#dce0e6] px-5 py-[15px]">
-          <FilterChip
-            icon="/embat/icon-filter.svg"
-            label="Nombre"
-            active={Boolean(filters.name)}
-          >
-            {(close) => (
-              <FilterField
-                placeholder="Nombre"
-                defaultValue={filters.name}
-                onApply={(value) => {
-                  setFilters((f) => ({ ...f, name: value.trim() }));
-                  close();
-                }}
-              />
-            )}
-          </FilterChip>
-          <FilterChip
-            icon="/embat/icon-score.svg"
-            label="Puntuación"
-            active={filters.minScore != null}
-          >
-            {(close) => (
-              <FilterField
-                placeholder="Puntuación mín."
-                defaultValue={filters.minScore?.toString() ?? ""}
-                inputMode="decimal"
-                onApply={(value) => {
-                  const n = Number(value.replace(",", "."));
-                  setFilters((f) => ({
-                    ...f,
-                    minScore: value.trim() && Number.isFinite(n) ? n : null,
-                  }));
-                  close();
-                }}
-              />
-            )}
-          </FilterChip>
-          <FilterChip
-            icon="/embat/icon-status.svg"
-            label="Estado"
-            active={filters.outlook !== "all"}
-          >
-            {(close) => (
-              <div className="flex w-full flex-col gap-[5px]">
-                {(
-                  [
-                    ["all", "Todos"],
-                    ["positive", outlookMeta("positive").label],
-                    ["stable", outlookMeta("stable").label],
-                    ["negative", outlookMeta("negative").label],
-                  ] as const
-                ).map(([value, text]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => {
-                      setFilters((f) => ({ ...f, outlook: value }));
-                      close();
-                    }}
-                    className={cn(
-                      "w-full rounded-[4px] px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px]",
-                      filters.outlook === value
-                        ? "bg-[#11a8ff] font-semibold text-white"
-                        : "border border-[#dce0e6] bg-white text-[#666]"
-                    )}
-                  >
-                    {text}
-                  </button>
-                ))}
-              </div>
-            )}
-          </FilterChip>
-          <FilterChip
-            icon="/embat/icon-rate.svg"
-            label="Tipo Actual"
-            active={filters.minRate != null}
-          >
-            {(close) => (
-              <FilterField
-                placeholder="Tipo mín. (%)"
-                defaultValue={
-                  filters.minRate != null
-                    ? String(filters.minRate * 100)
-                    : ""
-                }
-                inputMode="decimal"
-                onApply={(value) => {
-                  const n = Number(value.replace(",", "."));
-                  setFilters((f) => ({
-                    ...f,
-                    minRate:
-                      value.trim() && Number.isFinite(n) ? n / 100 : null,
-                  }));
-                  close();
-                }}
-              />
-            )}
-          </FilterChip>
-          <FilterChip
-            icon="/embat/icon-filter.svg"
-            label="Cierre año"
-            active={filters.minCash != null}
-          >
-            {(close) => (
-              <FilterField
-                placeholder="Cierre mín. (€)"
-                defaultValue={filters.minCash?.toString() ?? ""}
-                inputMode="numeric"
-                onApply={(value) => {
-                  const n = Number(value.replace(",", "."));
-                  setFilters((f) => ({
-                    ...f,
-                    minCash: value.trim() && Number.isFinite(n) ? n : null,
-                  }));
-                  close();
-                }}
-              />
-            )}
-          </FilterChip>
-          <FilterChip
-            icon="/embat/icon-filter.svg"
-            label="Banda"
-            active={filters.band !== "all"}
-          >
-            {(close) => (
-              <div className="flex max-h-64 w-full flex-col gap-[5px] overflow-auto">
-                {(["all", ...BANDS.map((b) => b.band)] as const).map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => {
-                      setFilters((f) => ({ ...f, band: value }));
-                      close();
-                    }}
-                    className={cn(
-                      "w-full rounded-[4px] px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px]",
-                      filters.band === value
-                        ? "bg-[#11a8ff] font-semibold text-white"
-                        : "border border-[#dce0e6] bg-white text-[#666]"
-                    )}
-                  >
-                    {value === "all" ? "Todas" : value}
-                  </button>
-                ))}
-              </div>
-            )}
-          </FilterChip>
-          <FilterChip
-            icon="/embat/icon-filter.svg"
-            label="Divisa"
-            active={filters.currency !== "all"}
-          >
-            {(close) => (
-              <div className="flex w-full flex-col gap-[5px]">
-                {["all", ...currencies].map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => {
-                      setFilters((f) => ({ ...f, currency: value }));
-                      close();
-                    }}
-                    className={cn(
-                      "w-full rounded-[4px] px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px]",
-                      filters.currency === value
-                        ? "bg-[#11a8ff] font-semibold text-white"
-                        : "border border-[#dce0e6] bg-white text-[#666]"
-                    )}
-                  >
-                    {value === "all" ? "Todas" : value}
-                  </button>
-                ))}
-              </div>
-            )}
-          </FilterChip>
-          <FilterChip
-            icon="/embat/icon-filter.svg"
-            label="Origen"
-            active={filters.origin !== "all"}
-          >
-            {(close) => (
-              <div className="flex w-full flex-col gap-[5px]">
-                {(
-                  [
-                    ["all", "Catálogo + import"],
-                    ["catalog", "Catálogo"],
-                    ["imported", "Importadas"],
-                  ] as const
-                ).map(([value, text]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => {
-                      setFilters((f) => ({ ...f, origin: value }));
-                      close();
-                    }}
-                    className={cn(
-                      "w-full rounded-[4px] px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px]",
-                      filters.origin === value
-                        ? "bg-[#11a8ff] font-semibold text-white"
-                        : "border border-[#dce0e6] bg-white text-[#666]"
-                    )}
-                  >
-                    {text}
-                  </button>
-                ))}
-              </div>
-            )}
-          </FilterChip>
+    <div className={cn("flex w-full flex-col", className)}>
+      {loading ? (
+        <div className="flex flex-col gap-3">
+          {Array.from({ length: 8 }, (_, i) => (
+            <Skeleton key={i} className="h-14 w-full rounded-2xl bg-muted" />
+          ))}
         </div>
-
-        <div>
-          <table className="w-full table-fixed border-collapse text-left">
-            <caption className="sr-only">Compañías</caption>
-            <colgroup>
-              <col className="w-[44px]" />
-              <col className="w-[18%]" />
-              <col className="w-[12%]" />
-              <col className="w-[12%]" />
-              <col className="w-[18%]" />
-              <col className="w-[14%]" />
-              <col className="w-[16%]" />
-            </colgroup>
-            <thead>
-              <tr className="border-b border-[#dce0e6]">
-                <th scope="col" className="px-3 py-[15px] pl-5">
-                  <span className="sr-only">Seleccionar</span>
-                </th>
-                {(
-                  [
-                    "Nombre",
-                    "Puntuación",
-                    "Estado",
-                    "Situación",
-                    "Tipo Actual",
-                    "Cierre año",
-                  ] as const
-                ).map((label) => (
-                  <th
-                    key={label}
-                    scope="col"
-                    className="px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] whitespace-nowrap text-[#999] last:pr-5"
+      ) : error ? (
+        <p className="py-8 text-sm text-destructive">
+          No se han podido cargar las compañías. {error.message}
+        </p>
+      ) : rows.length === 0 ? (
+        <p className="py-8 text-sm text-muted-foreground">
+          Sin compañías que coincidan con el filtro.
+        </p>
+      ) : (
+        <ItemGroup className="gap-0">
+          {rows.map((row, i) => {
+            const outlook = outlookMeta(row.outlook);
+            const checked = selection.isSelected(row.company_id);
+            const selectDisabled =
+              !checked && selection.count >= MAX_COMPARE;
+            return (
+              <div key={row.company_id}>
+                {i > 0 ? <ItemSeparator className="my-0" /> : null}
+                <Item
+                  size="sm"
+                  className="cursor-pointer rounded-none border-0 px-0 py-3 hover:bg-muted/50"
+                  onClick={() => router.push(`/c/${row.company_id}`)}
+                >
+                  <div
+                    className="flex shrink-0 items-center pr-3"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    {label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 8 }, (_, i) => (
-                  <tr key={i} className="border-b border-[#dce0e6]">
-                    <td colSpan={7} className="px-5 py-3">
-                      <Skeleton className="h-4 w-full rounded bg-[#dce0e6]/50" />
-                    </td>
-                  </tr>
-                ))
-              ) : error ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-5 py-8 text-[14px] text-[#e61847]"
-                  >
-                    No se han podido cargar las compañías. {error.message}
-                  </td>
-                </tr>
-              ) : rows.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-5 py-8 text-[14px] text-[#666]"
-                  >
-                    Sin compañías que coincidan con el filtro.
-                  </td>
-                </tr>
-              ) : (
-                rows.map((row) => {
-                  const outlook = outlookMeta(row.outlook);
-                  const checked = selection.isSelected(row.company_id);
-                  const selectDisabled =
-                    !checked && selection.count >= MAX_COMPARE;
-                  return (
-                    <tr
-                      key={row.company_id}
-                      tabIndex={0}
-                      onClick={() => router.push(`/c/${row.company_id}`)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          router.push(`/c/${row.company_id}`);
-                        }
-                      }}
-                      className="cursor-pointer border-b border-[#dce0e6] even:bg-[rgba(220,224,230,0.2)] hover:bg-[rgba(220,224,230,0.45)]"
-                    >
-                      <td className="px-3 py-[15px] pl-5">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          disabled={selectDisabled}
-                          aria-label={`Seleccionar ${row.name}`}
-                          className="size-3.5 accent-[#11a8ff]"
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={() => selection.toggle(row.company_id)}
-                        />
-                      </td>
-                      <td className="truncate px-3 py-[15px] text-[14px] tracking-[-0.14px] text-black">
-                        <Link
-                          href={`/c/${row.company_id}`}
-                          title={row.name}
-                          className="block truncate text-black hover:underline"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {row.name}
-                        </Link>
-                        {row.imported ? (
-                          <span className="mt-0.5 inline-flex rounded-[4px] border border-[#dce0e6] px-1 py-0 text-[11px] font-medium text-[#666]">
-                            Importada
-                          </span>
-                        ) : null}
-                      </td>
-                      <td className="px-3 py-[15px]">
-                        <span
-                          className={cn(
-                            "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
-                            statusClass(row.outlook)
-                          )}
-                        >
-                          {Math.round(row.score)}
-                        </span>
-                      </td>
-                      <td className="px-3 py-[15px]">
-                        <span
-                          className={cn(
-                            "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
-                            statusClass(row.outlook)
-                          )}
-                        >
-                          {outlook.label}
-                        </span>
-                      </td>
-                      <td
-                        className="truncate px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] text-[#666]"
-                        title={row.situation}
+                    <Checkbox
+                      checked={checked}
+                      disabled={selectDisabled}
+                      aria-label={`Seleccionar ${row.name}`}
+                      onCheckedChange={() =>
+                        selection.toggle(row.company_id)
+                      }
+                    />
+                  </div>
+                  <ItemContent>
+                    <ItemTitle className="text-[15px]">{row.name}</ItemTitle>
+                    <ItemDescription>
+                      <Link
+                        href={`/g/${row.group_id}`}
+                        className="text-primary hover:text-primary/80"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        {row.situation}
-                      </td>
-                      <td className="px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] text-[#666]">
-                        {formatRatePct(row.implied_rate)}
-                      </td>
-                      <td className="px-3 py-[15px] pr-5 text-[14px] tracking-[-0.14px] text-black">
-                        {formatCompactEuro(row.cash_close)}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+                        {row.group_id}
+                      </Link>
+                      {row.imported ? " · Importada" : null}
+                      {" · "}
+                      {row.situation}
+                    </ItemDescription>
+                  </ItemContent>
+                  <ItemActions className="flex-wrap justify-end gap-2">
+                    <Badge
+                      variant="outline"
+                      className={cn("rounded-xl", statusClass(row.outlook))}
+                    >
+                      {Math.round(row.score)}
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className={cn("rounded-xl", statusClass(row.outlook))}
+                    >
+                      {outlook.label}
+                    </Badge>
+                    <span className="text-sm text-muted-foreground tabular-nums">
+                      {formatRatePct(row.implied_rate)}
+                    </span>
+                    <span className="min-w-[4.5rem] text-right text-sm tabular-nums">
+                      {formatCompactEuro(row.cash_close)}
+                    </span>
+                  </ItemActions>
+                </Item>
+              </div>
+            );
+          })}
+        </ItemGroup>
+      )}
 
       {selection.count > 0 ? (
-        <div className="sticky bottom-4 z-30 mt-4 flex items-center justify-between gap-3 rounded-[8px] border border-[#dce0e6] bg-white/95 px-4 py-3 shadow-[0px_1px_2px_0px_rgba(13,19,30,0.1)] backdrop-blur-md">
-          <p className="text-[13px] font-medium tracking-[-0.13px] text-[#666]">
+        <div className="sticky bottom-4 z-30 mt-4 flex items-center justify-between gap-3 rounded-2xl border border-border bg-white/95 px-4 py-3 shadow-sm backdrop-blur-md">
+          <p className="text-sm text-muted-foreground">
             {selection.count}/{MAX_COMPARE} seleccionadas
             {selection.count < 2 ? " · elige al menos 2" : ""}
           </p>
           <div className="flex items-center gap-2">
-            <EmbatButton variant="ghost" onClick={selection.clear}>
+            <Button variant="ghost" size="sm" onClick={selection.clear}>
               Limpiar
-            </EmbatButton>
-            <Link
-              href={compareHref(selection.values)}
-              aria-disabled={selection.count < 2}
-              className={cn(
-                "inline-flex items-center justify-center rounded-[4px] bg-[#11a8ff] px-2.5 py-1 text-[13px] font-semibold tracking-[-0.13px] text-white",
-                selection.count < 2 && "pointer-events-none opacity-50"
-              )}
+            </Button>
+            <Button
+              size="sm"
+              className="rounded-xl"
+              disabled={selection.count < 2}
+              render={
+                <Link
+                  href={
+                    selection.count >= 2
+                      ? compareHref(selection.values)
+                      : "#"
+                  }
+                />
+              }
             >
               Comparar
-            </Link>
+            </Button>
           </div>
         </div>
       ) : null}
@@ -600,6 +534,6 @@ export function Companias({ className }: { className?: string }) {
         onImported={addImported}
         companies={companies}
       />
-    </>
+    </div>
   );
 }

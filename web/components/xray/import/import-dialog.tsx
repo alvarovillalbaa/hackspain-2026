@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { UploadIcon, XIcon } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { XIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -12,6 +12,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  EmbatIcon,
+  embatSelectContentClass,
+  embatSelectItemClass,
+  embatSelectTriggerClass,
+} from "@/components/embat/chrome";
+import { embatDisplayClass, embatUiClass } from "@/components/embat/font";
 import { Field, FieldLabel } from "@/components/ui/field";
 import {
   Select,
@@ -250,12 +257,19 @@ export function ImportDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange} disablePointerDismissal>
-      <DialogContent className="embat-ui font-embat max-h-[85vh] overflow-y-auto rounded-[8px] border border-[#dce0e6] sm:max-w-2xl">
+      <DialogContent
+        className={cn(
+          embatUiClass,
+          "max-h-[85vh] overflow-y-auto rounded-2xl border border-[#dce0e6] bg-white text-black shadow-[0px_1px_2px_0px_rgba(13,19,30,0.1)] ring-0 sm:max-w-2xl"
+        )}
+      >
         <DialogHeader>
-          <DialogTitle>
-            {lockedTarget ? "Actualizar datos" : "Importar empresas"}
+          <DialogTitle
+            className={`${embatDisplayClass} font-medium text-[20px] tracking-[-0.3px] text-black`}
+          >
+            {lockedTarget ? "Actualizar datos" : "Importar Compañía"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-[13px] tracking-[-0.13px] text-[#666]">
             {lockedTarget
               ? `Los CSV se asignan a ${targetCompanyId}. Se recalcula el score, las acciones y el marketplace, y se avisa al watcher.`
               : "Sube uno o varios CSV del dataset Embat. Empresas nuevas, o datos nuevos de una empresa que ya está en el portfolio."}
@@ -263,7 +277,7 @@ export function ImportDialog({
         </DialogHeader>
 
         {error ? (
-          <p className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p className="rounded-xl border border-[#fbd3dc] bg-[#fef4f6] px-3 py-2 text-[13px] text-[#e61847]">
             {error}
           </p>
         ) : null}
@@ -273,17 +287,14 @@ export function ImportDialog({
             <div
               onDragOver={(e) => e.preventDefault()}
               onDrop={onDrop}
-              className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border px-6 py-12 text-center"
+              className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[#dce0e6] px-6 py-12 text-center"
             >
-              <UploadIcon className="size-6 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
+              <EmbatIcon src="/embat/icon-import.svg" className="size-6 bg-[#666]" />
+              <p className="text-[13px] tracking-[-0.13px] text-[#666]">
                 Suelta uno o varios CSV · se sube el fichero entero (máx. 4,5 MB)
               </p>
               <label
-                className={cn(
-                  buttonVariants({ variant: "secondary" }),
-                  "relative cursor-pointer overflow-hidden"
-                )}
+                className="relative cursor-pointer overflow-hidden rounded-xl bg-primary px-2.5 py-1 text-[13px] font-semibold tracking-[-0.13px] text-white"
                 onPointerDown={() => {
                   pickingFiles.current = true;
                 }}
@@ -362,12 +373,16 @@ export function ImportDialog({
                       if (v) setPickedTarget(v);
                     }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={embatSelectTriggerClass}>
                       <SelectValue placeholder="Elige la empresa del portfolio" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className={embatSelectContentClass}>
                       {companies.map((c) => (
-                        <SelectItem key={c.company_id} value={c.company_id}>
+                        <SelectItem
+                          key={c.company_id}
+                          value={c.company_id}
+                          className={embatSelectItemClass}
+                        >
                           {c.name} · {c.company_id}
                         </SelectItem>
                       ))}
@@ -443,7 +458,7 @@ export function ImportDialog({
             </ul>
             <p className="text-xs text-muted-foreground">
               {isUpdate
-                ? "Se recalcula el Health Score, las acciones recomendadas y el marketplace. El watcher evalúa si hay que alertar."
+                ? "Se recalcula el índice de salud, las acciones recomendadas y el marketplace. El watcher evalúa si hay que alertar."
                 : "Se unificarán por empresa, se puntuarán contra la población de referencia y quedarán en el portfolio. El watcher revisará alertas."}
             </p>
             {warnings.length > 0 ? (
@@ -553,12 +568,16 @@ function MappingBlock({
             if (v) onKind(v as DatasetKind);
           }}
         >
-          <SelectTrigger size="sm">
+          <SelectTrigger size="sm" className={cn(embatSelectTriggerClass, "w-auto")}>
             <SelectValue placeholder="Tipo de dataset" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className={embatSelectContentClass}>
             {DATASET_SPECS.map((s) => (
-              <SelectItem key={s.kind} value={s.kind}>
+              <SelectItem
+                key={s.kind}
+                value={s.kind}
+                className={embatSelectItemClass}
+              >
                 {s.label}
               </SelectItem>
             ))}
@@ -588,13 +607,19 @@ function MappingBlock({
                 setField(h, v === "__none__" ? null : v);
               }}
             >
-              <SelectTrigger size="sm" className="w-full">
+              <SelectTrigger size="sm" className={embatSelectTriggerClass}>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">— ignorar —</SelectItem>
+              <SelectContent className={embatSelectContentClass}>
+                <SelectItem value="__none__" className={embatSelectItemClass}>
+                  — ignorar —
+                </SelectItem>
                 {fields.map((f) => (
-                  <SelectItem key={f.key} value={f.key}>
+                  <SelectItem
+                    key={f.key}
+                    value={f.key}
+                    className={embatSelectItemClass}
+                  >
                     {f.key}
                     {f.required ? " *" : ""}
                   </SelectItem>

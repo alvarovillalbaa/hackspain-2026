@@ -1,7 +1,7 @@
 # Auditoría de la plataforma X Ray
 
 **Date:** 2026-09-19
-**Last updated:** 2026-09-19
+**Last updated:** 2026-09-19 (puntero a `auditoria_flujo_datos.md`; este informe quedó corto en tesorería MPC y en el warm cache de recommend)
 **Author(s):** auditoría de código sobre `main` (árbol vivo, no el plan)
 **Status:** Final
 **Scope:** cómo funciona de punta a punta el producto que hay hoy: dataset → `xray/` → FastAPI de ingest → fact pack → Next.js + Eve. Incluye seams, contratos, agente, watcher, tests y deriva docs↔código.
@@ -714,6 +714,7 @@ No hay: what-if Monte Carlo, curva BdE/ECAF → tipo justo, GBM+SHAP, perfil pú
 | Watcher | [`watcher_agent.md`](watcher_agent.md) |
 | Enunciado | [`../CONTEXTO_RETO.md`](../CONTEXTO_RETO.md) |
 | **Cómo está cableado hoy** | **este fichero** |
+| **Inventario de campos, mocks, persistencia** | [`auditoria_flujo_datos.md`](auditoria_flujo_datos.md) — gana si este informe quedó desfasado |
 
 ---
 

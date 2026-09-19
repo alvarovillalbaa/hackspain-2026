@@ -181,11 +181,11 @@ function ScoreSnapshotCard({
         <ScoreBandBadge band={snapshot.band} />
         <div className="grid w-full grid-cols-2 gap-2 font-mono text-sm tabular-nums">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Bankability</span>
+            <span className="text-muted-foreground">Financiabilidad</span>
             <span>{snapshot.sub_scores.bankability}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Business</span>
+            <span className="text-muted-foreground">Perfil de negocio</span>
             <span>{snapshot.sub_scores.business_profile}</span>
           </div>
         </div>
@@ -220,7 +220,7 @@ function DebtWaterfall({
             <tr className="border-b text-left text-xs text-muted-foreground">
               <th className="pb-2 pr-3 font-medium">Banco</th>
               <th className="pb-2 pr-3 font-medium">Tipo</th>
-              <th className="pb-2 pr-3 text-right font-medium">Outstanding</th>
+              <th className="pb-2 pr-3 text-right font-medium">Pendiente</th>
               <th className="pb-2 pr-3 text-right font-medium">Tipo %</th>
               <th className="pb-2 pr-3 text-right font-medium">Amortizado</th>
               <th className="pb-2 text-right font-medium">Ahorro anual</th>

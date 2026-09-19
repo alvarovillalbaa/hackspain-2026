@@ -1,14 +1,14 @@
 "use client";
 
 import { AppShell } from "@/components/xray/app-shell";
-import { GrupoEmpresarial } from "@/components/embat/grupo-empresarial";
 import { Anticipacion } from "@/components/embat/anticipacion";
+import { Dashboard } from "@/components/embat/dashboard";
 
-export default function GroupsIndexPage() {
+export default function DashboardPage() {
   return (
-    <AppShell>
+    <AppShell crumbs={[{ label: "Dashboard" }]}>
       <div className="flex w-full flex-col gap-4">
-        <GrupoEmpresarial />
+        <Dashboard />
         <Anticipacion />
       </div>
     </AppShell>

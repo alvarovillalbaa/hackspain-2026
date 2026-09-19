@@ -27,6 +27,7 @@ import {
   formatSlashDateFromMonth,
 } from "@/lib/xray/format";
 import { publishedProjection } from "@/lib/xray/scoring";
+import { signalLabel } from "@/lib/xray/signal-labels";
 import {
   AGE_BAND_LABEL,
   SIZE_BAND_LABEL,
@@ -46,10 +47,10 @@ export const TRAJECTORY_RANGES = [3, 6, 12] as const;
 export type TrajectoryRange = (typeof TRAJECTORY_RANGES)[number];
 
 export const fichaCardClass =
-  "flex min-h-0 flex-col overflow-hidden rounded-[8px] border border-[#dce0e6] bg-white shadow-[0px_1px_2px_0px_rgba(13,19,30,0.1)]";
+  "flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-sm";
 
 export const fichaItemClass =
-  "flex items-center justify-between rounded-[4px] border border-[#dce0e6] bg-white px-2.5 py-2 shadow-[0px_1px_1px_rgba(13,19,30,0.1)]";
+  "flex items-center justify-between rounded-xl bg-transparent px-2.5 py-2";
 
 export function pickBannerAlert(alerts: Alert[]): Alert | null {
   return (
@@ -82,20 +83,20 @@ export function FichaFrame({
   children: ReactNode;
 }) {
   return (
-    <div className="relative -mx-[50px] max-lg:-mx-6">
+    <div className="relative">
       {banner ? (
         <div
           role="alert"
           className="absolute inset-x-0 top-0 z-10 flex items-center justify-center overflow-clip bg-[#eb002b] px-4 py-[3px] text-center"
         >
           <p className="text-[12px] font-medium tracking-[-0.12px] text-white">
-            Warning - {banner.message}
+            Aviso: {banner.message}
           </p>
         </div>
       ) : null}
       <div
         className={cn(
-          "flex flex-col gap-2.5 px-[50px] max-lg:px-6",
+          "flex flex-col gap-2.5",
           banner && "pt-8"
         )}
       >
@@ -121,7 +122,7 @@ export function FichaTitle({
       >
         {name}
       </h1>
-      <p className="rounded-[4px] border border-[rgba(17,168,255,0.2)] bg-[rgba(17,168,255,0.05)] px-[3px] py-0.5 text-[12px] font-medium tracking-[-0.18px] text-[#11a8ff]">
+      <p className="rounded-xl border border-primary/20 bg-primary/5 px-[3px] py-0.5 text-[12px] font-medium tracking-[-0.18px] text-primary">
         Última actualización: {formatSlashDateFromMonth(month)}
       </p>
       {children}
@@ -141,12 +142,12 @@ export function FichaChips({
   const meta = outlookMeta(outlook);
   return (
     <div className="flex flex-wrap items-center gap-2.5 px-5 pt-[5px] pb-[15px]">
-      <span className="inline-flex items-center justify-center rounded-[4px] border border-[rgba(239,128,0,0.2)] bg-[rgba(239,128,0,0.05)] px-[3px] py-0.5 text-[14px] font-medium tracking-[-0.21px] text-[#ef8000]">
+      <span className="inline-flex items-center justify-center rounded-xl border border-[rgba(239,128,0,0.2)] bg-[rgba(239,128,0,0.05)] px-[3px] py-0.5 text-[14px] font-medium tracking-[-0.21px] text-[#ef8000]">
         {id}
       </span>
       <span
         className={cn(
-          "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
+          "inline-flex items-center justify-center rounded-xl border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
           statusClass(outlook)
         )}
       >
@@ -167,7 +168,7 @@ export function FichaGauge({
   outlook: Outlook;
 }) {
   return (
-    <div className="flex h-[266px] w-[428px] max-w-full shrink-0 items-center justify-center overflow-clip rounded-[8px] bg-white">
+    <div className="flex h-[266px] w-[428px] max-w-full shrink-0 items-center justify-center overflow-clip rounded-2xl bg-white">
       <ScoreGauge
         score={score}
         band={band}
@@ -186,7 +187,7 @@ export function SubScoreRow({ label, value }: { label: string; value: number }) 
       </p>
       <span
         className={cn(
-          "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
+          "inline-flex items-center justify-center rounded-xl border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
           scoreBadgeClass(value)
         )}
       >
@@ -216,8 +217,8 @@ export function DesgloseCard({
           Desglose Score
         </h2>
       </header>
-      <SubScoreRow label="Bankability" value={bankability} />
-      <SubScoreRow label="Business" value={business} />
+      <SubScoreRow label="Financiabilidad" value={bankability} />
+      <SubScoreRow label="Perfil de negocio" value={business} />
     </section>
   );
 }
@@ -227,7 +228,7 @@ export function DriverRow({ driver }: { driver: Driver }) {
     <div className={fichaItemClass}>
       <div className="flex min-w-0 flex-col gap-1">
         <p className="truncate text-[15px] font-medium tracking-[-0.15px] text-[#666]">
-          {driver.signal}
+          {signalLabel(driver.signal)}
         </p>
         <p className="text-[12px] font-medium tracking-[-0.12px] text-[#999]">
           {formatDriverMonth(driver.since)}
@@ -235,7 +236,7 @@ export function DriverRow({ driver }: { driver: Driver }) {
       </div>
       <span
         className={cn(
-          "inline-flex shrink-0 items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
+          "inline-flex shrink-0 items-center justify-center rounded-xl border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
           signedBadgeClass(driver.delta)
         )}
       >
@@ -320,7 +321,7 @@ export function ActionRow({
       >
         <span
           className={cn(
-            "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
+            "inline-flex items-center justify-center rounded-xl border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
             signedBadgeClass(projection.uplift)
           )}
         >
@@ -353,7 +354,7 @@ export function RationaleTip({ text }: { text: string }) {
         sideOffset={6}
         className={cn(
           embatUiClass,
-          "z-50 w-[260px] rounded-[6px] border border-[#dce0e6] bg-white p-2.5 text-[13px] font-medium tracking-[-0.13px] text-black shadow-[0px_1px_1px_rgba(13,19,30,0.1)] ring-0 dark:border-[#dce0e6] dark:bg-white dark:text-black"
+          "z-50 w-[260px] rounded-xl border border-[#dce0e6] bg-white p-2.5 text-[13px] font-medium tracking-[-0.13px] text-black shadow-[0px_1px_1px_rgba(13,19,30,0.1)] ring-0 dark:border-[#dce0e6] dark:bg-white dark:text-black"
         )}
       >
         {text}
@@ -396,9 +397,9 @@ export function AccionesCard<T extends ActionRecommendation>({
         </div>
         {loading ? (
           <>
-            <Skeleton className="h-9 rounded-[4px] bg-[#dce0e6]/50" />
-            <Skeleton className="h-9 rounded-[4px] bg-[#dce0e6]/50" />
-            <Skeleton className="h-9 rounded-[4px] bg-[#dce0e6]/50" />
+            <Skeleton className="h-9 rounded-xl bg-[#dce0e6]/50" />
+            <Skeleton className="h-9 rounded-xl bg-[#dce0e6]/50" />
+            <Skeleton className="h-9 rounded-xl bg-[#dce0e6]/50" />
           </>
         ) : actions.length === 0 ? (
           <p className="px-2.5 text-[14px] text-[#666]">{empty}</p>
@@ -457,9 +458,9 @@ export function TrajectoryCard({
                       close();
                     }}
                     className={cn(
-                      "w-full rounded-[4px] px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px]",
+                      "w-full rounded-xl px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px]",
                       range === value
-                        ? "bg-[#11a8ff] font-semibold text-white"
+                        ? "bg-primary font-semibold text-white"
                         : "border border-[#dce0e6] bg-white text-[#666]"
                     )}
                   >
@@ -496,13 +497,13 @@ export function FichaSkeleton() {
       </div>
       <div className="flex flex-col gap-[30px]">
         <div className="flex flex-wrap gap-[30px]">
-          <Skeleton className="h-[266px] w-[428px] max-w-full rounded-[8px] bg-[#dce0e6]/50" />
-          <Skeleton className="h-[266px] min-w-[260px] flex-1 rounded-[8px] bg-[#dce0e6]/50" />
-          <Skeleton className="h-[300px] min-w-[260px] flex-1 rounded-[8px] bg-[#dce0e6]/50" />
+          <Skeleton className="h-[266px] w-[428px] max-w-full rounded-2xl bg-[#dce0e6]/50" />
+          <Skeleton className="h-[266px] min-w-[260px] flex-1 rounded-2xl bg-[#dce0e6]/50" />
+          <Skeleton className="h-[300px] min-w-[260px] flex-1 rounded-2xl bg-[#dce0e6]/50" />
         </div>
         <div className="flex flex-wrap gap-[30px]">
-          <Skeleton className="h-[300px] w-[425px] max-w-full rounded-[8px] bg-[#dce0e6]/50" />
-          <Skeleton className="h-[300px] min-w-[260px] flex-1 rounded-[8px] bg-[#dce0e6]/50" />
+          <Skeleton className="h-[300px] w-[425px] max-w-full rounded-2xl bg-[#dce0e6]/50" />
+          <Skeleton className="h-[300px] min-w-[260px] flex-1 rounded-2xl bg-[#dce0e6]/50" />
         </div>
       </div>
     </>
@@ -600,8 +601,8 @@ function PeerTile({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-[4px] border border-[#dce0e6] bg-white px-2.5 py-2 shadow-[0px_1px_1px_rgba(13,19,30,0.1)]">
-      <div className="text-[11px] font-medium tracking-[-0.11px] text-[#999] uppercase">
+    <div className="rounded-xl bg-muted/40 px-2.5 py-2">
+      <div className="text-[11px] font-medium tracking-[-0.11px] text-muted-foreground uppercase">
         {label}
       </div>
       <div className="mt-1 text-[14px] font-medium tracking-[-0.14px] tabular-nums text-black">
@@ -637,7 +638,7 @@ export function DealFichaCard({
           {formatCurrency(deal.amount, currency)}
         </p>
         <p className="text-[12px] text-[#999]">
-          Impacto what-if (no recalcula el Health Score oficial)
+          Impacto what-if (no recalcula el índice de salud oficial)
         </p>
         <ScoreUplift uplift={deal.uplift} toBand={deal.projected_band} />
       </div>

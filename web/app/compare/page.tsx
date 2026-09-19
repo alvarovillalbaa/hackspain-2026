@@ -10,7 +10,6 @@ import {
   TrajectoryPanel,
 } from "@/components/xray/score-overview";
 import { Skeleton } from "@/components/ui/skeleton";
-import { buttonVariants } from "@/components/ui/button";
 import { useCompanyScores } from "@/hooks/xray/use-company-scores";
 import { useCompanies } from "@/hooks/xray/use-companies";
 import { usePeerCohorts } from "@/hooks/xray/use-peers";
@@ -39,25 +38,31 @@ function CompareInner() {
     <AppShell crumbs={[{ label: "Comparar" }]}>
       {ids.length < 2 ? (
         <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Elige 2 o 3 empresas en Compañías.
+          <p className="text-[14px] text-muted-foreground">
+            Elige 2 o 3 empresas en Empresas.
           </p>
-          <Link href="/companies" className={cn(buttonVariants({ size: "sm" }))}>
-            Volver a compañías
+          <Link
+            href="/companies"
+            className="inline-flex rounded-xl bg-primary px-2.5 py-1 text-[13px] font-semibold tracking-[-0.13px] text-primary-foreground"
+          >
+            Volver a empresas
           </Link>
         </div>
       ) : loading || peersLoading ? (
         <div className="space-y-4">
-          <Skeleton className="h-10 w-64" />
-          <Skeleton className="h-48 w-full rounded-2xl" />
+          <Skeleton className="h-10 w-64 rounded-xl bg-muted" />
+          <Skeleton className="h-48 w-full rounded-2xl bg-muted" />
         </div>
       ) : rows.length < 2 ? (
         <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[14px] text-muted-foreground">
             No hay score para esas empresas.
           </p>
-          <Link href="/companies" className={cn(buttonVariants({ size: "sm" }))}>
-            Volver a compañías
+          <Link
+            href="/companies"
+            className="inline-flex rounded-xl bg-primary px-2.5 py-1 text-[13px] font-semibold tracking-[-0.13px] text-primary-foreground"
+          >
+            Volver a empresas
           </Link>
         </div>
       ) : (

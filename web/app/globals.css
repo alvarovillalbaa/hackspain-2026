@@ -159,18 +159,18 @@
   --card-foreground: #000000;
   --popover: #ffffff;
   --popover-foreground: #000000;
-  --primary: #11a8ff;
+  --primary: #146c43;
   --primary-foreground: #ffffff;
   --secondary: #f5f6f8;
   --secondary-foreground: #000000;
   --muted: #f5f6f8;
   --muted-foreground: #666666;
-  --accent: #11a8ff;
+  --accent: #146c43;
   --accent-foreground: #ffffff;
   --border: #dce0e6;
   --input: #dce0e6;
-  --ring: #11a8ff;
-  --radius: 0.25rem;
+  --ring: #146c43;
+  --radius: 1rem;
   font-family: "Inter Variable", var(--font-inter-variable), ui-sans-serif,
     system-ui, sans-serif;
   font-feature-settings: "liga" 1, "calt" 1;
@@ -191,4 +191,28 @@
 .embat-ui text,
 .font-embat text {
   font-family: "Inter Variable", var(--font-inter-variable), sans-serif;
+}
+
+/* Contratar Préstamo: scale 0.9 from the top, ease-out-back. Instant exit. */
+[data-slot="dialog-content"].embat-contratar-dialog {
+  transform-origin: top;
+  scale: 1;
+  transition: scale 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+[data-slot="dialog-content"].embat-contratar-dialog[data-starting-style] {
+  scale: 0.9;
+}
+[data-slot="dialog-content"].embat-contratar-dialog[data-ending-style] {
+  transition: none;
+}
+[data-slot="dialog-overlay"].embat-contratar-overlay[data-ending-style] {
+  transition: none;
+  animation: none;
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="dialog-content"].embat-contratar-dialog {
+    transition: none;
+    scale: 1;
+  }
 }

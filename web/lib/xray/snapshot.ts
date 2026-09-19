@@ -11,7 +11,7 @@ import type { ExportedScore } from "./dataset/types";
 export function buildScoreExplanation(row: ExportedScore): string {
   const band = scoreToBand(row.score);
   const parts: string[] = [
-    `Health Score ${row.score.toFixed(1)} (banda ${band}, outlook ${row.outlook}).`,
+    `Índice de salud ${row.score.toFixed(1)} (banda ${band}, outlook ${row.outlook}).`,
   ];
   if (row.drivers.length > 0) {
     const top = row.drivers
@@ -21,7 +21,7 @@ export function buildScoreExplanation(row: ExportedScore): string {
         return `${d.signal} (${sign}${d.delta.toFixed(1)} pts desde ${d.since})`;
       })
       .join("; ");
-    parts.push(`Drivers: ${top}.`);
+    parts.push(`Actualizaciones: ${top}.`);
   }
   const dscr = row.signals.dscr_6m;
   if (dscr != null && dscr > 0) {
@@ -32,7 +32,7 @@ export function buildScoreExplanation(row: ExportedScore): string {
     );
   }
   if (row.watch) {
-    parts.push(`Watch: ${row.watch}.`);
+    parts.push(`En seguimiento: ${row.watch}.`);
   }
   return parts.join(" ");
 }

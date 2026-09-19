@@ -34,8 +34,8 @@ function Command({
 }
 
 function CommandDialog({
-  title = "Command Palette",
-  description = "Search for a command to run...",
+  title = "Buscar",
+  description = "Busca empresas por nombre, identificador o grupo",
   children,
   className,
   showCloseButton = false,
@@ -60,7 +60,9 @@ function CommandDialog({
         )}
         showCloseButton={showCloseButton}
       >
-        {children}
+        <Command className="rounded-4xl! **:data-[slot=command-input-wrapper]:h-12">
+          {children}
+        </Command>
       </DialogContent>
     </Dialog>
   )

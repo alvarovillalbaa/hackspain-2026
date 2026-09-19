@@ -87,4 +87,5 @@ en código nuestro.
 - Vas a tocar `web/` → `web/AGENTS.md` y los docs de Eve que indica.
 - Vas a medir varianza / fidelidad del agente Eve (no el AUC del score) → `docs/calibration.md` y `web/evals/calibration/`.
 - Cómo está cableado hoy (ingest, fact pack, Eve, dos scores) → `docs/auditoria_plataforma.md`.
+- Inventario de campos, mocks vs real, persistencia → `docs/auditoria_flujo_datos.md`.
 - No sabes qué hacer → el slice abierto de tu área en GitHub; si no hay, pregunta antes de abrir uno nuevo.

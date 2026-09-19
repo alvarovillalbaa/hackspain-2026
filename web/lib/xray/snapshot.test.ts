@@ -67,16 +67,16 @@ it("shows no-action evidence, debt-service risk and the uncalibrated warning tog
   expect(markup).toContain("Coste financiero");
   expect(markup).toContain("DSCR");
   expect(markup).toContain("no calibradas");
-  expect(markup).toContain("no recalcula el Health Score");
+  expect(markup).toContain("no recalcula el índice de salud");
 });
 
 it("keeps the MPC panel in the updated advisor layout without changing its controls", () => {
   const markup = renderToStaticMarkup(createElement(ScoreHero, {
     snapshot: snapshotFromExported(row({ treasury: treasury() })), showDrivers: true,
   }));
-  expect(markup).toContain("Health Score");
+  expect(markup).toContain("Índice de salud");
   expect(markup).toContain("Dimensiones");
-  expect(markup).toContain("Drivers");
+  expect(markup).toContain("Actualizaciones");
   expect(markup).toContain("Simulación de tesorería");
   const legacy = renderToStaticMarkup(createElement(ScoreHero, {
     snapshot: snapshotFromExported(row()), showDrivers: true,
@@ -136,7 +136,7 @@ describe("snapshotFromExported", () => {
   it("fills a deterministic explanation", () => {
     const snap = snapshotFromExported(row());
     expect(snap.explanation).toBeTruthy();
-    expect(snap.explanation).toMatch(/Health Score 56\.9/);
+    expect(snap.explanation).toMatch(/Índice de salud 56\.9/);
     expect(snap.explanation).toMatch(/cash_buffer_days/);
     expect(snap.explanation).toMatch(/DSCR 6m/);
   });
@@ -153,7 +153,7 @@ describe("snapshotFromExported", () => {
         },
       })
     );
-    expect(text).toMatch(/Watch/);
+    expect(text).toMatch(/En seguimiento/);
     expect(text).toMatch(/por debajo del suelo/);
   });
 });

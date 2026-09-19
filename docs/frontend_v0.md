@@ -1,8 +1,8 @@
 # Frontend v0 — X Ray demo
 
-Last updated: 2026-09-19 (chrome Embat sin sidebar: grupos + compañías + ficha)
+Last updated: 2026-09-19 (chrome cream sidebar: Dashboard / Empresas / Acciones / Productos)
 
-Demo de pantallas dentro de `web/`. Chrome advisor: top nav text (Grupos / Compañías / Ajustes), Inter Variable + Inter Display, chips cyan. Sin sidebar ni logo Embat. Hay backend propio: rutas `app/api/xray/*` (Next) y, para importar CSV, FastAPI de ingest (`POST /ingest`), no `GET /score`.
+Demo de pantallas dentro de `web/`. Chrome advisor: sidebar cream (`#f6f3ee`) + Inter Variable / Inter Display, active cyan `#11a8ff`, wordmark “X Ray” (sin logo Embat). Footer: Ajustes + identidad demo “Alvaro Villalba”. Hay backend propio: rutas `app/api/xray/*` (Next) y, para importar CSV, FastAPI de ingest (`POST /ingest`), no `GET /score`.
 
 Todo el dato de UI pasa por un único seam: `provider` en [`web/lib/xray/provider.ts`](../web/lib/xray/provider.ts). Cómo está cableado el resto (fact pack, Eve, dos scores): [`auditoria_plataforma.md`](auditoria_plataforma.md). Persistencia mutable en Vercel Blob (JSON), no Postgres ni Supabase.
 
@@ -10,19 +10,22 @@ Todo el dato de UI pasa por un único seam: `provider` en [`web/lib/xray/provide
 
 | Ruta | Qué hace |
 |---|---|
-| `/` | Grupos empresariales (tabla: score, estado, empresas, mejor empresa, cierre agregado) |
-| `/companies` | Compañías (tabla: score, estado, situación, tipo, cierre + filtros banda/divisa/origen + comparar + import) |
+| `/` | Dashboard: KPIs de cartera (n empresas, score medio, caja, watch, top/bottom) |
+| `/companies` | Empresas (tabla: score, estado, situación, tipo, cierre + filtros + comparar + import; link a grupo) |
+| `/acciones` | Acciones recomendadas portfolio-wide (deterministas; overlay títulos Blob) |
+| `/productos` | Libro de deuda viva (`facts.contracts`) + deals contratados |
+| `/grupos` | Tabla de grupos (sin entrada en sidebar; capacidad conservada) |
 | `/grupo-empresarial` | Redirect a `/` |
 | `/start` | Operador (noindex): fija el grupo foco en Blob (reset deals/acciones) y abre `/g/{id}`. No filtra las tablas. |
 | `/c/[companyId]` | Ficha: gauge + desglose Bankability/Business + drivers + acciones + trayectoria 3/6/12m + radar + peers + deal/import |
 | `/g/[groupId]` | Ficha de grupo: mismo spine + acciones del grupo + empresas |
-| `/c/[companyId]/a/[actionId]` | Amortize dashboard o marketplace (ofertas izquierda, importe derecha; barra apilada score + uplift) |
-| `/c/[companyId]/a/[actionId]/p/[productId]` | Detalle producto (página, no modal). `?p=` redirige aquí. Solicitar → 10s → Aprobar |
+| `/c/[companyId]/a/[actionId]` | Amortize dashboard o marketplace (tabla Ofertas + pipeline Eve + importe) |
+| `/c/[companyId]/a/[actionId]/p/[productId]` | Detalle producto (página). Contratar → modal 10s → Aprobar → Blob deal |
 | `/compare` | Comparar 2–3 empresas (desde `/companies`) |
-| `/chat` | Chat del agente (fuera del shell advisor) |
+| `/chat` | Chat del agente (mismo shell advisor) |
 | `/s`, `/s/[sessionId]` | Chat sin sesión / reanudar sesión |
 
-Chrome advisor: tema claro, Inter, radio 4px, `#11a8ff`, breadcrumbs en nested routes. Chat Eve fuera. Reasoning = icono (i) + tooltip.
+Chrome advisor: tema claro, Inter, radio 4px, `#11a8ff`, breadcrumbs en nested routes. Reasoning = icono (i) + tooltip.
 
 ## Persistencia Blob (demo DB)
 
@@ -45,7 +48,7 @@ export const provider: XrayProvider = eveProvider;
 
 `eveProvider` solo habla con `/api/xray/*` (el fact pack no entra en el bundle del browser). No hay `mockProvider`: el portfolio sale de `lib/xray/dataset/` (Health Scorer + facts de `docs/data/raw`).
 
-Métodos: `listCompanies`, `listGroups`, `listCompanySummaries`, `getScore`, `listActions`, `listProducts`, `getNegotiation`, `getAmortizeContext`, `importCompanies`.
+Métodos: `listCompanies`, `listGroups`, `listCompanySummaries`, `listPortfolioActions`, `listBookProducts`, `getScore`, `listActions`, `listProducts`, `getNegotiation`, `getAmortizeContext`, `importCompanies`.
 
 Cada bloque de datos lleva `origin: "ml" | "llm" | "eve" | "deterministic"`. El export Python escribe `origin: "ml"` aunque el motor sea reglas + isotónica.
 
@@ -75,7 +78,7 @@ El número del gauge lo calcula `xray.rules` (mapa isotónico). Next no lo recom
 
 `POST /api/xray/recommend` deja al LLM ids, textos e importe; `reassembleMatches` vuelve a calcular match, uplift y banda. Fallback: `deterministicMarketplace`.
 
-El detalle de producto no cierra el flujo: `termImprovements` (determinista) sugiere mejoras; Solicitar → countdown 10 s → Aprobar persiste el deal en Blob (`xray/deals/`) y redirige a `/c/{id}?closed=1`.
+El detalle de producto cierra el flujo con el modal Contratar Préstamo: Solicitar → countdown 10 s → Aprobar persiste el deal en Blob (`xray/deals/`) y redirige a `/c/{id}?closed=1`.
 
 ### Import CSV (`csv.ts` + `mapping.ts`)
 
@@ -91,8 +94,8 @@ El detalle de producto no cierra el flujo: `termImprovements` (determinista) sug
 | Acciones / facts | `recommendActions` + `facts.json`; Eve redacta títulos; sin fallback TEMPLATES en API |
 | Marketplace Eve | quantity → offering → match; cifras recomputadas en servidor |
 | Import CSV | FastAPI `POST /ingest` + Blob |
-| Grupo foco (demo) | Blob `session.json` + `/start`. No filtra `/` ni `/companies`; chip «Demo» en la tabla de grupos. |
-| Chat Eve | `/chat`, `/s`; tools leen el mismo fact pack |
+| Grupo foco (demo) | Blob `session.json` + `/start`. No filtra tablas; chip «Demo» en `/grupos`. |
+| Chat Eve | `/chat`, `/s`; mismo shell; tools leen el mismo fact pack |
 | Watcher | `watch-rules.ts` + cron + post-import |
 | `GET /score` FastAPI, `/debt`, `/whatif`, `/explain` | **No existen.** Plan §6, no runtime |
 | Supabase | deps de plantilla; 0 uso de producto (demo = Blob JSON) |

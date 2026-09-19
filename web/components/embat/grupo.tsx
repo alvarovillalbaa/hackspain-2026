@@ -6,13 +6,11 @@ import {
   ActualizacionesCard,
   DesgloseCard,
   DimensionsFichaCard,
-  FichaChips,
   FichaFrame,
   FichaGauge,
   fichaCardClass,
   fichaItemClass,
   FichaSkeleton,
-  FichaTitle,
   pickBannerAlert,
   TrajectoryCard,
 } from "@/components/embat/ficha";
@@ -21,7 +19,6 @@ import { useCompanySummaries } from "@/hooks/xray/use-company-summaries";
 import { useDemoSession } from "@/hooks/xray/use-demo-session";
 import { useGroupActions, type GroupAction } from "@/hooks/xray/use-group-actions";
 import { useGroupScore } from "@/hooks/xray/use-group-score";
-import { useGroups } from "@/hooks/xray/use-groups";
 import { outlookMeta } from "@/lib/xray/bands";
 import type { GroupMemberScore, GroupScore } from "@/lib/xray/group-score";
 import type { CompanySummary } from "@/lib/xray/company-summary";
@@ -29,13 +26,10 @@ import { cn } from "@/lib/utils";
 
 export function Grupo({ groupId }: { groupId: string }) {
   const { data: group, loading, error } = useGroupScore(groupId);
-  const { data: groups } = useGroups();
   const { data: summaries } = useCompanySummaries();
   const focusGroupId = useDemoSession();
   const members = group?.members ?? [];
   const { data: actions, loading: actionsLoading } = useGroupActions(members);
-  const summary = groups.find((g) => g.group_id === groupId);
-  const name = summary?.name ?? members[0]?.name ?? groupId;
   const banner = group ? pickBannerAlert(group.snapshot.alerts) : null;
 
   return (
@@ -49,7 +43,6 @@ export function Grupo({ groupId }: { groupId: string }) {
       ) : (
         <GrupoBody
           groupId={groupId}
-          name={name}
           group={group}
           actions={actions}
           actionsLoading={actionsLoading}
@@ -63,7 +56,6 @@ export function Grupo({ groupId }: { groupId: string }) {
 
 function GrupoBody({
   groupId,
-  name,
   group,
   actions,
   actionsLoading,
@@ -71,7 +63,6 @@ function GrupoBody({
   isDemoFocus,
 }: {
   groupId: string;
-  name: string;
   group: GroupScore;
   actions: GroupAction[];
   actionsLoading: boolean;
@@ -83,10 +74,11 @@ function GrupoBody({
 
   return (
     <>
-      <FichaTitle name={name} month={score.month} />
-      <FichaChips id={groupId} outlook={score.outlook}>
-        {isDemoFocus ? <DemoChip /> : null}
-      </FichaChips>
+      {isDemoFocus ? (
+        <div className="px-5 pb-2">
+          <DemoChip />
+        </div>
+      ) : null}
       <div className="flex flex-col gap-[30px]">
         <div className="flex flex-wrap items-center gap-[30px]">
           <FichaGauge
@@ -173,7 +165,7 @@ function EmpresasCard({
                   {outlook ? (
                     <span
                       className={cn(
-                        "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
+                        "inline-flex items-center justify-center rounded-xl border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
                         statusClass(outlook)
                       )}
                     >
@@ -182,7 +174,7 @@ function EmpresasCard({
                   ) : null}
                   <span
                     className={cn(
-                      "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
+                      "inline-flex items-center justify-center rounded-xl border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
                       scoreBadgeClass(member.score)
                     )}
                   >

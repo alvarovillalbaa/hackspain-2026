@@ -1,16 +1,36 @@
 "use client";
 
-import { useState, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { embatUiClass } from "@/components/embat/font";
 import type { Outlook } from "@/lib/xray/types";
 import { cn } from "@/lib/utils";
 
-export function EmbatIcon({ src }: { src: string }) {
+export function EmbatIcon({
+  src,
+  className,
+}: {
+  src: string;
+  className?: string;
+}) {
   return (
-    <span className="relative size-3 shrink-0">
-      <img alt="" src={src} className="absolute inset-0 max-w-none size-full" />
-    </span>
+    <span
+      aria-hidden
+      className={cn("inline-block size-3 shrink-0 bg-muted-foreground", className)}
+      style={{
+        maskImage: `url("${src}")`,
+        WebkitMaskImage: `url("${src}")`,
+        maskSize: "contain",
+        WebkitMaskSize: "contain",
+        maskRepeat: "no-repeat",
+        WebkitMaskRepeat: "no-repeat",
+        maskPosition: "center",
+        WebkitMaskPosition: "center",
+      }}
+    />
   );
 }
 
@@ -21,7 +41,7 @@ export function statusClass(outlook: Outlook): string {
   if (outlook === "negative") {
     return "border-[#fbd3dc] bg-[#fef4f6] text-[#e61847]";
   }
-  return "border-[rgba(17,168,255,0.25)] bg-[rgba(17,168,255,0.08)] text-[#11a8ff]";
+  return "border-border bg-muted text-muted-foreground";
 }
 
 export function signedBadgeClass(value: number): string {
@@ -39,19 +59,17 @@ export function scoreBadgeClass(value: number): string {
 export function outlookColor(outlook: Outlook): string {
   if (outlook === "positive") return "#00a14e";
   if (outlook === "negative") return "#e61847";
-  return "#11a8ff";
+  return "#666666";
 }
 
 export function DemoChip({ className }: { className?: string }) {
   return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-[4px] border border-[rgba(17,168,255,0.2)] bg-[rgba(17,168,255,0.05)] px-1 py-0.5 text-[12px] font-medium tracking-[-0.12px] text-[#11a8ff]",
-        className
-      )}
+    <Badge
+      variant="outline"
+      className={cn("border-primary/20 bg-primary/5 text-primary", className)}
     >
       Demo
-    </span>
+    </Badge>
   );
 }
 
@@ -70,12 +88,21 @@ export function FilterChip({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        className={cn(
-          "inline-flex items-center gap-[5px] rounded-[4px] border bg-white px-[5px] py-[2px] text-[13px] font-medium tracking-[-0.13px] text-[#666] outline-none",
-          active ? "border-[#11a8ff] text-[#11a8ff]" : "border-[#dce0e6]"
-        )}
+        render={
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              "gap-1.5 rounded-xl text-muted-foreground",
+              active && "border-primary text-primary"
+            )}
+          />
+        }
       >
-        <EmbatIcon src={icon} />
+        <EmbatIcon
+          src={icon}
+          className={active ? "bg-primary" : undefined}
+        />
         {label}
       </PopoverTrigger>
       <PopoverContent
@@ -83,7 +110,7 @@ export function FilterChip({
         sideOffset={8}
         className={cn(
           embatUiClass,
-          "z-50 w-[172px] gap-[5px] rounded-[6px] border border-[#dce0e6] bg-white p-[5px] text-[13px] text-black shadow-[0px_1px_1px_rgba(13,19,30,0.1)] ring-0"
+          "z-50 w-[172px] gap-1.5 rounded-xl border border-border bg-popover p-1.5 text-[13px] text-popover-foreground shadow-sm ring-0"
         )}
       >
         {children(() => setOpen(false))}
@@ -106,58 +133,30 @@ export function FilterField({
   const [value, setValue] = useState(defaultValue);
   return (
     <form
-      className="flex w-full flex-col gap-[5px]"
+      className="flex w-full flex-col gap-1.5"
       onSubmit={(e) => {
         e.preventDefault();
         onApply(value);
       }}
     >
-      <input
+      <Input
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={placeholder}
         inputMode={inputMode}
-        className="w-full rounded-[4px] border border-[#dce0e6] bg-white px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] text-black shadow-[0px_1px_1px_rgba(13,19,30,0.1)] outline-none placeholder:text-[#999]"
+        className="h-8 rounded-xl border-0 bg-muted shadow-none"
       />
-      <button
-        type="submit"
-        className="w-full rounded-[4px] bg-[#11a8ff] px-2.5 py-1 text-[13px] font-semibold tracking-[-0.13px] text-white"
-      >
-        Buscar
-      </button>
+      <Button type="submit" size="sm" className="w-full rounded-xl">
+        Aplicar
+      </Button>
     </form>
   );
 }
 
 export const embatSelectTriggerClass =
-  "h-auto w-full rounded-[4px] border border-[#dce0e6] bg-white px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] text-black shadow-[0px_1px_1px_rgba(13,19,30,0.1)] ring-0 outline-none dark:hover:bg-white data-placeholder:text-[#999]";
+  "h-auto w-full rounded-xl border border-border bg-white px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] text-black shadow-sm ring-0 outline-none dark:hover:bg-white data-placeholder:text-[#999]";
 
-export const embatSelectContentClass = `${embatUiClass} rounded-[6px] border border-[#dce0e6] bg-white text-black shadow-[0px_1px_1px_rgba(13,19,30,0.1)] ring-0`;
+export const embatSelectContentClass = `${embatUiClass} rounded-xl border border-border bg-white text-black shadow-sm ring-0`;
 
 export const embatSelectItemClass =
-  "rounded-[4px] py-1.5 text-[13px] text-black focus:bg-[#11a8ff] focus:text-white";
-
-export function EmbatButton({
-  variant = "primary",
-  className,
-  type = "button",
-  ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "ghost";
-}) {
-  return (
-    <button
-      type={type}
-      className={cn(
-        "inline-flex items-center justify-center gap-[5px] rounded-[4px] px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] outline-none disabled:cursor-not-allowed disabled:opacity-40",
-        variant === "primary" && "bg-[#11a8ff] font-semibold text-white",
-        variant === "secondary" &&
-          "border border-[#dce0e6] bg-white text-[#666]",
-        variant === "ghost" &&
-          "text-[#666] hover:bg-[rgba(220,224,230,0.45)]",
-        className
-      )}
-      {...props}
-    />
-  );
-}
+  "rounded-xl py-1.5 text-[13px] text-black focus:bg-primary focus:text-primary-foreground";

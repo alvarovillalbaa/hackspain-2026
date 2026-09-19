@@ -3,7 +3,7 @@ import type { WatchQueueItem, WatchRuleId } from "./types";
 export const WATCH_RULE_LABEL: Record<WatchRuleId, string> = {
   dscr_floor: "DSCR < 1,2",
   outlook_negative_worsening: "Outlook negativo",
-  watch_event: "Watch",
+  watch_event: "En seguimiento",
 };
 
 const RULES = new Set<WatchRuleId>([

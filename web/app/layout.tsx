@@ -23,7 +23,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "X Ray — Financial Health",
+  title: "X Ray — Salud financiera",
   description:
     "Score de financiabilidad a 6 meses y marketplace de refinanciación para asesores Embat",
 };

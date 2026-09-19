@@ -93,7 +93,7 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
   return (
     <section
       className={cn(
-        "flex w-full flex-col overflow-hidden rounded-[8px] border border-[#dce0e6] bg-white shadow-[0px_1px_2px_0px_rgba(13,19,30,0.1)]",
+        "flex w-full flex-col overflow-hidden rounded-2xl border border-[#dce0e6] bg-white shadow-[0px_1px_2px_0px_rgba(13,19,30,0.1)]",
         className
       )}
     >
@@ -105,12 +105,12 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
             Grupos Empresariales
           </h1>
           {updatedAt ? (
-            <p className="shrink-0 rounded-[4px] border border-[rgba(17,168,255,0.2)] bg-[rgba(17,168,255,0.05)] px-[3px] py-0.5 text-[12px] font-medium tracking-[-0.18px] text-nowrap text-[#11a8ff]">
+            <p className="shrink-0 rounded-xl border border-primary/20 bg-primary/5 px-[3px] py-0.5 text-[12px] font-medium tracking-[-0.18px] text-nowrap text-primary">
               Última actualización: {updatedAt}
             </p>
           ) : null}
         </div>
-        <label className="flex w-[200px] shrink-0 items-center gap-[5px] rounded-[4px] border border-[#dce0e6] bg-white px-[5px] py-[2px]">
+        <label className="flex w-[200px] shrink-0 items-center gap-[5px] rounded-xl border border-[#dce0e6] bg-white px-[5px] py-[2px]">
           <span className="sr-only">Buscar grupo</span>
           <EmbatIcon src="/embat/icon-search.svg" />
           <input
@@ -183,9 +183,9 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
                     close();
                   }}
                   className={cn(
-                    "w-full rounded-[4px] px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px]",
+                    "w-full rounded-xl px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px]",
                     filters.outlook === value
-                      ? "bg-[#11a8ff] font-semibold text-white"
+                      ? "bg-primary font-semibold text-white"
                       : "border border-[#dce0e6] bg-white text-[#666]"
                   )}
                 >
@@ -332,7 +332,7 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
                     <td className="px-3 py-[15px]">
                       <span
                         className={cn(
-                          "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
+                          "inline-flex items-center justify-center rounded-xl border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
                           statusClass(group.outlook)
                         )}
                       >
@@ -342,7 +342,7 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
                     <td className="px-3 py-[15px]">
                       <span
                         className={cn(
-                          "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
+                          "inline-flex items-center justify-center rounded-xl border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
                           statusClass(group.outlook)
                         )}
                       >

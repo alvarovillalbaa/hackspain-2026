@@ -402,6 +402,27 @@ export async function readDeal(
   return deal;
 }
 
+/** All accepted deals (memory + durable). Used by Productos book. */
+export async function listDeals(): Promise<AcceptedDeal[]> {
+  const byId = new Map<string, AcceptedDeal>();
+  for (const deal of memoryDeals.values()) {
+    byId.set(deal.company_id, deal);
+  }
+  if (!hasDurable()) return [...byId.values()];
+
+  try {
+    for (const pathname of await listStoredPaths(DEAL_PREFIX)) {
+      const deal = await blobGetJson<AcceptedDeal>(pathname);
+      if (!deal?.company_id) continue;
+      memoryDeals.set(deal.company_id, deal);
+      byId.set(deal.company_id, deal);
+    }
+  } catch (err) {
+    console.warn("[store] listDeals failed:", err);
+  }
+  return [...byId.values()];
+}
+
 export async function writeDeal(deal: AcceptedDeal): Promise<boolean> {
   memoryDeals.set(deal.company_id, deal);
   if (!hasDurable()) return true;

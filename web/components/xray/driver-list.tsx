@@ -6,13 +6,16 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { formatDelta, formatMonth } from "@/lib/xray/format";
+import { signalLabel } from "@/lib/xray/signal-labels";
 import type { Driver } from "@/lib/xray/types";
 import { ReasoningHint } from "./reasoning-hint";
 
 export function DriverList({ drivers }: { drivers: Driver[] }) {
   if (drivers.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">Sin drivers recientes.</p>
+      <p className="text-sm text-muted-foreground">
+        Sin actualizaciones recientes.
+      </p>
     );
   }
 
@@ -23,7 +26,9 @@ export function DriverList({ drivers }: { drivers: Driver[] }) {
           <ItemContent>
             <div className="flex items-start justify-between gap-2">
               <div>
-                <ItemTitle className="font-mono text-xs">{d.signal}</ItemTitle>
+                <ItemTitle className="text-xs">
+                  {signalLabel(d.signal)}
+                </ItemTitle>
                 <ItemDescription>
                   desde {formatMonth(d.since)} ·{" "}
                   <span
@@ -36,7 +41,7 @@ export function DriverList({ drivers }: { drivers: Driver[] }) {
                 </ItemDescription>
               </div>
               <ReasoningHint
-                text={`${d.signal} movió el score ${formatDelta(d.delta)} desde ${formatMonth(d.since)}.`}
+                text={`${signalLabel(d.signal)} movió el score ${formatDelta(d.delta)} desde ${formatMonth(d.since)}.`}
               />
             </div>
           </ItemContent>

@@ -158,8 +158,8 @@ function SingleTrajectory({
 
   const grid = embat ? "#dce0e6" : "var(--border)";
   const tick = embat ? "#999999" : "var(--muted-foreground)";
-  const line = embat ? "#11a8ff" : "var(--foreground)";
-  const fill = embat ? "rgba(17,168,255,0.08)" : "var(--foreground)";
+  const line = embat ? "var(--primary)" : "var(--foreground)";
+  const fill = embat ? "color-mix(in srgb, var(--primary) 12%, transparent)" : "var(--foreground)";
   const fan = embat ? "rgba(220,224,230,0.7)" : "var(--muted)";
   const cut = embat ? "#ffffff" : "var(--background)";
   const mid = embat ? "#999999" : "var(--muted-foreground)";

@@ -115,16 +115,40 @@ def test_outlook_is_not_negative_when_last_month_is_green():
     assert out[5] == "negative" and out[6] == "stable"  # 3 rojos en la ventana, pero t es verde
 
 
-def test_outlook_positive_after_three_greens_following_a_streak():
+def test_outlook_positive_after_three_greens_following_a_single_red():
     #            t-5    t-4    t-3    t-2    t-1    t
-    out = _outlook([True, True, False, False, False, False])
-    assert out[5] == "positive"
-    # con un solo rojo en t-5..t-3 no es "tras racha"
-    assert _outlook([True, False, False, False, False, False])[5] == "stable"
+    assert _outlook([True, False, False, False, False, False])[5] == "positive"  # un rojo basta (19 sep)
+    assert _outlook([True, True, False, False, False, False])[5] == "positive"
+    # con la convención anterior (dos rojos) un solo rojo no cuenta como racha
+    df = _series("a", [2, 0, 0, 0, 0, 0], "n_red")
+    assert rules.outlook(df, RulesConfig(outlook_streak_min=2))["outlook"].iloc[5] == "stable"
 
 
 def test_outlook_is_stable_with_short_history():
     assert _outlook([True, True, True]) == ["stable", "stable", "stable"]
+
+
+# --- trend --------------------------------------------------------------------------------
+
+
+def _trend(index: list[float]) -> list[str]:
+    df = rules.level(_series("a", index, "state_index"), RulesConfig())
+    return list(rules.trend(df, RulesConfig())["trend"])
+
+
+def test_trend_is_improving_when_the_last_three_months_run_above_the_level():
+    out = _trend([0.5] * 8 + [0.8] * 3)
+    assert out[-1] == "improving"
+    assert out[7] == "flat"
+
+
+def test_trend_is_worsening_when_the_last_three_months_run_below_the_level():
+    assert _trend([0.5] * 8 + [0.2] * 3)[-1] == "worsening"
+
+
+def test_trend_is_flat_without_momentum_or_with_short_history():
+    assert _trend([0.5] * 8) == ["flat"] * 8
+    assert _trend([0.2, 0.8]) == ["flat", "flat"]
 
 
 # --- watch --------------------------------------------------------------------------------
@@ -177,12 +201,13 @@ def _fixture_events() -> pd.DataFrame:
 def test_run_on_fixture_smoke():
     out = rules.run(features.load_fixture(), events_ext=_fixture_events())
     assert len(out) == 41
-    for col in ("state_index", "level", "score", "outlook", "watch", "confidence", "event", "label_t6"):
+    for col in ("state_index", "level", "score", "outlook", "trend", "watch", "confidence", "event", "label_t6"):
         assert col in out.columns, col
     has_index = out["state_index"].notna()
     assert out.loc[has_index, "score"].between(0, 100).all()
     assert out.loc[has_index, "score"].notna().all()
     assert set(out["outlook"]) <= {"negative", "positive", "stable"}
+    assert set(out["trend"]) <= {"improving", "flat", "worsening"}
     assert set(out["confidence"]) <= {"high", "medium", "low"}
 
 

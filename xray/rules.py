@@ -35,7 +35,9 @@ class RulesConfig:
     outlook_window: int = 6  # meses que mira el outlook
     outlook_negative_min: int = 3  # rojos en la ventana (y t rojo) → negative
     outlook_greens: int = 3  # últimos verdes seguidos para positive
-    outlook_streak_min: int = 2  # rojos en los 3 anteriores para que cuente como racha
+    outlook_streak_min: int = 1  # rojos en los 3 anteriores para que cuente como racha (1 desde el 19 sep)
+    trend_window: int = 3  # meses de (índice − nivel) que promedia trend
+    trend_threshold: float = 0.10  # |momentum| por encima del cual trend deja de ser flat
     watch_months: int = 3  # meses que dura un watch, el del evento incluido
     lead_percentile: float = 20.0  # percentil de scores de train que define lead_cutoff
     confidence_high: tuple[int, int] = (12, 3)  # (months_of_history, n_signals) mínimos
@@ -121,6 +123,25 @@ def outlook(indexed: pd.DataFrame, cfg: RulesConfig | None = None) -> pd.DataFra
     return out.sort_index()
 
 
+# --- trend --------------------------------------------------------------------------------
+
+
+def trend(indexed: pd.DataFrame, cfg: RulesConfig | None = None) -> pd.DataFrame:
+    """improving / flat / worsening: media de (índice − nivel) en los últimos `trend_window` meses
+    frente a ±`trend_threshold`. Es la capa rápida frente al nivel suavizado; no toca el score.
+    Sin `trend_window` meses de índice es flat."""
+    cfg = cfg or RulesConfig()
+    out = indexed.sort_values(KEYS).copy()
+    gap = out["state_index"] - out["level"]
+    mom = gap.groupby(out["company_id"], sort=False).transform(
+        lambda s: s.rolling(cfg.trend_window, min_periods=cfg.trend_window).mean()
+    )
+    out["trend"] = np.select(
+        [mom > cfg.trend_threshold, mom < -cfg.trend_threshold], ["improving", "worsening"], default="flat"
+    )
+    return out.sort_index()
+
+
 # --- watch --------------------------------------------------------------------------------
 
 
@@ -172,12 +193,13 @@ def score(
     events_ext: pd.DataFrame | None = None,
     cfg: RulesConfig | None = None,
 ) -> pd.DataFrame:
-    """Añade score, outlook, watch y confidence a una tabla que ya trae nivel (o índice)."""
+    """Añade score, outlook, trend, watch y confidence a una tabla que ya trae nivel (o índice)."""
     cfg = cfg or RulesConfig()
     out = indexed if "level" in indexed.columns else level(indexed, cfg)
     out = out.copy()
     out["score"] = model.predict(out["level"])
     out = outlook(out, cfg)
+    out = trend(out, cfg)
     out = watch(out, events_ext, cfg)
     out = confidence(out, cfg)
     return out

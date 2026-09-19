@@ -94,7 +94,7 @@ Desvío medio 0,9 puntos por decil; el mayor, 3,1 en el decil más sano, donde e
 | Dispersión por grupos (AUC(6), 5 pliegues por `group_id`) | 0,69 ± 0,05 | Variabilidad entre subpoblaciones, no generalización (mapa monótono) |
 | Fiabilidad del mapa | desvío medio 0,9 pts por decil; 0 bajadas crudas en 9 escalones | §4 |
 | Abanico a 6 meses | cobertura 80 %: 82,8 % · anchura 17,5 pts · MAE p50 5,8 · pinball 1,845 (martingala 1,853) | Calibrado; ventaja sobre la base mínima (§4) |
-| Watch (eventos de `xray/events.py`) | P(rojo en ≤ 3 m \| watch) 15,2 % frente a 7,8 % sin watch (46 filas, 1,2 % de cuota) | El evento discreto añade señal pero resuelve poco: se dice así |
+| Watch (eventos de `xray/events.py`) | P(rojo en ≤ 3 m \| watch) 17,1 % frente a 7,8 % sin watch (41 filas, 0,8 % de las evaluables) | El evento discreto añade señal pero resuelve poco: se dice así |
 | Reparto | outlook 90 / 6 / 4 % · trend 87 / 6 / 6 % · confidence alta 31 %, media 38 %, baja 31 % · 4 señales 25 %, 3: 50 %, 2: 24 % | Cobertura que explica `confidence` |
 
 Fuente: `artifacts/evals/metrics.json` (`uv run xray-evals`). Lo que sale mal se cuenta igual: la mejora no se predice (`trend = improving` acierta como una moneda para salir del rojo) y la mitad de los eventos se detectan con menos de dos meses de margen.

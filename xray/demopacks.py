@@ -14,6 +14,7 @@ El dataset Embat ya es sintético: se hace slice + mutación, no se inventan 24 
 from __future__ import annotations
 
 import argparse
+import sys
 import json
 import shutil
 from pathlib import Path
@@ -214,7 +215,10 @@ def _score_latest(tables: dict[str, pd.DataFrame], company_ids: list[str]) -> di
         return {}
     try:
         model = rules.RulesModel.load(model_path)
-    except ValueError:  # modelo viejo (sin proyección a t+6): el mismo camino blando que si falta
+    except (ValueError, TypeError) as exc:
+        # modelo viejo (sin proyección a t+6), JSON corrupto o JSON incompleto: mismo camino
+        # blando que si falta, pero el motivo queda en consola y no silenciado
+        print(f"aviso: rules_model.json inutilizable ({exc}); los packs quedan sin «esperado»")
         return {}
     feats = features.build(tables=tables)
     if "cash_buffer_days" not in feats.columns:
@@ -320,6 +324,9 @@ ALL_PACKS = ("group", "update")
 
 
 def main(argv: list[str] | None = None) -> int:
+    # consola cp1252 de Windows: UTF-8 para separadores y flechas de los resúmenes
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(
         prog="xray-demopacks", description="Genera packs de demo en docs/data/raw/new"
     )
@@ -334,7 +341,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.pack == "catalog":
         dest = write_catalog_csvs(root)
-        print(f"catalog → {dest}")
+        print(f"catalog -> {dest}")
         return 0
 
     print("Cargando tablas…")
@@ -350,12 +357,12 @@ def main(argv: list[str] | None = None) -> int:
         meta = json.loads((dest / "expected.json").read_text(encoding="utf-8"))
         n = len(meta.get("company_ids", []))
         size = sum(p.stat().st_size for p in dest.glob("*.csv"))
-        print(f"  {pack:8s} → {dest} · {n} empresa(s) · {size / 1024:.0f} KB")
+        print(f"  {pack:8s} -> {dest} · {n} empresa(s) · {size / 1024:.0f} KB")
 
     if not args.skip_catalog:
         cat = write_catalog_csvs(root)
         if cat:
-            print(f"  catalog  → {cat}")
+            print(f"  catalog  -> {cat}")
         else:
             print("  catalog  — product_catalog.json aún no existe (sáltate o regenera después)")
 

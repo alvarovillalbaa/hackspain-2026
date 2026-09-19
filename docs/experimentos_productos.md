@@ -203,6 +203,83 @@ Contrato: la recomendación entra como `recommendations: [{product, amount_eur, 
 3. ¿B4 (RL) entra en el pitch como «experimento en curso» con la figura de arrepentimiento frente a MPC, o se deja fuera hasta tener resultado?
 4. ¿Se propone a Embat la especificación de logging (C1) como parte del producto?
 
+## 8. Resultados (19 sep, tarde)
+
+Las tres pistas se corrieron el mismo sábado sobre la tabla real (`artifacts/features.parquet`, 21.423 filas, 1.265 empresas, 2024-09 → 2026-08) con el score por reglas de la rama `tianwei-model`, en tres notebooks que importan seis módulos nuevos de `xray` (§Anexo). Salidas en `artifacts/experiments/` (`A_*`, `B_*`, `C_*` y los tres `*_summary.json`). Todo con semilla fija; los tests de los módulos corren sin el dataset (199 en total con los 105 previos).
+
+### 8.1 Pista A — qué pasa de verdad tras adoptar (notebook 03, 3 min)
+
+**A1.** 1.682 eventos de adopción en 645 empresas; 324 «limpios» (≥ 6 meses antes y después). Solo el préstamo llega a los ≥ 50 limpios del criterio (78 por primera cuota, 67 por salto de cuota); anticipo 28, factoring 24, disposición 17, línea 11. Las dos fuentes de préstamo coinciden a ± 2 meses en el 60 % de las 161 empresas que tienen ambas (mediana −2 meses: la cuota empieza antes que la conexión). El 24 % de los eventos cae en el primer mes de historia (no anticipables).
+
+**A2.** ATT emparejado a t+6 (controles del mismo mes, quintil y situación de saldo; IC bootstrap):
+
+| Evento | n (rotura / índice) | ATT rotura t+1…t+6 [IC 95 %] | ATT índice t+6 [IC] | Pre-tendencia |
+|---|---|---|---|---|
+| Préstamo, salto de cuota | 34 / 67 | **−0,11 [−0,20, −0,02]** | −0,05 [−0,08, −0,03] | ≈ 0 |
+| Préstamo, primera cuota | 32 / 78 | +0,10 [−0,00, +0,21] (a t+1: +0,08 [0,01, 0,17], n = 72) | −0,03 [−0,06, +0,00] | ≈ 0 |
+| Línea, primer uso | 4 / 11 | −0,09 (n = 4, no interpretable) | −0,08 [−0,13, −0,01] | −0,11 |
+| Anticipo / factoring / disposición | 7–17 / 17–28 | IC cubre el cero | −0,04 a −0,05 | ≈ 0 |
+
+Lectura: **el índice de estado baja tras cualquier adopción** (mecánica del DSCR, que pesa 0,20) con pre-tendencias compatibles con cero; sobre la **rotura de caja** el único efecto protector claro es el salto de cuota (deuda nueva sobre deuda vieja), y la primera cuota va con **más** rotura a un mes: quien empieza a pagar cuotas es quien acababa de necesitar dinero (selección), como en el piloto de §2.5. Emparejado y DiD coinciden en signo en 15 de 16 celdas. Criterio A2 («pre-tendencia ≈ 0 y ATT sobre rotura ≠ 0 en algún producto»): **cumplido** en un producto; conclusión: el generador contiene la mecánica del producto y la selección, poco más.
+
+**A3.** Propensión a 3 meses (GroupKFold por grupo): préstamo AUC 0,63 (664 positivos), línea 0,71 (117), factoring 0,73 (252), reproduciendo §2.4. Con la ventana 6/6 la línea no se puede modelar (0,52, 40 % de OOF vacío): la propensión se ajusta sobre todos los eventos y así se usa en C1.
+
+**A4.** El X-learner con `min_child_samples = 30` no puede partir el brazo tratado (33 y 12 filas de train): τ̂ casi constante; la variante con hojas de 5 sale monótona en el colchón de caja pero con n = 15. **Archivado**, como preveía el plan.
+
+### 8.2 Pista B — simulador, líneas base, MPC y RL (notebook 04, 77 s)
+
+**B1, simulador validado por backtest** (test 2025-09 … 2026-02, 5.190 filas con saldo ≥ 0, tasa de rotura 8,1 %):
+
+| Métrica | Con pool | Sin pool | Criterio §4 |
+|---|---|---|---|
+| AUC(1) / AUC(6) de P(rotura) | **0,795 / 0,694** (calibrada 0,687) | 0,758 / 0,675 | AUC(6) ≥ 0,70: **casi** (0,694) |
+| Cobertura de la banda 10–90 a 1 / 3 / 6 m | 0,72 / 0,74 / 0,73 | 0,65 / 0,66 / 0,64 | 80 ± 8 %: **no** (los sorteos i.i.d. dan banda estrecha) |
+| Calibración por deciles (predicha → realizada) | 2,9 % → 3,8 % … 18,7 % → 23,1 %, monótona | — | pendiente 0,8–1,2: **sí en el centro, corta en la cola** |
+| AUC(6) en las mismas filas | simulador 0,698 · **score de reglas 0,699** | | El simulador ordena igual que el score |
+
+Reproducción de A2 con la mecánica: para disposiciones y primeros usos de línea, el ΔP(rotura) simulado (−0,02 y −0,07 calibrado) cae dentro del IC del estudio de eventos; para la primera cuota el simulador dice −0,03 y los datos +0,10: **los datos llevan la selección, el simulador solo la mecánica**.
+
+**B2–B3, bucle cerrado** (126 empresas retenidas por grupo, desde 2025-08, 12 meses, coste relativo = coste / mediana de cargos mensuales; el coste medio en euros lo domina una sola empresa con 2.700 M€ de cargos y no es comparable):
+
+| Política | Elegibles | Coste relativo | Tasa de rotura | Meses DSCR < 1,2 | Cambios de acción | Mezcla |
+|---|---|---|---|---|---|---|
+| No hacer nada | 126 | 0,618 | 0,389 | 82 | — | — |
+| Reglas del asesor | 126 | 0,580 | 0,278 | 82 | 12 % | cubrir línea 24 %, abrir 4 %, factoring 2 % |
+| Miller–Orr | 17 | 0,618 | 0,389 | 82 | 1 % | 12 disposiciones |
+| ADL + reglas | **0** | = reglas | = reglas | 82 | — | ningún contrato en el hold-out |
+| **MPC k = 0,1** | 126 | **0,421** | **0,095** | 187 | 16 % | cubrir 33 %, préstamo 11 %, abrir 4 % |
+| MPC k = 0,5 | 126 | 0,438 | 0,095 | 182 | 19 % | idem |
+| MPC k = 2 | 126 | 0,460 | 0,095 | 162 | 20 % | idem |
+
+Criterio B3 («MPC ≥ mejor regla en coste **y** rotura, ≤ 20 % de cambios, < 1 s por empresa»): **cumplido** en coste relativo (0,42–0,46 frente a 0,58), en rotura (0,095 frente a 0,278), en estabilidad (16–20 %) y en tiempo (1,9 ms por empresa-mes), **con un coste que la métrica no recoge**: el MPC toma préstamos y dobla los meses con DSCR bajo (162–187 frente a 82). La frontera coste–riesgo (B5, submuestra de 100 a 6 meses) sale plana (rotura 2–3 %, coste 0,105–0,110 para k de 0,1 a 4): λ apenas decide, las diferencias de coste sí. Frente al oráculo voraz con previsión perfecta a 6 meses, el MPC no es peor en el 90 % de las empresas y el arrepentimiento medio es el 0,6 % del coste.
+
+**B4, RL (iteración Q ajustada con LightGBM).** Coste relativo 0,70 y rotura 0,127 en el mundo base frente a 0,44 / 0,095 del MPC: **no iguala a MPC**. La política aprendida elige préstamo en 1.187 de 1.512 meses porque el vector de estado del experimento no incluye los flujos comprometidos (`committed_outflow_m`, `pending_flows`, añadidos al simulador el mismo día) y el mes de carencia del préstamo parece gratis a un paso; los objetivos de la iteración Q divergen (media −1,3 → −7,9 en 8 iteraciones). Bajo el mundo desplazado (entradas −20 %, caídas +30 %, tipos +200 pb) las reglas pasan a rotura 0,67 y coste 1,12, el MPC a 0,25 / 0,96 y el FQI a 0,19 / 1,24: **el MPC es el que menos degrada en coste; el FQI compra menos roturas con un 30 % más de coste**. Criterio B4: **no cumplido**; el siguiente paso es meter los compromisos en el estado y usar la Q como aproximación del valor dentro del MPC, no en su lugar.
+
+### 8.3 Pista C — evaluación off-policy y contrafactual (notebook 05, 27 s)
+
+**C1, ensayo sobre un log simulado** (124 empresas × 12 meses = 1.472 ofertas; política de comportamiento = reglas del asesor con ε de exploración; objetivo = MPC, que coincide con las reglas en el 53–56 % de los estados):
+
+| ε | Tamaño efectivo de muestra | IPS | SNIPS | DM | DR | Verdad |
+|---|---|---|---|---|---|---|
+| 0,02 | 20 | −0,21 | −0,18 (no cubre) | −0,42 | −0,31 | −0,42 |
+| **0,10** | **125** | −0,96 | −1,18 | −0,43 | −0,90 | −0,42 |
+| 0,20 | 204 | −0,58 | −0,68 | −0,41 | −0,59 | −0,42 |
+
+Recompensas normalizadas por la mediana de cargos. Con ε = 0,1 **una sola oferta explorada** (un préstamo con propensión 1/30 y peso 30) es el 81 % del IPS; en euros IPS y SNIPS no cubren la verdad y solo DR lo hace. Lecciones para el spec de logging ([logging_ofertas.md](logging_ofertas.md)): normalizar por tamaño, ε ≥ 0,1, DR como estimador y DM como diagnóstico, y registrar la propensión siempre.
+
+**Potencia.** 1.504 ofertas por brazo para detectar 5 % → 3 % de rotura; con ε = 0,1 son 30.080 ofertas registradas: **23 meses** con las 1.286 empresas del dataset, 75 con 400 clientes. Un resultado continuo (coste) exige 21.000–262.000 por brazo según la varianza: no se mide en un piloto. La rotura es el resultado sobre el que dimensionar.
+
+**C2, retrospectivo.** 73 entradas en rotura en 2026 (61 empresas); a 3 y 6 meses antes el MPC habría recomendado algo en el **94,5 %** de los casos (89 de 109 filas: abrir una línea), con ΔP(rotura) media 0,53 (de 0,64 a ≈ 0,10) y coste esperado mediano 6.258 € (2,5 % de los cargos de un mes). Es simulación y la línea simulada cubre los descubiertos por construcción: se dice así en la demo.
+
+### 8.4 Lo que cambia en §5 y §6
+
+- **La recomendación de la demo (B3) es viable hoy**: MPC a 1,9 ms por empresa-mes, con abrir/cubrir línea y préstamo como acciones dominantes. La ficha tiene que enseñar coste relativo, rotura **y** DSCR, porque el MPC compra rotura con cuota.
+- **La figura de evidencia (A2) existe** (`A2_att.png`): el índice baja tras adoptar por mecánica; la rotura solo baja con el salto de cuota; la primera cuota delata selección.
+- **El simulador ordena tan bien como el score** (0,698 frente a 0,699 en las mismas filas) pero su banda es estrecha (72 %) y su cola corta: se enseña la probabilidad calibrada y se anota la cobertura.
+- **RL queda después del hackathon** con un cambio concreto: el estado necesita los flujos comprometidos. El experimento tal como se corrió es un resultado negativo con causa identificada, no una transparencia.
+- **Track C** deja el spec de logging escrito y un número para Embat: dos años de registro para medir 2 puntos de rotura con la cartera del dataset.
+- Hallazgo colateral: `features.derive` no es idempotente sobre la tabla construida (0,28 % de filas de `net_cash_flow_ratio_3m`); abierto como tarea aparte.
+
 ## Anexo. Reproducción
 
-Sondas de hoy (scratch de ML-2, fuera del repo): `probe_products.py` (tablas de producto, categorías, descripciones, facturas), `probe_adoption.py` (semántica de `created_at`, eventos de adopción, estudio de eventos piloto, costes, dinámica de flujos), `probe_pretrend.py` (pre-tendencias, rotura a 6 meses, flujos totales, elegibilidad), `probe_sim.py` (backtest del simulador ingenuo), `probe_propensity.py` (propensión de adopción). Todas cargan con `xray.data.load()` y leen `artifacts/features_quick.parquet`; si la propuesta se acepta, se consolidan en `notebooks/03_productos_tianwei.ipynb` y las funciones reutilizables (tabla de adopción, mecánica de producto) van a `xray/`.
+Módulos (todos con tests al seam sin dataset): `xray/adoption.py` (A1), `xray/eventstudy.py` (A2), `xray/behavior.py` (A3), `xray/projection.py` (B1: simulador, calibración, backtest), `xray/policies.py` (B2–B3: líneas base, MPC, bucle cerrado, oráculo), `xray/ope.py` (C1: IPS, SNIPS, DM, DR, ESS, potencia). Notebooks: `notebooks/03_productos_adopcion_tianwei.ipynb`, `notebooks/04_productos_motor_tianwei.ipynb`, `notebooks/05_productos_ope_tianwei.ipynb`; se ejecutan con `uv run jupyter nbconvert --to notebook --execute --inplace` y escriben en `artifacts/experiments/`. Spec de logging: `docs/logging_ofertas.md`. Las sondas del mediodía (`probe_products.py`, `probe_adoption.py`, `probe_pretrend.py`, `probe_sim.py`, `probe_propensity.py`) quedan en el scratch de ML-2; lo reutilizable está ya en los módulos.

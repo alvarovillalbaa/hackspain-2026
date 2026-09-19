@@ -51,10 +51,11 @@ def test_loan_never_reduces_breach_less_than_its_cash_and_adds_installments():
 
 
 def test_more_installment_never_reduces_breach():
-    h = _hist(eom=500.0, dip=2_000.0)
+    h = _hist(eom=-4_000.0, dip=2_000.0)  # sin el préstamo grande el mes 1 rompe: el test muerde
     cfg = pj.SimConfig(n_paths=100, horizon=6, seed=3)
     small = pj.simulate(h, pj.Action("loan", amount=1_000.0), cfg).breach_prob()
     big = pj.simulate(h, pj.Action("loan", amount=1_000_000.0), cfg).breach_prob()
+    assert small > 0  # si el caso pequeño no rompiera, la comparación sería 0 <= 0
     assert big <= small  # más caja ahora domina a la cuota; el test de sentido común del slice #6
 
 

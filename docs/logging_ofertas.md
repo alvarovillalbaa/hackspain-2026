@@ -2,7 +2,8 @@
 
 > **Propuesta de ML-2 (Tianwei), sábado 19 sep 2026.** Entregable C1 de
 > [experimentos_productos.md](experimentos_productos.md) §4, con las cifras del ensayo en seco de
-> `notebooks/05_productos_ope_tianwei.ipynb` (1.472 ofertas simuladas, 124 empresas × 12 meses).
+> `notebooks/05_productos_ope_tianwei.ipynb` (124 empresas × 12 meses = 1.488 ofertas simuladas, 1.472 tras descartar 16 meses con cargos
+> mediana cero).
 > Sin estas tres tablas no hay evaluación off-policy ni RL: el dataset de hoy no registra ninguna
 > oferta (§2.1).
 

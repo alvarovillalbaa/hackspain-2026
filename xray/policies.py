@@ -18,15 +18,16 @@ Tres cosas que conviene saber antes de tocar nada:
    comparte un generador entre candidatos: se crea uno nuevo por candidato desde la misma semilla
    base (`_base_seed`). Compartirlo convertiría la diferencia entre productos en ruido de sorteo.
 
-2. **El paso del bucle cerrado es de un mes, y eso recorta los productos largos.** `simulate` con
-   `horizon=1` solo aplica el plan del mes en curso: el cobro de la pata larga del factoring (mes
-   +2) y las cuotas del préstamo nuevo (del mes +2 en adelante) nunca llegan a tocar el saldo, y de
-   la acción solo se contabiliza el coste del primer mes. La deuda *previa* sí está dentro de los
-   cargos sorteados, y el servicio nuevo sí viaja en `debt_service_m` (y por tanto en el DSCR), pero
-   no en la caja. Consecuencia práctica: en `evaluate_policy` un préstamo o un anticipo salen más
-   baratos de lo que son, mientras que el MPC sí los paga dentro de su horizonte de 6 meses. Para
-   arreglarlo de verdad habría que cobrar `hist.loan_installment` en el paso, y eso es una
-   decisión del seam de `projection`, no de aquí.
+2. **El paso del bucle cerrado es de un mes, pero los productos largos se siguen pagando.**
+   `simulate` con `horizon=1` solo aplica el plan del mes en curso; lo que la acción deja pagando
+   después cruza el paso escrito en la `History`: `advance` guarda `committed_outflow_m`,
+   `committed_cost_m` y `pending_flows`, y el `simulate` de cada mes siguiente los cobra con
+   cualquier acción, `none` incluida. Así la cuota del préstamo nuevo sale de la caja, el interés
+   de lo dispuesto en el rollout sigue devengando y la pata larga del factoring cae en su mes.
+   Quedan dos aproximaciones, las dos del lado conservador: el interés del préstamo se compromete
+   **plano**, al tipo del primer mes, en vez de amortizado, y los compromisos **no llevan plazo**,
+   así que siguen cobrándose más allá del vencimiento. Por eso el paso de un mes repetido cobra
+   algo **más** que una sola llamada a seis meses, nunca menos.
 
 3. **`shift` es mala especificación, no cambio de régimen.** El mundo del paso sortea de la historia
    escalada (`inflows × inflow_scale`, `dips × dip_scale`) y con los precios desplazados
@@ -526,8 +527,8 @@ def evaluate_policy(
     sorteos del MPC) sale de `[seed, i, j, 1]`, que es independiente de la del mundo.
 
     Devuelve una fila por empresa: `company_id, total_cost, breach, n_breach_months,
-    dscr_fail_months, actions`. Ojo con `total_cost`: por el paso de un mes (ver el docstring del
-    módulo) los productos con calendario salen baratos.
+    dscr_fail_months, actions`. `total_cost` incluye los compromisos que cada acción deja abiertos
+    (`committed_cost_m` y `pending_flows`; punto 2 del docstring del módulo).
     """
     cfg = cfg or SimConfig()
     shift = _check_shift(shift)

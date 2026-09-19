@@ -218,7 +218,7 @@ Las tres pistas se corrieron el mismo sábado sobre la tabla real (`artifacts/fe
 | Préstamo, salto de cuota | 34 / 67 | **−0,11 [−0,20, −0,02]** | −0,05 [−0,08, −0,03] | ≈ 0 |
 | Préstamo, primera cuota | 32 / 78 | +0,10 [−0,00, +0,21] (a t+1: +0,08 [0,01, 0,17], n = 72) | −0,03 [−0,06, +0,00] | ≈ 0 |
 | Línea, primer uso | 4 / 11 | −0,09 (n = 4, no interpretable) | −0,08 [−0,13, −0,01] | −0,11 |
-| Anticipo / factoring / disposición | 7–17 / 17–28 | IC cubre el cero | −0,04 a −0,05 | ≈ 0 |
+| Anticipo / factoring / disposición | 7–17 / 17–28 | IC cubre el cero | −0,04 a −0,05 | +0,11 a +0,19 en rotura (anticipo y factoring), ≈ 0 en el índice |
 
 Lectura: **el índice de estado baja tras cualquier adopción** (mecánica del DSCR, que pesa 0,20) con pre-tendencias compatibles con cero; sobre la **rotura de caja** el único efecto protector claro es el salto de cuota (deuda nueva sobre deuda vieja), y la primera cuota va con **más** rotura a un mes: quien empieza a pagar cuotas es quien acababa de necesitar dinero (selección), como en el piloto de §2.5. Emparejado y DiD coinciden en signo en 15 de 16 celdas. Criterio A2 («pre-tendencia ≈ 0 y ATT sobre rotura ≠ 0 en algún producto»): **cumplido** en un producto; conclusión: el generador contiene la mecánica del producto y la selección, poco más.
 
@@ -234,10 +234,10 @@ Lectura: **el índice de estado baja tras cualquier adopción** (mecánica del D
 |---|---|---|---|
 | AUC(1) / AUC(6) de P(rotura) | **0,795 / 0,694** (calibrada 0,687) | 0,758 / 0,675 | AUC(6) ≥ 0,70: **casi** (0,694) |
 | Cobertura de la banda 10–90 a 1 / 3 / 6 m | 0,72 / 0,74 / 0,73 | 0,65 / 0,66 / 0,64 | 80 ± 8 %: **no** (los sorteos i.i.d. dan banda estrecha) |
-| Calibración por deciles (predicha → realizada) | 2,9 % → 3,8 % … 18,7 % → 23,1 %, monótona | — | pendiente 0,8–1,2: **sí en el centro, corta en la cola** |
+| Calibración por deciles (predicha → realizada) | 2,9 % → 3,8 % … 18,7 % → 23,1 %, creciente salvo dos cruces (deciles 2 y 6–7) | — | pendiente 0,8–1,2: **sí en el centro, corta en la cola** |
 | AUC(6) en las mismas filas | simulador 0,698 · **score de reglas 0,699** | | El simulador ordena igual que el score |
 
-Reproducción de A2 con la mecánica (simulada en el mes anterior al evento, con el préstamo dimensionado para reproducir la cuota observada): para disposiciones y primeros usos de línea, el ΔP(rotura) simulado (−0,03 y −0,07 calibrado) cae dentro del IC del estudio de eventos; para la primera cuota el simulador dice −0,03 y los datos +0,10: **los datos llevan la selección, el simulador solo la mecánica**.
+Reproducción de A2 con la mecánica (simulada en el mes anterior al evento, con el préstamo dimensionado para reproducir la cuota observada): para disposiciones y primeros usos de línea, el ΔP(rotura) simulado (−0,03 y −0,07 calibrado, n = 3 para la línea) cae dentro del IC del estudio de eventos; para la primera cuota el simulador dice −0,03 y los datos +0,10: **los datos llevan la selección, el simulador solo la mecánica**.
 
 **B2–B3, bucle cerrado** (126 empresas retenidas por grupo, desde 2025-08, 12 meses, coste relativo = coste / mediana de cargos mensuales; el coste medio en euros lo domina una sola empresa con 2.700 M€ de cargos y no es comparable):
 
@@ -251,13 +251,13 @@ Reproducción de A2 con la mecánica (simulada en el mes anterior al evento, con
 | MPC k = 0,5 | 126 | 0,438 | 0,095 | 182 | 19 % | idem |
 | MPC k = 2 | 126 | 0,460 | 0,095 | 162 | 20 % | idem |
 
-Criterio B3 («MPC ≥ mejor regla en coste **y** rotura, ≤ 20 % de cambios, < 1 s por empresa»): **cumplido** en coste relativo (0,42–0,46 frente a 0,58), en rotura (0,095 frente a 0,278), en estabilidad (16–20 %) y en tiempo (1,9 ms por empresa-mes), **con un coste que la métrica no recoge**: el MPC toma préstamos y dobla los meses con DSCR bajo (162–187 frente a 82; con λ alto prefiere la línea al préstamo y baja a 162). La frontera coste–riesgo (B5, submuestra de 100 a 6 meses) sale plana (rotura 2–3 %, coste 0,105–0,110 para k de 0,1 a 4): λ apenas decide, las diferencias de coste sí. Frente al oráculo voraz con previsión perfecta a 6 meses, el MPC no es peor en el 90 % de las empresas y el arrepentimiento medio es el 0,6 % del coste.
+Criterio B3 («MPC ≥ mejor regla en coste **y** rotura, ≤ 20 % de cambios, < 1 s por empresa»): **cumplido** en coste relativo (0,42–0,46 frente a 0,58), en rotura (0,095 frente a 0,278), en estabilidad (16–20 %) y en tiempo (2,1–2,4 ms por empresa-mes), **con un coste que la métrica no recoge**: el MPC toma préstamos y dobla los meses con DSCR bajo (162–187 frente a 82; con λ alto prefiere la línea al préstamo y baja a 162). La frontera coste–riesgo (B5, submuestra de 100 a 6 meses) sale plana (rotura 2–3 %, coste 0,105–0,110 para k de 0,1 a 4): λ apenas decide, las diferencias de coste sí. Frente al oráculo voraz con previsión realizada a 6 meses, el arrepentimiento del MPC es ≥ 0 en el 90 % de las empresas (en el 10 % restante el MPC le gana, porque el oráculo decide mes a mes) y el arrepentimiento medio es el 0,6 % del coste.
 
 **B4, RL (iteración Q ajustada con LightGBM).** Coste relativo 0,70 y rotura 0,127 en el mundo base frente a 0,44 / 0,095 del MPC: **no iguala a MPC**. La política aprendida elige préstamo en 1.187 de 1.512 meses porque el vector de estado del experimento no incluye los flujos comprometidos (`committed_outflow_m`, `pending_flows`, añadidos al simulador el mismo día) y el mes de carencia del préstamo parece gratis a un paso; los objetivos de la iteración Q divergen (media −1,3 → −7,9 en 8 iteraciones). Bajo el mundo desplazado (entradas −20 %, caídas +30 %, tipos +200 pb) las reglas pasan a rotura 0,67 y coste 1,12, el MPC a 0,25 / 0,96 y el FQI a 0,19 / 1,24: **el MPC es el que menos degrada en coste; el FQI compra menos roturas con un 30 % más de coste**. Criterio B4: **no cumplido**; el siguiente paso es meter los compromisos en el estado y usar la Q como aproximación del valor dentro del MPC, no en su lugar.
 
 ### 8.3 Pista C — evaluación off-policy y contrafactual (notebook 05, 27 s)
 
-**C1, ensayo sobre un log simulado** (124 empresas × 12 meses = 1.472 ofertas; política de comportamiento = reglas del asesor con ε de exploración; objetivo = MPC, que coincide con las reglas en el 53–56 % de los estados):
+**C1, ensayo sobre un log simulado** (124 empresas × 12 meses = 1.488 ofertas, 1.472 tras descartar 16 meses con cargos mediana cero; política de comportamiento = reglas del asesor con ε de exploración; objetivo = MPC, que coincide con las reglas en el 53–56 % de los estados):
 
 | ε | Tamaño efectivo de muestra | IPS | SNIPS | DM | DR | Verdad |
 |---|---|---|---|---|---|---|
@@ -265,7 +265,7 @@ Criterio B3 («MPC ≥ mejor regla en coste **y** rotura, ≤ 20 % de cambios, <
 | **0,10** | **125** | −0,96 | −1,18 | −0,43 | −0,90 | −0,42 |
 | 0,20 | 204 | −0,58 | −0,68 | −0,41 | −0,59 | −0,42 |
 
-Recompensas normalizadas por la mediana de cargos. Con ε = 0,1 **una sola oferta explorada** (un préstamo con propensión 1/30 y peso 30) es el 81 % del IPS; en euros IPS y SNIPS no cubren la verdad y solo DR lo hace. Lecciones para el spec de logging ([logging_ofertas.md](logging_ofertas.md)): normalizar por tamaño, ε ≥ 0,1, DR como estimador y DM como diagnóstico, y registrar la propensión siempre.
+Recompensas normalizadas por la mediana de cargos. Con ε = 0,1 **una sola oferta explorada** (un préstamo con propensión 1/30 y peso 30) es el 81 % del IPS; en euros IPS y SNIPS no cubren la verdad y solo DR lo hace con un intervalo útil (DM cubre, pero con un intervalo enorme y un 74 % de error). Lecciones para el spec de logging ([logging_ofertas.md](logging_ofertas.md)): normalizar por tamaño, ε ≥ 0,1, DR como estimador y DM como diagnóstico, y registrar la propensión siempre.
 
 **Potencia.** 1.504 ofertas por brazo para detectar 5 % → 3 % de rotura; con ε = 0,1 son 30.080 ofertas registradas: **23 meses** con las 1.286 empresas del dataset, 75 con 400 clientes. Un resultado continuo (coste) exige 21.000–262.000 por brazo según la varianza: no se mide en un piloto. La rotura es el resultado sobre el que dimensionar.
 
@@ -273,7 +273,7 @@ Recompensas normalizadas por la mediana de cargos. Con ε = 0,1 **una sola ofert
 
 ### 8.4 Lo que cambia en §5 y §6
 
-- **La recomendación de la demo (B3) es viable hoy**: MPC a 1,9 ms por empresa-mes, con abrir/cubrir línea y préstamo como acciones dominantes. La ficha tiene que enseñar coste relativo, rotura **y** DSCR, porque el MPC compra rotura con cuota.
+- **La recomendación de la demo (B3) es viable hoy**: MPC a 2,1–2,4 ms por empresa-mes, con abrir/cubrir línea y préstamo como acciones dominantes. La ficha tiene que enseñar coste relativo, rotura **y** DSCR, porque el MPC compra rotura con cuota.
 - **La figura de evidencia (A2) existe** (`A2_att.png`): el índice baja tras adoptar por mecánica; la rotura solo baja con el salto de cuota; la primera cuota delata selección.
 - **El simulador ordena tan bien como el score** (0,698 frente a 0,699 en las mismas filas) pero su banda es estrecha (72 %) y su cola corta: se enseña la probabilidad calibrada y se anota la cobertura.
 - **RL queda después del hackathon** con un cambio concreto: el estado necesita los flujos comprometidos. El experimento tal como se corrió es un resultado negativo con causa identificada, no una transparencia.

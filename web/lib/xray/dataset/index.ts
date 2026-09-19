@@ -1,30 +1,39 @@
-/**
- * Fact-pack accessors for eve tools.
- * Prefer relative imports of the JSON so the eve bundler resolves them.
- * Score figures come only from the Python export (scores.json).
- */
-import { scoreToBand } from "../../lib/xray/bands";
-import type { CompanyRef, ScoreSnapshot, Trend } from "../../lib/xray/types";
+import "server-only";
+
+import { scoreToBand } from "../bands";
+import type { CompanyRef, ScoreSnapshot, Trend } from "../types";
 import type {
   CompanyFacts,
   DatasetCompany,
   ExportedScore,
-} from "../../lib/xray/dataset/types";
+} from "./types";
 
-import companiesJson from "../../lib/xray/dataset/companies.json";
-import factsJson from "../../lib/xray/dataset/facts.json";
-import scoresJson from "../../lib/xray/dataset/scores.json";
+import companiesJson from "./companies.json";
+import factsJson from "./facts.json";
+import scoresJson from "./scores.json";
 
 const companies = companiesJson as DatasetCompany[];
 const factsList = factsJson as CompanyFacts[];
 const scoresList = scoresJson as ExportedScore[];
 
+const scoresById = new Map(
+  scoresList.map((s) => [s.company_id, s] as const)
+);
 const factsById = new Map(factsList.map((f) => [f.company_id, f] as const));
-const companyById = new Map(companies.map((c) => [c.company_id, c] as const));
-const scoresById = new Map(scoresList.map((s) => [s.company_id, s] as const));
 
-export function getCompany(companyId: string): CompanyRef | null {
-  const c = companyById.get(companyId);
+export function listDatasetCompanies(): CompanyRef[] {
+  return companies.map((c) => ({
+    company_id: c.company_id,
+    group_id: c.group_id,
+    name: c.name,
+    country: c.country,
+    currency: c.currency,
+    n_companies_in_group: c.n_companies_in_group,
+  }));
+}
+
+export function getDatasetCompany(companyId: string): CompanyRef | null {
+  const c = companies.find((x) => x.company_id === companyId);
   if (!c) return null;
   return {
     company_id: c.company_id,
@@ -36,40 +45,19 @@ export function getCompany(companyId: string): CompanyRef | null {
   };
 }
 
-export function getFacts(companyId: string): CompanyFacts | null {
-  return factsById.get(companyId) ?? null;
-}
-
-/** Raw Python export row (ranks, signals, driver_detail) for analyst tools. */
 export function getExportedScore(companyId: string): ExportedScore | null {
   return scoresById.get(companyId) ?? null;
 }
 
-/** Dimensions for radar / offering tools — from the Python export. */
-export function getDimensions(companyId: string) {
-  const row = scoresById.get(companyId);
-  if (!row) return null;
-  return {
-    company_id: companyId,
-    month: row.month,
-    dimensions: row.dimensions,
-    signals: {
-      cash_buffer_days: row.signals.cash_buffer_days ?? 0,
-      overdue_flow_rate_3m: row.signals.overdue_flow_rate_3m ?? 0,
-      dscr_6m: row.signals.dscr_6m ?? 0,
-      net_cash_flow_ratio_3m: row.signals.net_cash_flow_ratio_3m ?? 0,
-    },
-    ranks: row.ranks,
-    history: row.history,
-    peer_percentile: row.peer_percentile,
-    confidence: row.confidence,
-    outlook: row.outlook,
-    watch: row.watch,
-  };
+export function getCompanyFacts(companyId: string): CompanyFacts | null {
+  return factsById.get(companyId) ?? null;
 }
 
-/** ScoreSnapshot from the Python Health Scorer — never recomputed here. */
-export function getScore(companyId: string): ScoreSnapshot | null {
+/**
+ * ScoreSnapshot from the Python Health Scorer export (`xray-export-web`).
+ * Band letter is applied here; all other figures come from scores.json.
+ */
+export function buildScoreSnapshot(companyId: string): ScoreSnapshot | null {
   const row = scoresById.get(companyId);
   if (!row) return null;
 
@@ -124,4 +112,8 @@ export function getScore(companyId: string): ScoreSnapshot | null {
     explanation: null,
     origin: row.origin ?? "ml",
   };
+}
+
+export function hasDataset(): boolean {
+  return companies.length > 0 && scoresList.length > 0;
 }

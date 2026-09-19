@@ -39,6 +39,7 @@ xray-cache = "xray.data:main"
 xray-evals = "xray.evals:main"
 xray-score = "xray.score:main"
 xray-features = "xray.features:main"
+xray-export-web = "xray.export_web:main"
 
 [build-system]
 requires = ["hatchling"]

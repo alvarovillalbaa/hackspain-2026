@@ -25,6 +25,7 @@ const snapshot: ScoreSnapshot = {
     })
   ),
   outlook: "stable",
+  trend: "flat",
   watch: null,
   confidence: "high",
   sub_scores: { bankability: 40, business_profile: 65 },

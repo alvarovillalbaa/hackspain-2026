@@ -14,6 +14,7 @@ const snapshot: ScoreSnapshot = {
   score: 55,
   band: "BB",
   outlook: "stable",
+  trend: "flat",
   watch: null,
   confidence: "high",
   sub_scores: { bankability: 55, business_profile: 60 },

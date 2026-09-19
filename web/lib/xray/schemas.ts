@@ -13,6 +13,7 @@ export const BandSchema = z.enum([
 ]);
 
 export const OutlookSchema = z.enum(["negative", "positive", "stable"]);
+export const TrendSchema = z.enum(["improving", "flat", "worsening"]);
 export const ConfidenceSchema = z.enum(["high", "medium", "low"]);
 export const DataOriginSchema = z.enum(["ml", "llm", "eve", "deterministic"]);
 
@@ -59,6 +60,7 @@ export const ScoreSnapshotSchema = z.object({
   score: z.number(),
   band: BandSchema,
   outlook: OutlookSchema,
+  trend: TrendSchema,
   watch: z.string().nullable(),
   confidence: ConfidenceSchema,
   sub_scores: SubScoresSchema,

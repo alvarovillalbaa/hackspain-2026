@@ -84,6 +84,7 @@ function buildScore(companyId: string): ScoreSnapshot {
     score,
     band,
     outlook: companyId === "COMP_0742" ? "negative" : companyId === "COMP_0203" ? "positive" : outlook,
+    trend: companyId === "COMP_0742" ? "worsening" : companyId === "COMP_0203" ? "improving" : "flat",
     watch: companyId === "COMP_0742" ? "Pérdida de cliente top-3 detectada" : watch,
     confidence: history.length >= 12 ? "high" : "medium",
     sub_scores: {

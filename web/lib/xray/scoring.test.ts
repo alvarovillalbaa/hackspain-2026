@@ -9,6 +9,7 @@ const base: ScoreSnapshot = {
   score: 0, // filled below from dimensions
   band: "B",
   outlook: "stable",
+  trend: "flat",
   watch: null,
   confidence: "high",
   sub_scores: { bankability: 50, business_profile: 50 },

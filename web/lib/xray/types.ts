@@ -13,6 +13,7 @@ export type Band =
   | "C";
 
 export type Outlook = "negative" | "positive" | "stable";
+export type Trend = "improving" | "flat" | "worsening";
 export type Confidence = "high" | "medium" | "low";
 
 export type DimensionKey =
@@ -65,6 +66,7 @@ export interface ScoreSnapshot {
   score: number;
   band: Band;
   outlook: Outlook;
+  trend: Trend;
   watch: string | null;
   confidence: Confidence;
   sub_scores: SubScores;

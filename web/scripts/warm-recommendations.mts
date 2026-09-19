@@ -1,11 +1,11 @@
 /**
  * Pre-generate recommendation decisions for demo companies (no LLM).
+ * Uses Python-exported scores.json as the Health Scorer source.
  * Usage: npm run warm:recommendations
  */
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { scoreFromDimensions } from "../lib/xray/scoring";
 import { scoreToBand } from "../lib/xray/bands";
 import { actionsForSnapshot } from "../lib/xray/registry/actions";
 import { productsForKind } from "../lib/xray/registry/products";
@@ -17,7 +17,7 @@ import {
   solveIdealAmount,
 } from "../lib/xray/match";
 import type { ScoreSnapshot } from "../lib/xray/types";
-import type { DatasetDimensions } from "../lib/xray/dataset/types";
+import type { ExportedScore } from "../lib/xray/dataset/types";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATASET = join(__dirname, "../lib/xray/dataset");
@@ -34,50 +34,44 @@ const DEMO_IDS = [
   "COMP_1068",
 ];
 
-function snapshotFromDimensions(dim: DatasetDimensions): ScoreSnapshot {
-  const score = scoreFromDimensions(dim.dimensions);
+function snapshotFromExport(row: ExportedScore): ScoreSnapshot {
+  const score = row.score;
   const band = scoreToBand(score);
+  const dims = row.dimensions;
   return {
-    company_id: dim.company_id,
-    month: dim.month,
+    company_id: row.company_id,
+    month: row.month,
     score,
     band,
-    outlook: dim.outlook,
-    watch: dim.watch,
-    confidence: dim.confidence,
+    outlook: row.outlook,
+    trend: row.trend,
+    watch: row.watch,
+    confidence: row.confidence,
     sub_scores: {
       bankability: Math.round(
-        (dim.dimensions.liquidity * 0.4 +
-          dim.dimensions.debt * 0.35 +
-          dim.dimensions.payments * 0.25) *
-          100
+        (dims.liquidity * 0.4 + dims.debt * 0.35 + dims.payments * 0.25) * 100
       ),
       business_profile: Math.round(
-        (dim.dimensions.collections * 0.45 + dim.dimensions.activity * 0.55) *
-          100
+        (dims.collections * 0.45 + dims.activity * 0.55) * 100
       ),
     },
-    dimensions: dim.dimensions,
-    peer_percentile: dim.peer_percentile,
-    projection_6m: {
-      p10: Math.max(0, score - 8),
-      p50: score,
-      p90: Math.min(100, score + 6),
-    },
-    history: dim.history,
-    drivers: [],
+    dimensions: dims,
+    peer_percentile: row.peer_percentile,
+    projection_6m: row.projection_6m,
+    history: row.history,
+    drivers: row.drivers,
     alerts: [],
     explanation: null,
-    origin: "deterministic",
+    origin: row.origin ?? "ml",
   };
 }
 
 function snapshotFor(id: string): ScoreSnapshot | null {
-  const dimsPath = join(DATASET, "dimensions.json");
-  if (existsSync(dimsPath)) {
-    const dims = JSON.parse(readFileSync(dimsPath, "utf8")) as DatasetDimensions[];
-    const dim = dims.find((d) => d.company_id === id);
-    if (dim) return snapshotFromDimensions(dim);
+  const scoresPath = join(DATASET, "scores.json");
+  if (existsSync(scoresPath)) {
+    const scores = JSON.parse(readFileSync(scoresPath, "utf8")) as ExportedScore[];
+    const row = scores.find((d) => d.company_id === id);
+    if (row) return snapshotFromExport(row);
   }
   return SCORE_BY_ID[id] ?? null;
 }

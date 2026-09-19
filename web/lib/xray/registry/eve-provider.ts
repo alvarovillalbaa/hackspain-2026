@@ -46,12 +46,10 @@ export const eveProvider = {
   },
 
   async listActions(companyId: string): Promise<ActionRecommendation[]> {
-    // Actions stay derived client-side from score via mock ranking until
-    // a dedicated /api/xray/actions route exists; reuse mock with live score.
     try {
-      const score = await this.getScore(companyId);
-      const { actionsForSnapshot } = await import("./actions");
-      return actionsForSnapshot(score);
+      return await apiGet<ActionRecommendation[]>(
+        `/api/xray/actions/${encodeURIComponent(companyId)}`
+      );
     } catch {
       return mockProvider.listActions(companyId);
     }

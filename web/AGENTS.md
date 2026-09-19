@@ -18,7 +18,7 @@ This Next.js app also hosts an eve agent. `withEve()` in `next.config.ts` mounts
 
 For a content-only change to the agent's identity, purpose, tone, or response guidelines, edit `agent/instructions.md`. Preserve the model in `agent/agent.ts` unless asked to change it.
 
-The retrieval tools in `agent/tools/` read the screening pipeline outputs (`company_optimization_pipeline/outputs/`, generated, not in git) through `agent/lib/data.ts`: `PIPELINE_OUTPUTS` env, then `web/data/`, then the repo path. Run the pipeline once before `npm run dev`; for a deploy, copy the outputs to `web/data/`. Tests in `agent/**/*.test.ts` build their own fixture and need neither.
+The retrieval tools in `agent/tools/` and the marketplace subagents read the committed fact pack in `lib/xray/dataset/` (`companies.json`, `facts.json`, `scores.json`) through `agent/lib/data.ts` and `agent/lib/facts.ts`. Regenerate with `npm run build:facts` (cash/debt/invoices) and `uv run xray-export-web` (Health Scorer). Agent decisions persist to Vercel Blob when `BLOB_READ_WRITE_TOKEN` is set.
 
 ## X Ray demo seam
 

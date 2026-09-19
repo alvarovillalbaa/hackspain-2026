@@ -37,6 +37,7 @@
     "@streamdown/mermaid": "^1.0.2",
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.116.0",
+    "@vercel/blob": "^2.8.0",
     "@vercel/connect": "^2.1.0",
     "@xyflow/react": "^12.11.6",
     "ai": "7.0.99",

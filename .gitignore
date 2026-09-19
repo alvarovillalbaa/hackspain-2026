@@ -1,12 +1,12 @@
 # Datos del reto (645 MB) — nunca en git
-input_data/
-dataset/
-docs/data/
+/input_data/
+/dataset/
+/docs/data/
 *.csv
 !tests/**/*.csv
 
 # Salidas: caches parquet, modelos, figuras
-artifacts/
+/artifacts/
 
 # Python
 .venv/
@@ -26,8 +26,8 @@ node_modules/
 
 # Local
 .atl/
-data/
+/data/
 .codegraph/
 
 # Salidas generadas del pipeline de screening (regenerar con pipeline.py)
-company_optimization_pipeline/outputs/
+/company_optimization_pipeline/outputs/

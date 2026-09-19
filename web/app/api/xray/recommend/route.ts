@@ -14,6 +14,7 @@ import {
   resolveAction,
 } from "@/lib/xray/registry/actions";
 import { mockProvider } from "@/lib/xray/registry/mock-provider";
+import { readDecision, writeDecision } from "@/lib/xray/store";
 import type { ProductMatch, ScoreSnapshot } from "@/lib/xray/types";
 
 export const runtime = "nodejs";
@@ -28,7 +29,7 @@ const RequestSchema = z.object({
 type CacheEntry = {
   matches: ProductMatch[];
   headline: string;
-  source: "eve" | "warm" | "fallback";
+  source: "eve" | "warm" | "blob" | "fallback";
 };
 
 const memoryCache = new Map<string, CacheEntry>();
@@ -40,6 +41,27 @@ function cacheKey(companyId: string, actionId: string, amount?: number) {
 function resolveSnapshot(companyId: string): ScoreSnapshot | null {
   if (hasDataset()) return buildScoreSnapshot(companyId);
   return SCORE_BY_ID[companyId] ?? null;
+}
+
+function entryFromDecision(
+  companyId: string,
+  actionId: string,
+  decisionRaw: unknown,
+  headline: string | undefined,
+  source: CacheEntry["source"]
+): CacheEntry | null {
+  const snapshot = resolveSnapshot(companyId);
+  if (!snapshot) return null;
+  const action =
+    resolveAction(companyId, actionId, snapshot) ??
+    actionsForSnapshot(snapshot)[0];
+  if (!action) return null;
+  const decision = RecommendationDecisionSchema.parse(decisionRaw);
+  return {
+    matches: reassembleMatches(decision, snapshot, action),
+    headline: headline ?? decision.headline,
+    source,
+  };
 }
 
 async function loadWarm(
@@ -54,18 +76,32 @@ async function loadWarm(
     >;
     const hit = data[`${companyId}:${actionId}`];
     if (!hit) return null;
-    const snapshot = resolveSnapshot(companyId);
-    if (!snapshot) return null;
-    const action =
-      resolveAction(companyId, actionId, snapshot) ??
-      actionsForSnapshot(snapshot)[0];
-    if (!action) return null;
-    const decision = RecommendationDecisionSchema.parse(hit.decision);
-    return {
-      matches: reassembleMatches(decision, snapshot, action),
-      headline: hit.headline ?? decision.headline,
-      source: "warm",
-    };
+    return entryFromDecision(
+      companyId,
+      actionId,
+      hit.decision,
+      hit.headline,
+      "warm"
+    );
+  } catch {
+    return null;
+  }
+}
+
+async function loadBlob(
+  companyId: string,
+  actionId: string
+): Promise<CacheEntry | null> {
+  const stored = await readDecision(`${companyId}:${actionId}`);
+  if (!stored?.decision) return null;
+  try {
+    return entryFromDecision(
+      companyId,
+      actionId,
+      stored.decision,
+      stored.headline,
+      "blob"
+    );
   } catch {
     return null;
   }
@@ -98,7 +134,9 @@ async function runEveRecommendation(input: {
   action_id: string;
   amount?: number;
   snapshot: ScoreSnapshot;
-}): Promise<CacheEntry> {
+}): Promise<
+  CacheEntry & { decision: z.infer<typeof RecommendationDecisionSchema> }
+> {
   const actions = actionsForSnapshot(input.snapshot);
   const action =
     resolveAction(input.company_id, input.action_id, input.snapshot) ??
@@ -150,6 +188,7 @@ async function runEveRecommendation(input: {
       matches: reassembleMatches(decision, input.snapshot, action),
       headline: decision.headline,
       source: "eve",
+      decision,
     };
   } finally {
     clearTimeout(timer);
@@ -178,15 +217,29 @@ export async function POST(req: Request) {
     });
   }
 
-  const warm = await loadWarm(body.company_id, body.action_id);
-  if (warm && body.amount == null) {
-    memoryCache.set(key, warm);
-    return NextResponse.json({
-      matches: warm.matches,
-      headline: warm.headline,
-      source: warm.source,
-      cached: false,
-    });
+  // Resolution: memory → Blob → committed seed → live Eve → mock.
+  if (body.amount == null) {
+    const fromBlob = await loadBlob(body.company_id, body.action_id);
+    if (fromBlob) {
+      memoryCache.set(key, fromBlob);
+      return NextResponse.json({
+        matches: fromBlob.matches,
+        headline: fromBlob.headline,
+        source: fromBlob.source,
+        cached: false,
+      });
+    }
+
+    const warm = await loadWarm(body.company_id, body.action_id);
+    if (warm) {
+      memoryCache.set(key, warm);
+      return NextResponse.json({
+        matches: warm.matches,
+        headline: warm.headline,
+        source: warm.source,
+        cached: false,
+      });
+    }
   }
 
   const snapshot = resolveSnapshot(body.company_id);
@@ -205,6 +258,12 @@ export async function POST(req: Request) {
       snapshot,
     });
     memoryCache.set(key, entry);
+    if (body.amount == null) {
+      void writeDecision(`${body.company_id}:${body.action_id}`, {
+        decision: entry.decision,
+        headline: entry.headline,
+      });
+    }
     return NextResponse.json({
       matches: entry.matches,
       headline: entry.headline,

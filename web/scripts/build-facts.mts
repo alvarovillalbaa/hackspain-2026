@@ -1,7 +1,8 @@
 /**
- * Offline fact-pack builder.
- * Reads docs/data/raw CSVs (gitignored, local only) and emits compact JSON
- * under web/lib/xray/dataset/ for the eve agent tools and API routes.
+ * Offline fact-pack builder (cash, debt, invoices — NOT the Health Score).
+ * Reads docs/data/raw CSVs (gitignored, local only) and emits companies.json
+ * + facts.json under web/lib/xray/dataset/. Scores come from Python:
+ *   XRAY_DATA_DIR=docs/data/raw uv run xray-export-web
  *
  * Usage: XRAY_DATA_DIR=../docs/data/raw npm run build:facts
  */
@@ -146,43 +147,6 @@ function round2(n: number): number {
 
 function round3(n: number): number {
   return Math.round(n * 1000) / 1000;
-}
-
-function percentileRank(sortedAsc: number[], value: number): number {
-  if (sortedAsc.length === 0) return 0.5;
-  let lo = 0;
-  let hi = sortedAsc.length;
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    if (sortedAsc[mid]! < value) lo = mid + 1;
-    else hi = mid;
-  }
-  return lo / sortedAsc.length;
-}
-
-function clamp01(n: number): number {
-  return Math.max(0, Math.min(1, n));
-}
-
-function scoreFromDimensions(d: {
-  liquidity: number;
-  collections: number;
-  payments: number;
-  debt: number;
-  activity: number;
-}): number {
-  const w = {
-    liquidity: 0.28,
-    collections: 0.18,
-    payments: 0.18,
-    debt: 0.26,
-    activity: 0.1,
-  };
-  let total = 0;
-  for (const k of Object.keys(w) as (keyof typeof w)[]) {
-    total += clamp01(d[k]) * w[k] * 100;
-  }
-  return Math.round(total * 10) / 10;
 }
 
 function monthsBack(from: string, n: number): string[] {
@@ -506,122 +470,14 @@ async function main() {
     });
   }
 
-  // within-cohort percentile ranks (higher cash/dscr/net = better; higher overdue = worse)
-  const cashSorted = [...signals.map((s) => s.cash_buffer_days)].sort((a, b) => a - b);
-  const overdueSorted = [...signals.map((s) => s.overdue_flow_rate_3m)].sort(
-    (a, b) => a - b
-  );
-  const dscrSorted = [...signals.map((s) => s.dscr_6m)].sort((a, b) => a - b);
-  const netSorted = [...signals.map((s) => s.net_cash_flow_ratio_3m)].sort(
-    (a, b) => a - b
-  );
-
-  const dimensionsOut: unknown[] = [];
+  // Facts only — Health Score lives in scores.json from `uv run xray-export-web`.
   const factsOut: unknown[] = [];
-  const scoreById = new Map<string, number>();
 
   for (const sig of signals) {
     const id = sig.company_id;
-    const rankCash = percentileRank(cashSorted, sig.cash_buffer_days);
-    const rankOverdue = 1 - percentileRank(overdueSorted, sig.overdue_flow_rate_3m);
-    const rankDscr = percentileRank(dscrSorted, sig.dscr_6m);
-    const rankNet = percentileRank(netSorted, sig.net_cash_flow_ratio_3m);
-
-    const dimensions = {
-      liquidity: round3(rankCash),
-      collections: round3(rankOverdue),
-      payments: round3(clamp01(0.4 * rankOverdue + 0.6 * rankNet)),
-      debt: round3(rankDscr),
-      activity: round3(rankNet),
-    };
-
-    const score = scoreFromDimensions(dimensions);
-    scoreById.set(id, score);
-
-    // history from monthly net ranks (proxy)
     const series = cashSeries.get(id) ?? new Map();
-    const history = last24.map((month) => {
-      const a = series.get(month);
-      const net = a ? a.inflow - a.outflow : 0;
-      const outf = a?.outflow || 1;
-      const ratio = net / outf;
-      // map ratio roughly into score space around current score
-      const delta = clamp01(0.5 + ratio * 0.3) - 0.5;
-      return {
-        month,
-        score: Math.round(Math.max(5, Math.min(98, score + delta * 20)) * 10) / 10,
-      };
-    });
-    history[history.length - 1] = { month: REF_MONTH, score };
-
-    // outlook from last 6 months of "red" (score proxy < cohort median of that month — simplified: below 50)
-    const last6scores = history.slice(-6).map((h) => h.score);
-    const redCount = last6scores.filter((s) => s < 50).length;
-    const lastRed = (last6scores[last6scores.length - 1] ?? 50) < 50;
-    let outlook: "negative" | "positive" | "stable" = "stable";
-    if (redCount >= 3 && lastRed) outlook = "negative";
-    else if (
-      last6scores.slice(-3).every((s) => s >= 50) &&
-      last6scores.slice(0, 3).some((s) => s < 50)
-    ) {
-      outlook = "positive";
-    }
-
-    const coverage =
-      (series.size >= 12 ? 1 : 0) +
-      ((debtByCompany.get(id)?.size ?? 0) > 0 ? 1 : 0) +
-      (invoiceAging.has(id) ? 1 : 0) +
-      (cashByCompany.has(id) ? 1 : 0);
-    const confidence =
-      coverage >= 3 ? "high" : coverage >= 2 ? "medium" : "low";
-
-    let watch: string | null = null;
     const contracts = contractsByCompany.get(id) ?? [];
-    const bigMaturity = contracts.some(
-      (c) =>
-        c.total_periods != null &&
-        c.total_periods <= 3 &&
-        (c.outstanding ?? 0) > 50_000
-    );
-    if (bigMaturity) {
-      watch = "Vencimiento material de deuda en ≤ 3 cuotas";
-    } else if (sig.overdue_flow_rate_3m > 0.25) {
-      watch = "Tasa de vencidas de flujo >25% en 3 meses";
-    }
 
-    dimensionsOut.push({
-      company_id: id,
-      month: REF_MONTH,
-      dimensions,
-      signals: {
-        cash_buffer_days: round2(sig.cash_buffer_days),
-        overdue_flow_rate_3m: round3(sig.overdue_flow_rate_3m),
-        dscr_6m: round2(sig.dscr_6m),
-        net_cash_flow_ratio_3m: round3(sig.net_cash_flow_ratio_3m),
-      },
-      ranks: {
-        cash_buffer_days: round3(rankCash),
-        overdue_flow_rate_3m: round3(rankOverdue),
-        dscr_6m: round3(rankDscr),
-        net_cash_flow_ratio_3m: round3(rankNet),
-      },
-      history: history.slice(-12),
-      peer_percentile: Math.round(rankCash * 0.25 + rankOverdue * 0.25 + rankDscr * 0.3 + rankNet * 0.2) * 100 / 100 * 100,
-      confidence,
-      outlook,
-      watch,
-    });
-
-    // fix peer_percentile to integer 0-100
-    const last = dimensionsOut[dimensionsOut.length - 1] as {
-      peer_percentile: number;
-    };
-    last.peer_percentile = Math.round(
-      (rankCash * 0.25 + rankOverdue * 0.25 + rankDscr * 0.3 + rankNet * 0.2) *
-        100
-    );
-
-    // implied debt rate from contracts or rough annuity
     let impliedRate: number | null = null;
     if (contracts.length > 0) {
       const rates = contracts
@@ -697,15 +553,13 @@ async function main() {
   }
 
   writeFileSync(join(OUT_DIR, "companies.json"), JSON.stringify(companies));
-  writeFileSync(join(OUT_DIR, "dimensions.json"), JSON.stringify(dimensionsOut));
   writeFileSync(join(OUT_DIR, "facts.json"), JSON.stringify(factsOut));
 
   const companiesKb = (Buffer.byteLength(JSON.stringify(companies)) / 1024).toFixed(0);
-  const dimsKb = (Buffer.byteLength(JSON.stringify(dimensionsOut)) / 1024).toFixed(0);
   const factsKb = (Buffer.byteLength(JSON.stringify(factsOut)) / 1024).toFixed(0);
   console.log(`Wrote companies.json (${companiesKb} KB)`);
-  console.log(`Wrote dimensions.json (${dimsKb} KB)`);
   console.log(`Wrote facts.json (${factsKb} KB)`);
+  console.log("Scores: run `uv run xray-export-web` (Python Health Scorer).");
   console.log("Done.");
 }
 

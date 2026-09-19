@@ -14,7 +14,7 @@ This Next.js app also hosts an eve agent. `withEve()` in `next.config.ts` mounts
 
 - `agent/` — the agent (instructions, `agent.ts`, tools, channels, subagents, …). Import its files with `#…` (for example `#lib/foo.ts`).
 - `app/chat/`, `app/s/`, `app/_components/` — the web chat that talks to the agent through `useEveAgent` from `eve/react`.
-- `app/(embat)/page.tsx` grupos, `app/(embat)/g/` ficha de grupo, `app/(embat)/companies/` compañías, `app/(embat)/c/` ficha, `app/c/.../a/` marketplace. Docs: `docs/frontend_v0.md`.
+- `app/(embat)/page.tsx` grupos, `app/(embat)/g/` ficha de grupo, `app/(embat)/companies/` compañías, `app/(embat)/c/` ficha, `app/(embat)/c/.../a/` ofertas. Docs: `docs/frontend_v0.md`.
 
 For a content-only change to the agent's identity, purpose, tone, or response guidelines, edit `agent/instructions.md`. Preserve the model in `agent/agent.ts` unless asked to change it.
 

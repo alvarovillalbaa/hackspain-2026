@@ -37,7 +37,7 @@ export function Compania({ companyId }: { companyId: string }) {
           <FichaTitle name={name} month={score.month} />
           <FichaChips id={companyId} outlook={score.outlook} />
           <div className="flex flex-col gap-[30px]">
-            <div className="flex flex-wrap items-center gap-[30px]">
+            <div className="flex flex-wrap items-stretch gap-[30px]">
               <FichaGauge
                 score={score.score}
                 band={score.band}

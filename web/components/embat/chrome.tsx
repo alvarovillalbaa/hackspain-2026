@@ -20,11 +20,28 @@ export function EmbatShell({ children }: { children: ReactNode }) {
   );
 }
 
-export function EmbatIcon({ src }: { src: string }) {
+export function EmbatIcon({
+  src,
+  className,
+}: {
+  src: string;
+  className?: string;
+}) {
   return (
-    <span className="relative size-3 shrink-0">
-      <img alt="" src={src} className="absolute inset-0 max-w-none size-full" />
-    </span>
+    <span
+      aria-hidden
+      className={cn("inline-block size-3 shrink-0 bg-[#666666]", className)}
+      style={{
+        maskImage: `url("${src}")`,
+        WebkitMaskImage: `url("${src}")`,
+        maskSize: "contain",
+        WebkitMaskSize: "contain",
+        maskRepeat: "no-repeat",
+        WebkitMaskRepeat: "no-repeat",
+        maskPosition: "center",
+        WebkitMaskPosition: "center",
+      }}
+    />
   );
 }
 
@@ -76,7 +93,10 @@ export function FilterChip({
           active ? "border-[#11a8ff] text-[#11a8ff]" : "border-[#dce0e6]"
         )}
       >
-        <EmbatIcon src={icon} />
+        <EmbatIcon
+          src={icon}
+          className={active ? "bg-[#11a8ff]" : undefined}
+        />
         {label}
       </PopoverTrigger>
       <PopoverContent

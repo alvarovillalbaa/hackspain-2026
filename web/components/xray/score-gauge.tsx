@@ -40,6 +40,7 @@ export function ScoreGauge({
             data={data}
             startAngle={220}
             endAngle={-40}
+            margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
           >
             <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
             <RadialBar
@@ -50,10 +51,10 @@ export function ScoreGauge({
           </RadialBarChart>
         </ResponsiveContainer>
       </div>
-      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pt-2">
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
         {embat ? (
           <span
-            className="font-embat text-[40px] font-medium tabular-nums tracking-[-0.4px]"
+            className="font-embat -translate-y-[6px] text-[40px] leading-none font-medium tabular-nums tracking-[-0.4px]"
             style={{ color }}
           >
             {Math.round(score)}

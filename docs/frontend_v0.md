@@ -1,6 +1,6 @@
 # Frontend v0 — X Ray demo
 
-Demo de pantallas dentro de `web/`. Sidebar Embat en grupos, compañías y ficha; marketplace y resto usan AppShell.
+Demo de pantallas dentro de `web/`. Sidebar Embat en grupos, compañías, ficha y ofertas; compare y settings usan AppShell.
 Todo el dato pasa por un único seam: `provider` en [`web/lib/xray/provider.ts`](../web/lib/xray/provider.ts).
 
 ## Pantallas
@@ -12,8 +12,7 @@ Todo el dato pasa por un único seam: `provider` en [`web/lib/xray/provider.ts`]
 | `/companies` | Compañías: score, estado, situación, tipo actual, cierre; import CSV |
 | `/grupo-empresarial` | Redirect a `/` |
 | `/c/[companyId]` | Ficha Embat: score, desglose, drivers, acciones, trayectoria |
-| `/c/[companyId]/a/[actionId]` | Marketplace de productos ordenado por match |
-| `?p=PRODUCT_ID` | Expansión full-screen del producto (negociación) |
+| `/c/[companyId]/a/[actionId]` | Ofertas de financiación (tabla Embat); clic en una oferta abre Contratar Préstamo. Amortización sigue el dashboard |
 | `/chat` | Chat Eve (movido desde `/`) |
 
 ## Seam — `XrayProvider`

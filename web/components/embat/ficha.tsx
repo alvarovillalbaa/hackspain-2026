@@ -3,7 +3,12 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverArrow,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   FilterChip,
   outlookColor,
@@ -107,9 +112,11 @@ export function FichaTitle({ name, month }: { name: string; month: string }) {
 export function FichaChips({
   id,
   outlook,
+  companyCount,
 }: {
   id: string;
   outlook: Outlook;
+  companyCount?: number;
 }) {
   const meta = outlookMeta(outlook);
   return (
@@ -125,6 +132,11 @@ export function FichaChips({
       >
         Estado: {meta.label}
       </span>
+      {companyCount != null ? (
+        <span className="inline-flex items-center justify-center rounded-[4px] border border-[#dce0e6] bg-[rgba(220,224,230,0.45)] px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px] text-[#666]">
+          {companyCount} {companyCount === 1 ? "empresa" : "empresas"}
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -177,10 +189,10 @@ export function DesgloseCard({
 }) {
   return (
     <section
-      className={cn(fichaCardClass, "h-[266px] min-w-[260px] flex-1")}
+      className={cn(fichaCardClass, "h-[300px] min-w-[260px] flex-1")}
       aria-labelledby="desglose-score"
     >
-      <header className="border-b border-[#dce0e6] px-5 py-[15px]">
+      <header className="shrink-0 border-b border-[#dce0e6] px-5 py-[15px]">
         <h2
           id="desglose-score"
           className="text-[14px] font-medium tracking-[-0.14px] text-[#999]"
@@ -308,6 +320,9 @@ export function RationaleTip({ text }: { text: string }) {
     <Popover>
       <PopoverTrigger
         type="button"
+        openOnHover
+        delay={100}
+        closeDelay={100}
         aria-label="Por qué se recomienda"
         className="inline-flex size-[10px] shrink-0 items-center justify-center outline-none"
       >
@@ -320,15 +335,16 @@ export function RationaleTip({ text }: { text: string }) {
         </span>
       </PopoverTrigger>
       <PopoverContent
-        align="start"
+        align="center"
         side="top"
-        sideOffset={6}
+        sideOffset={8}
         className={cn(
           embatUiClass,
-          "z-50 w-[260px] rounded-[6px] border border-[#dce0e6] bg-white p-2.5 text-[13px] font-medium tracking-[-0.13px] text-black shadow-[0px_1px_1px_rgba(13,19,30,0.1)] ring-0 dark:border-[#dce0e6] dark:bg-white dark:text-black"
+          "z-50 w-[260px] origin-(--transform-origin) gap-0 overflow-visible rounded-[6px] border border-[#dce0e6] bg-white p-2.5 text-[13px] leading-snug font-medium tracking-[-0.13px] text-black shadow-[0px_1px_1px_rgba(13,19,30,0.1)] ring-0 duration-150 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 dark:border-[#dce0e6] dark:bg-white dark:text-black"
         )}
       >
         {text}
+        <PopoverArrow />
       </PopoverContent>
     </Popover>
   );
@@ -469,7 +485,7 @@ export function FichaSkeleton() {
       <div className="flex flex-col gap-[30px]">
         <div className="flex flex-wrap gap-[30px]">
           <Skeleton className="h-[266px] w-[428px] max-w-full rounded-[8px] bg-[#dce0e6]/50" />
-          <Skeleton className="h-[266px] min-w-[260px] flex-1 rounded-[8px] bg-[#dce0e6]/50" />
+          <Skeleton className="h-[300px] min-w-[260px] flex-1 rounded-[8px] bg-[#dce0e6]/50" />
           <Skeleton className="h-[300px] min-w-[260px] flex-1 rounded-[8px] bg-[#dce0e6]/50" />
         </div>
         <div className="flex flex-wrap gap-[30px]">

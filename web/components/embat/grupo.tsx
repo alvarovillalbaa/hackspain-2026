@@ -78,9 +78,13 @@ function GrupoBody({
   return (
     <>
       <FichaTitle name={name} month={score.month} />
-      <FichaChips id={groupId} outlook={score.outlook} />
+      <FichaChips
+        id={groupId}
+        outlook={score.outlook}
+        companyCount={group.n_companies}
+      />
       <div className="flex flex-col gap-[30px]">
-        <div className="flex flex-wrap items-center gap-[30px]">
+        <div className="flex flex-wrap items-stretch gap-[30px]">
           <FichaGauge
             score={score.score}
             band={score.band}

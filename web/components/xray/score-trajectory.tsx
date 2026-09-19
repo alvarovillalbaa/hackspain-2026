@@ -22,6 +22,59 @@ export type TrajectorySeries = {
   color?: string;
 };
 
+type TrajectoryTooltipItem = {
+  name?: string;
+  value?: number | string;
+  color?: string;
+  dataKey?: string | number;
+};
+
+function EmbatTrajectoryTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: ReadonlyArray<TrajectoryTooltipItem>;
+  label?: string | number;
+}) {
+  if (!active || !payload?.length) return null;
+  const items: Array<{ key: string; value: string; color?: string }> = [];
+  const seen = new Set<string>();
+  for (const item of payload) {
+    const key = String(item.dataKey ?? item.name ?? "");
+    if (!key || seen.has(key) || item.value == null || item.value === "") {
+      continue;
+    }
+    const numeric = Number(item.value);
+    if (!Number.isFinite(numeric)) continue;
+    seen.add(key);
+    items.push({
+      key,
+      value: Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(1),
+      color: item.color,
+    });
+  }
+  if (items.length === 0) return null;
+
+  return (
+    <div className="rounded-[6px] border border-[#dce0e6] bg-white px-2 py-1.5 text-[12px] font-medium tracking-[-0.12px] text-black shadow-[0px_1px_1px_rgba(13,19,30,0.1)]">
+      <p className="leading-none">{formatMonth(String(label))}</p>
+      <ul className="mt-1 flex flex-col gap-0">
+        {items.map((item) => (
+          <li
+            key={item.key}
+            className="leading-[14px]"
+            style={{ color: item.color }}
+          >
+            {item.key} : {item.value}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function ScoreTrajectory({
   history,
   projection,
@@ -171,22 +224,12 @@ function SingleTrajectory({
           '"Inter Variable", var(--font-inter-variable), sans-serif',
       }
     : { fill: tick, fontSize: 11 };
-  const tooltip = embat
-    ? {
-        background: "#ffffff",
-        border: "1px solid #dce0e6",
-        borderRadius: 6,
-        fontSize: 12,
-        color: "#000000",
-        fontFamily:
-          '"Inter Variable", var(--font-inter-variable), sans-serif',
-      }
-    : {
-        background: "var(--popover)",
-        border: "1px solid var(--border)",
-        borderRadius: 12,
-        fontSize: 12,
-      };
+  const tooltip = {
+    background: "var(--popover)",
+    border: "1px solid var(--border)",
+    borderRadius: 12,
+    fontSize: 12,
+  };
 
   return (
     <div className={cn("h-56 w-full", className)}>
@@ -209,8 +252,9 @@ function SingleTrajectory({
             tickLine={false}
           />
           <Tooltip
-            contentStyle={tooltip}
-            labelFormatter={(l) => formatMonth(String(l))}
+            content={embat ? <EmbatTrajectoryTooltip /> : undefined}
+            contentStyle={embat ? undefined : tooltip}
+            labelFormatter={embat ? undefined : (l) => formatMonth(String(l))}
           />
           {projection ? (
             <>

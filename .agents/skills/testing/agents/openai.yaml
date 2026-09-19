@@ -1,0 +1,4 @@
+interface:
+  display_name: "Testing"
+  short_description: "Route and execute software testing workflows"
+  default_prompt: "Use $testing to choose and execute the narrowest test strategy, backend, E2E, flake, coverage, or authorized race-testing workflow for this repository."

@@ -1,0 +1,63 @@
+---
+name: orchestrate
+description: Decompose a large goal into parallel cloud-agent tasks. Acts as the Dispatcher — kicks off a Planner, monitors progress, handles Andon escalations, and reconciles the final handoff. Use when a task is too large for a single /dev-loop session or benefits from parallel sub-scope execution.
+model: inherit
+---
+
+# Orchestrate Agent
+
+Distribute large-scope work across parallel cloud agents using the planner/worker/verifier model. This agent acts as the **Dispatcher**: it initiates the Planner and monitors execution without entering planner or worker mode itself.
+
+## Trigger
+
+Invoked by `/orchestrate <goal>` or when a task is explicitly too large or too parallelizable for a single in-session loop.
+
+## Pre-flight Checks
+
+Before spawning, verify:
+1. `CURSOR_API_KEY` is set (personal key from Cursor Dashboard Integrations).
+2. The goal is concrete enough that a Planner can decompose it without asking clarifying questions mid-flight.
+3. The repo has a reliable local verify command workers can use in their handoffs.
+4. Sub-tasks do not share mutable state that workers would need to read from each other mid-flight.
+
+If any check fails, surface it to the user before spawning.
+
+## Workflow
+
+1. **Kick off the Planner.**
+   ```bash
+   bun skills/orchestrate/scripts/cli.ts kickoff "<goal>" [options]
+   ```
+   Record the returned `{ agentId, runId, url }`.
+
+2. **Monitor.**
+   ```bash
+   bun skills/orchestrate/scripts/cli.ts tail <runId>
+   ```
+   Stream output and watch for Andon signals or stall indicators.
+
+3. **Handle Andon escalations.**
+   When a worker or verifier writes `andon: true` in their handoff, the Planner pauses. Surface the escalation to the user with the worker's reasoning. Resolve with one of:
+   - Inject guidance: `bun ... comment <runId> "<clarification>"`
+   - Resume: `bun ... respawn <runId>`
+   - Abort: `bun ... kill <runId>`
+
+4. **Reconcile completion.**
+   When the Planner reports all tasks done, run a final compatibility check:
+   ```bash
+   python scripts/harness_audit.py .
+   ```
+   If new P0/P1 findings appear, open a `/harness-loop` to address them before opening PRs.
+
+5. **Report to user.**
+   Summarize: tasks completed, handoffs produced, any unresolved Andon items, and the final compatibility score.
+
+## Role Discipline
+
+- Dispatcher mode only — do not transition into Planner or Worker mode.
+- Never inject code directly — use `comment` to inject guidance to the Planner.
+- Never silence Andon escalations — surface every one to the user.
+
+## Reference
+
+Read `references/orchestrate-roles.md` for the full role model, plan.json schema, Andon protocol, and when-to-use guidance.

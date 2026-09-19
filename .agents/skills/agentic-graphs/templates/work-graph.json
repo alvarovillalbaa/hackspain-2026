@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "goal": "State the integrated outcome.",
+  "status": "planned",
+  "integration_owner": "controller",
+  "global_acceptance": [
+    "The integrated result passes its end-to-end verification."
+  ],
+  "global_acceptance_results": [false],
+  "global_verification": [],
+  "nodes": [
+    {
+      "id": "foundation",
+      "objective": "Produce the shared contract required by downstream nodes.",
+      "dependencies": [],
+      "owner": "contract-specialist",
+      "acceptance": [
+        "The contract is versioned and validated."
+      ],
+      "acceptance_results": [false],
+      "writes": [
+        "src/contracts"
+      ],
+      "status": "planned",
+      "artifacts": [],
+      "handoff": null,
+      "retry_count": 0,
+      "max_retries": 1,
+      "replaces": null
+    }
+  ],
+  "revisions": []
+}

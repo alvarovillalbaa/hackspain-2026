@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agentic Graphs"
+  short_description: "Coordinate dynamic dependency work graphs"
+  default_prompt: "Use $agentic-graphs to decompose and execute this work as a dependency-aware graph."

@@ -1,0 +1,100 @@
+{
+  "schema_version": "1.0",
+  "manifest_id": "council-sha256:94eacb7e97af1d0510fd1710b6f6aa3f0a93042c1b5e6d1d246ab3f33712ad95",
+  "revision": 2,
+  "parent_manifest_id": "council-sha256:1b1a6b340f858244a639aa8ca6c26322836101b013883e9a02e9691663971220",
+  "evidence_pack_id": "evidence-sha256:3175fb66cfa7fbea15f27e7a86a2813e7e0dd5a126a6c5111417fe6e301dd425",
+  "status": "in_progress",
+  "question": "Should the team split one service before the next release?",
+  "constraints": [
+    "Release in two weeks.",
+    "Avoid an irreversible data migration."
+  ],
+  "budget": {
+    "max_rounds": 2,
+    "max_seconds": 1800,
+    "max_cost_usd": 2,
+    "max_tool_calls": 30
+  },
+  "spend": {
+    "elapsed_seconds": 300,
+    "cost_usd": 0.18,
+    "tool_calls": 8
+  },
+  "approvals": [],
+  "blocker": null,
+  "evidence": [
+    {
+      "id": "ev-load",
+      "source": "Load test report",
+      "summary": "The current service meets the release traffic target with 35 percent headroom.",
+      "as_of": "2026-08-01"
+    },
+    {
+      "id": "ev-incidents",
+      "source": "Incident review",
+      "summary": "Three recent failures originated in one module but did not require independent scaling.",
+      "as_of": "2026-07-28"
+    }
+  ],
+  "personas": [
+    {
+      "id": "architect",
+      "name": "Distributed systems architect",
+      "lens": "Service boundaries",
+      "mandate": "Test whether independent lifecycle and scaling justify a split.",
+      "blind_spot": "May favor structural purity."
+    },
+    {
+      "id": "release",
+      "name": "Release engineer",
+      "lens": "Delivery risk",
+      "mandate": "Assess rollout, rollback, and schedule risk.",
+      "blind_spot": "May defer useful structural change."
+    },
+    {
+      "id": "reliability",
+      "name": "Reliability engineer",
+      "lens": "Failure containment",
+      "mandate": "Assess incident isolation and operational evidence.",
+      "blind_spot": "May overweight recent incidents."
+    }
+  ],
+  "rounds": [
+    {
+      "number": 1,
+      "kind": "independent_analysis",
+      "submissions": [
+        {
+          "persona_id": "architect",
+          "position": "Do not split before release.",
+          "rationale": "The evidence does not show an independent scaling or lifecycle need.",
+          "evidence_ids": ["ev-load", "ev-incidents"],
+          "confidence": 0.82,
+          "failure_modes": ["Internal isolation may leave hidden operational coupling."],
+          "disconfirming_evidence": ["Independent scaling pressure or release isolation would reverse this recommendation."]
+        },
+        {
+          "persona_id": "release",
+          "position": "Defer the split and isolate the module internally.",
+          "rationale": "A service split adds rollback and integration risk inside the release window.",
+          "evidence_ids": ["ev-load"],
+          "confidence": 0.9,
+          "failure_modes": ["Deferral may allow another module-originated incident."],
+          "disconfirming_evidence": ["A proven zero-downtime split and rollback path would weaken the schedule objection."]
+        },
+        {
+          "persona_id": "reliability",
+          "position": "Split the failing module now.",
+          "rationale": "Recent incidents suggest a useful failure boundary.",
+          "evidence_ids": ["ev-incidents"],
+          "confidence": 0.64,
+          "failure_modes": ["A rushed split could introduce a larger distributed failure surface."],
+          "disconfirming_evidence": ["Successful internal containment tests would weaken the need for an immediate split."]
+        }
+      ]
+    }
+  ],
+  "ruling": null,
+  "dissent": []
+}

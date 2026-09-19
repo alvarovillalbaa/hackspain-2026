@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI Evals"
+  short_description: "Build rigorous agent evaluation systems"
+  default_prompt: "Use $ai-evals to design and gate a provider-neutral evaluation for this agent workflow."

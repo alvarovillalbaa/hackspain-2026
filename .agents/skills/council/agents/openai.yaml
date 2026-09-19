@@ -1,0 +1,4 @@
+interface:
+  display_name: "Council"
+  short_description: "Run a situation-specific expert panel"
+  default_prompt: "Use $council to convene an expert panel and rule on this decision."

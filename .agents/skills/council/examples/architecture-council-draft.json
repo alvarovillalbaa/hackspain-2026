@@ -1,0 +1,66 @@
+{
+  "schema_version": "1.0",
+  "manifest_id": "council-sha256:1b1a6b340f858244a639aa8ca6c26322836101b013883e9a02e9691663971220",
+  "revision": 1,
+  "parent_manifest_id": null,
+  "evidence_pack_id": "evidence-sha256:3175fb66cfa7fbea15f27e7a86a2813e7e0dd5a126a6c5111417fe6e301dd425",
+  "status": "draft",
+  "question": "Should the team split one service before the next release?",
+  "constraints": [
+    "Release in two weeks.",
+    "Avoid an irreversible data migration."
+  ],
+  "budget": {
+    "max_rounds": 2,
+    "max_seconds": 1800,
+    "max_cost_usd": 2,
+    "max_tool_calls": 30
+  },
+  "spend": {
+    "elapsed_seconds": 0,
+    "cost_usd": 0,
+    "tool_calls": 0
+  },
+  "approvals": [],
+  "blocker": null,
+  "evidence": [
+    {
+      "id": "ev-load",
+      "source": "Load test report",
+      "summary": "The current service meets the release traffic target with 35 percent headroom.",
+      "as_of": "2026-08-01"
+    },
+    {
+      "id": "ev-incidents",
+      "source": "Incident review",
+      "summary": "Three recent failures originated in one module but did not require independent scaling.",
+      "as_of": "2026-07-28"
+    }
+  ],
+  "personas": [
+    {
+      "id": "architect",
+      "name": "Distributed systems architect",
+      "lens": "Service boundaries",
+      "mandate": "Test whether independent lifecycle and scaling justify a split.",
+      "blind_spot": "May favor structural purity."
+    },
+    {
+      "id": "release",
+      "name": "Release engineer",
+      "lens": "Delivery risk",
+      "mandate": "Assess rollout, rollback, and schedule risk.",
+      "blind_spot": "May defer useful structural change."
+    },
+    {
+      "id": "reliability",
+      "name": "Reliability engineer",
+      "lens": "Failure containment",
+      "mandate": "Assess incident isolation and operational evidence.",
+      "blind_spot": "May overweight recent incidents."
+    }
+  ],
+  "rounds": [],
+  "ruling": null,
+  "dissent": []
+}

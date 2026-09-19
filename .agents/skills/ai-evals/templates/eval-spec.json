@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "eval_id": "replace-with-stable-eval-id",
+  "description": "State the product decision this eval supports.",
+  "manifest": {
+    "dataset_id": "replace-with-dataset-id",
+    "dataset_version": "replace-with-immutable-version",
+    "target_version": "replace-with-target-version",
+    "evaluator_version": "deterministic-v1",
+    "prompt_version": "replace-with-prompt-hash-or-none",
+    "data_policy_fingerprint": "sha256:f4cb5ae6ea4fb3872fc84f4fcf93fffbbb460142b9ae23ccafad5e93ad62d29c",
+    "sample_manifest_id": "sample_5940a6614acb2562d4a1"
+  },
+  "variables": {
+    "output": {
+      "path": "output",
+      "type": "string",
+      "required": true
+    },
+    "expected": {
+      "path": "expected",
+      "type": "string",
+      "required": true
+    }
+  },
+  "evaluation": {
+    "id": "row-gate",
+    "op": "gate",
+    "hard": [
+      {
+        "id": "exact-output",
+        "op": "eq",
+        "left": {"var": "output"},
+        "right": {"var": "expected"}
+      }
+    ]
+  },
+  "dataset_gate": {
+    "min_pass_rate": 1,
+    "max_failed_rows": 0
+  }
+}

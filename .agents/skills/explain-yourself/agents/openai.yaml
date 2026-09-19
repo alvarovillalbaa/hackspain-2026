@@ -1,0 +1,4 @@
+interface:
+  display_name: "Explain Yourself"
+  short_description: "Explain agent work with evidence and limits"
+  default_prompt: "Use $explain-yourself to explain this work as a concise evidence-backed reasoning summary."

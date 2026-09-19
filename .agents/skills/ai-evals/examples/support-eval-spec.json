@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.0",
+  "eval_id": "support-order-contract-v1",
+  "description": "Validate structured order references and deterministic quality guardrails.",
+  "manifest": {
+    "dataset_id": "support-orders",
+    "dataset_version": "2026-08-02",
+    "target_version": "support-agent-v7",
+    "evaluator_version": "deterministic-contract-v1",
+    "prompt_version": "prompt-sha256-demo",
+    "data_policy_fingerprint": "sha256:54d978ede52499b9185e3f97d022de30bb3602f33222a259d1603a0e332f19d2",
+    "sample_manifest_id": "sample_8cf10ee2034381a28b0d"
+  },
+  "variables": {
+    "output": {"path": "output", "type": "string", "required": true},
+    "expected": {"path": "expected", "type": "string", "required": true},
+    "payload": {"path": "payload", "type": "json", "required": true},
+    "latency_ms": {"path": "metrics.latency_ms", "type": "number", "required": true},
+    "quality": {"path": "metrics.quality", "type": "number", "required": true},
+    "retries": {"path": "metrics.retries", "type": "integer", "required": true},
+    "forbidden": {"path": "forbidden", "type": "string", "required": true}
+  },
+  "evaluation": {
+    "id": "row-gate",
+    "op": "gate",
+    "hard": [
+      {"id": "payload-json", "op": "json-valid", "value": {"var": "payload"}},
+      {
+        "id": "format-and-safety",
+        "op": "all",
+        "checks": [
+          {"id": "order-format", "op": "regex", "left": {"var": "output"}, "right": {"value": "^order-[0-9]+$"}},
+          {"id": "not-forbidden", "op": "not", "check": {"id": "forbidden-match", "op": "eq", "left": {"var": "output"}, "right": {"var": "forbidden"}}}
+        ]
+      },
+      {
+        "id": "correct-or-descriptive",
+        "op": "any",
+        "checks": [
+          {"id": "exact-order", "op": "eq", "left": {"var": "output"}, "right": {"var": "expected"}},
+          {"id": "contains-order", "op": "contains", "left": {"var": "output"}, "right": {"value": "ORDER"}, "case_sensitive": false}
+        ]
+      }
+    ],
+    "soft": {
+      "id": "quality-score",
+      "op": "weighted",
+      "threshold": 1,
+      "checks": [
+        {"weight": 2, "check": {"id": "expected-order", "op": "eq", "left": {"var": "output"}, "right": {"var": "expected"}}},
+        {"weight": 1, "check": {"id": "latency-nonnegative", "op": "gte", "left": {"var": "latency_ms"}, "right": {"value": 0}}},
+        {"weight": 1, "check": {"id": "latency-cap", "op": "lte", "left": {"var": "latency_ms"}, "right": {"value": 500}}},
+        {"weight": 1, "check": {"id": "quality-floor", "op": "gt", "left": {"var": "quality"}, "right": {"value": 0.8}}},
+        {"weight": 1, "check": {"id": "retry-cap", "op": "lt", "left": {"var": "retries"}, "right": {"value": 2}}}
+      ]
+    }
+  },
+  "dataset_gate": {
+    "min_pass_rate": 1,
+    "max_failed_rows": 0
+  }
+}

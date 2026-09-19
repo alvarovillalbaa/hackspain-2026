@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "goal_id": "goal-stable-id",
+  "objective": "State the durable outcome the user explicitly requested.",
+  "success_criteria": [
+    {
+      "id": "criterion-1",
+      "criterion": "Describe one observable completed condition."
+    }
+  ],
+  "constraints": [
+    "Preserve the user's authority and approval boundaries."
+  ],
+  "status": "active",
+  "evidence": [
+    {
+      "id": "evidence-criterion-1-initial",
+      "criterion_id": "criterion-1",
+      "source": "Identify the exact verification source.",
+      "result": "The criterion has not yet been verified.",
+      "as_of": "YYYY-MM-DD",
+      "verified": false,
+      "passed": false,
+      "supersedes": null
+    }
+  ],
+  "assumptions": [],
+  "next_action": "Take the smallest evidence-producing action.",
+  "blocker": null,
+  "budget": {
+    "max_turns": null,
+    "turns_used": 0,
+    "max_cost_usd": null,
+    "cost_usd": 0
+  }
+}

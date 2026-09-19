@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agentic Development"
+  short_description: "Orient, improve agent-first harnesses, and verify repo work safely"
+  default_prompt: "Orient in this repo, choose the right execution mode, improve the agent-facing harness where needed, keep spec, plan, and test concerns separate, and carry the task through implementation, review, and verification."

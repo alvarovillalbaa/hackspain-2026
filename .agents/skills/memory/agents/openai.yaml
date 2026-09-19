@@ -1,0 +1,4 @@
+interface:
+  display_name: "Memory"
+  short_description: "Retrieve and curate durable memory safely"
+  default_prompt: "Use $memory to retrieve only the relevant durable context with provenance, freshness, and conflict checks."

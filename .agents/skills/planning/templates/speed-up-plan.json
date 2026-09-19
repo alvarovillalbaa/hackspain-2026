@@ -1,0 +1,29 @@
+{
+  "critical_path_timeline": {
+    "outreach_start": "YYYY-MM-DD",
+    "first_meetings_target": "YYYY-MM-DD",
+    "term_sheet_target": "YYYY-MM-DD",
+    "close_target": "YYYY-MM-DD"
+  },
+  "time_savers": [
+    {
+      "description": "string",
+      "impact": "string",
+      "owner": "string"
+    }
+  ],
+  "accountability_matrix": [
+    {
+      "step": "string",
+      "owner": "string",
+      "due_date": "YYYY-MM-DD"
+    }
+  ],
+  "quick_wins": ["string"],
+  "top_risks": [
+    {
+      "risk": "string",
+      "mitigation": "string"
+    }
+  ]
+}

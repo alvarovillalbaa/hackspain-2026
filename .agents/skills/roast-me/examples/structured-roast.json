@@ -1,0 +1,21 @@
+{
+  "explicit_request_confirmed": true,
+  "intensity": "direct",
+  "receipts": [
+    {
+      "focus": "decision",
+      "evidence_id": "E1",
+      "punchline": "You released a six-priority trailer and cancelled the season halfway through.",
+      "truth": "The user reported announcing six priorities and completing two.",
+      "cost": "Frequent unexplained changes create a credibility tax."
+    }
+  ],
+  "actions": [
+    {
+      "action": "Publish a decision log for the four changes.",
+      "trigger_or_deadline": "By Friday",
+      "success_measure": "All four changes include rationale and owner."
+    }
+  ],
+  "memory_write_performed": false
+}

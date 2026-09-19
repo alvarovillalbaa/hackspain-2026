@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0",
+  "goal_id": "goal-config-v2-migration",
+  "objective": "Migrate all supported services to configuration contract v2 without downtime.",
+  "success_criteria": [
+    {
+      "id": "compatibility",
+      "criterion": "Every supported service passes the v2 compatibility suite."
+    },
+    {
+      "id": "rollout",
+      "criterion": "The staged production rollout completes without a rollback-triggering regression."
+    }
+  ],
+  "constraints": [
+    "Preserve v1 reads until every service is migrated.",
+    "Require approval before each production rollout stage."
+  ],
+  "status": "active",
+  "evidence": [
+    {
+      "id": "ev-compat-20260801",
+      "criterion_id": "compatibility",
+      "source": "CI compatibility run 4821",
+      "result": "All twelve supported services passed contract v2 fixtures.",
+      "as_of": "2026-08-01",
+      "verified": true,
+      "passed": true,
+      "supersedes": null
+    },
+    {
+      "id": "ev-rollout-staging",
+      "criterion_id": "rollout",
+      "source": "Staging deployment 991",
+      "result": "Staging passed; production stages have not started.",
+      "as_of": "2026-08-02",
+      "verified": true,
+      "passed": false,
+      "supersedes": null
+    }
+  ],
+  "assumptions": [
+    {
+      "statement": "The supported-service registry remains at twelve services.",
+      "as_of": "2026-08-01"
+    }
+  ],
+  "next_action": "Request approval for the first production canary and recheck the service registry.",
+  "blocker": null,
+  "budget": {
+    "max_turns": 20,
+    "turns_used": 6,
+    "max_cost_usd": 25,
+    "cost_usd": 4.5
+  }
+}

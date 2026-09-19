@@ -1,0 +1,101 @@
+{
+  "schema_version": "1.0",
+  "goal": "Ship a compatible API and UI release from one versioned contract.",
+  "status": "complete",
+  "integration_owner": "release-controller",
+  "global_acceptance": [
+    "The end-to-end release test passes against the versioned contract."
+  ],
+  "global_acceptance_results": [true],
+  "global_verification": ["e2e-test-log"],
+  "nodes": [
+    {
+      "id": "contract",
+      "objective": "Define and validate the shared response schema.",
+      "dependencies": [],
+      "owner": "api-architect",
+      "acceptance": ["The schema validator passes."],
+      "acceptance_results": [true],
+      "writes": ["contracts/release.json"],
+      "status": "complete",
+      "artifacts": ["contract-v2", "contract-test-log"],
+      "handoff": {
+        "verification_evidence": ["contract-test-log"],
+        "changed_artifacts": ["contract-v2"],
+        "residual_risks": [],
+        "discovered_work": []
+      },
+      "retry_count": 0,
+      "max_retries": 1,
+      "replaces": null
+    },
+    {
+      "id": "api",
+      "objective": "Implement the API against contract v2.",
+      "dependencies": ["contract"],
+      "owner": "backend-engineer",
+      "acceptance": ["API contract tests pass."],
+      "acceptance_results": [true],
+      "writes": ["services/api"],
+      "status": "complete",
+      "artifacts": ["api-diff", "api-test-log"],
+      "handoff": {
+        "verification_evidence": ["api-test-log"],
+        "changed_artifacts": ["api-diff"],
+        "residual_risks": [],
+        "discovered_work": []
+      },
+      "retry_count": 1,
+      "max_retries": 2,
+      "replaces": null
+    },
+    {
+      "id": "ui",
+      "objective": "Render contract v2 responses in the client.",
+      "dependencies": ["contract"],
+      "owner": "frontend-engineer",
+      "acceptance": ["Component tests pass with contract fixtures."],
+      "acceptance_results": [true],
+      "writes": ["apps/web"],
+      "status": "complete",
+      "artifacts": ["ui-diff", "component-test-log"],
+      "handoff": {
+        "verification_evidence": ["component-test-log"],
+        "changed_artifacts": ["ui-diff"],
+        "residual_risks": [],
+        "discovered_work": []
+      },
+      "retry_count": 0,
+      "max_retries": 2,
+      "replaces": null
+    },
+    {
+      "id": "integrate",
+      "objective": "Integrate the API and UI and run the release test.",
+      "dependencies": ["api", "ui"],
+      "owner": "release-controller",
+      "acceptance": ["End-to-end release test passes."],
+      "acceptance_results": [true],
+      "writes": ["release/evidence"],
+      "status": "complete",
+      "artifacts": ["e2e-test-log"],
+      "handoff": {
+        "verification_evidence": ["e2e-test-log"],
+        "changed_artifacts": ["e2e-test-log"],
+        "residual_risks": [],
+        "discovered_work": []
+      },
+      "retry_count": 0,
+      "max_retries": 1,
+      "replaces": null
+    }
+  ],
+  "revisions": [
+    {
+      "id": "revision-1",
+      "reason": "Contract inspection showed the client and API could proceed independently after schema validation.",
+      "added_nodes": ["api", "ui"],
+      "superseded_nodes": []
+    }
+  ]
+}

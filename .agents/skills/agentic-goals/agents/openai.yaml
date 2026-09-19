@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agentic Goals"
+  short_description: "Pursue explicit goals across agent turns"
+  default_prompt: "Use $agentic-goals to define and pursue this goal with evidence-backed lifecycle state."

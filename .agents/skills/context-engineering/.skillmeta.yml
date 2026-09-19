@@ -1,0 +1,49 @@
+id: engineering.context-engineering
+name: context-engineering
+origin:
+  repo: alvarovillalbaa/plugins
+  branch: main
+  path: engineering/skills/context-engineering
+install:
+  mode: project-managed-copy
+  agents:
+    - codex
+    - cursor
+    - openclaw
+    - claude-code
+personalization:
+  policy: overlay-only
+  local_files:
+    - personalize.local.yml
+    - "*.local.yml"
+    - .overlays/**
+    - .generated/**
+    - .company/**
+    - .user/**
+upstream_contribution:
+  allowed_paths:
+    - .skillmeta.yml
+    - SKILL.md
+    - README.md
+    - agents/**
+    - scripts/**
+    - references/**
+    - templates/**
+    - examples/**
+    - hooks/**
+    - personalization.schema.json
+    - personalize.example.yml
+    - evals/**
+  forbidden_paths:
+    - personalize.local.yml
+    - "*.local.yml"
+    - .overlays/**
+    - .generated/**
+    - .company/**
+    - .user/**
+    - generated/**
+    - private/**
+quality_gates:
+  require_eval: false
+  require_diff_classification: true
+  require_human_review: true

@@ -1,0 +1,2 @@
+{"row_id":"support-order-001","split":"validation","input":"Where is order 123?","output":"order-123","expected":"order-123","payload":"{\"order_id\":123}","metrics":{"latency_ms":180,"quality":0.96,"retries":0},"forbidden":"unknown"}
+{"row_id":"support-order-002","split":"holdout","input":"Find order 987.","output":"order-987","expected":"order-987","payload":"{\"order_id\":987}","metrics":{"latency_ms":240,"quality":0.92,"retries":1},"forbidden":"unknown"}

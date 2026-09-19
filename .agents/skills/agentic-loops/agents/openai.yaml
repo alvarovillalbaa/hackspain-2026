@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agentic Loops"
+  short_description: "Run bounded adaptive execution loops"
+  default_prompt: "Use $agentic-loops to pursue this task through bounded inspect, act, verify, and adapt cycles."

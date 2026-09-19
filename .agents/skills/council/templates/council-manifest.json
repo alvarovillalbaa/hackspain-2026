@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0",
+  "manifest_id": "council-sha256:e14fb2b77e8f75d3d2082059f06ab259b84c52a79cfe9b7a19fc3ab4d056333e",
+  "revision": 1,
+  "parent_manifest_id": null,
+  "evidence_pack_id": "evidence-sha256:720442dd704bdb7e8ee3b42dbc27cd8406c31f57a028befed43ba3bcc829a0ae",
+  "status": "draft",
+  "question": "Choose the decision the council must resolve.",
+  "constraints": [
+    "Stay within the stated authority boundary."
+  ],
+  "budget": {
+    "max_rounds": 2,
+    "max_seconds": 1800,
+    "max_cost_usd": 0,
+    "max_tool_calls": 30
+  },
+  "spend": {
+    "elapsed_seconds": 0,
+    "cost_usd": 0,
+    "tool_calls": 0
+  },
+  "approvals": [],
+  "blocker": null,
+  "evidence": [
+    {
+      "id": "ev-1",
+      "source": "User brief",
+      "summary": "Summarize the relevant evidence without interpretation.",
+      "as_of": "2026-08-02"
+    }
+  ],
+  "personas": [
+    {
+      "id": "expert-1",
+      "name": "Domain expert",
+      "lens": "Domain correctness",
+      "mandate": "Test the decision against domain requirements.",
+      "blind_spot": "May underweight delivery cost."
+    },
+    {
+      "id": "expert-2",
+      "name": "Delivery expert",
+      "lens": "Execution feasibility",
+      "mandate": "Test sequencing, dependencies, and reversibility.",
+      "blind_spot": "May prefer incrementalism."
+    },
+    {
+      "id": "expert-3",
+      "name": "Risk expert",
+      "lens": "Failure and downside",
+      "mandate": "Find unacceptable failure modes and mitigations.",
+      "blind_spot": "May overweight low-probability harm."
+    }
+  ],
+  "rounds": [],
+  "ruling": null,
+  "dissent": []
+}

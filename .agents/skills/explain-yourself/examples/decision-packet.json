@@ -1,0 +1,42 @@
+{
+  "mode": "decision",
+  "outcome": "Keep the existing public skill slug and upgrade it in place.",
+  "mode_details": {
+    "question": "Should the eval capability keep ai-evals or add a new evals alias?",
+    "criteria": [
+      "Preserve one canonical owner",
+      "Avoid overlapping triggers and unnecessary migration"
+    ]
+  },
+  "actions": [
+    "Inspected the department profile and current skill directory.",
+    "Compared the requested capability with the existing public owner."
+  ],
+  "evidence": [
+    {
+      "level": "verified",
+      "claim": "The Engineering profile already lists ai-evals.",
+      "source": "engineering/profile.yaml"
+    },
+    {
+      "level": "verified",
+      "claim": "The existing ai-evals directory is the canonical entrypoint.",
+      "source": "engineering/skills/ai-evals/SKILL.md"
+    }
+  ],
+  "reasoning_summary": "Preserving the canonical slug avoids overlapping triggers and migration work while still allowing the capability to be upgraded. The profile and existing entrypoint are direct evidence of ownership.",
+  "assumptions": [
+    "Existing users may depend on the current slug."
+  ],
+  "alternatives": [
+    "Add evals as an alias, which would create overlapping triggers and maintenance."
+  ],
+  "uncertainty": [
+    "No external install telemetry was available to quantify alias usage."
+  ],
+  "current_state": "The ownership decision is settled; implementation can proceed under ai-evals.",
+  "known_gaps": [
+    "External install telemetry was not evaluated."
+  ],
+  "next_action": "Upgrade ai-evals and document its boundary with observability."
+}

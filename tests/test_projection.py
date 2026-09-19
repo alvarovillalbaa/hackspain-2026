@@ -104,3 +104,62 @@ def test_realized_breach_and_calibrate():
     assert np.isnan(by_month.loc["2025-04"])  # faltan meses futuros
     iso = pj.calibrate(pd.Series([0.1, 0.5, 0.9, 0.95]), pd.Series([0, 0, 1, 1]))
     assert iso.predict([0.9])[0] >= iso.predict([0.1])[0]
+
+
+# --- regresiones de la ronda 1 de revisión ---------------------------------------------------
+
+
+def test_line_cover_settles_its_interest_inside_the_reported_balance():
+    """El saldo de cierre ya lleva el interés de la póliza: no queda nada diferido al mes que viene.
+
+    Con bache constante, el cierre del mes es el mínimo más el bache menos lo que se liquidó; si el
+    interés se aplazara (como hacía antes), el saldo reportado saldría alto por ese importe y
+    `advance` lo perdería al arrancar de él.
+    """
+    h = _hist(eom=1_000.0, dip=5_000.0, line_limit=20_000.0, line_drawn=0.0)
+    p = pj.simulate(h, pj.Action("line_cover"), pj.SimConfig(n_paths=10, horizon=3))
+    assert (p.cost > 0).all()  # hay interés que liquidar los tres meses
+    assert np.allclose(p.eom, p.min_balance + 5_000.0 - p.cost)
+    assert (p.min_balance >= 0).all()  # la liquidación no toca el mínimo, que es de antes
+
+
+def test_advance_hands_over_the_settled_balance():
+    """`advance` arranca del saldo reportado, y ese saldo ya pagó el interés del mes (fix 1)."""
+    h = _hist(eom=1_000.0, dip=5_000.0, line_limit=20_000.0, line_drawn=0.0)
+    cfg = pj.SimConfig(n_paths=4, horizon=1, seed=7)
+    cover = pj.Action("line_cover")
+    step = pj.simulate(h, cover, cfg)
+    nxt = pj.advance(h, step, cover, k=0, cfg=cfg)
+    drawn = step.line_draws[0, 0]
+    assert drawn == pytest.approx(2_000.0)  # 1 000 + 50 000 − 48 000 − 5 000 = −2 000
+    assert nxt.eom == pytest.approx(1_000.0 + 50_000 - 48_000 + drawn - step.cost[0, 0])
+    assert nxt.eom == pytest.approx(step.eom[0, 0]) and nxt.line_drawn == pytest.approx(drawn)
+
+
+def test_simulate_refuses_a_history_with_nan():
+    """Un saldo NaN llegaría a `breach_prob() == 0` (sin riesgo): mejor que no pase la puerta."""
+    with pytest.raises(ValueError):
+        pj.simulate(_hist(eom=float("nan")), cfg=pj.SimConfig(n_paths=5, horizon=3))
+    with pytest.raises(ValueError):
+        h = _hist()
+        h.dips[2] = np.nan
+        pj.simulate(h, cfg=pj.SimConfig(n_paths=5, horizon=3))
+
+
+def test_histories_drops_a_month_without_balance():
+    """Sin saldo reconstruido no hay historia: la fila se cae y no contamina a las siguientes."""
+    months = pd.period_range("2025-01", periods=6, freq="M").astype(str)
+    f = pd.DataFrame({
+        "company_id": "C",
+        "month": months,
+        "operating_inflows_eur": 900.0,
+        "outflows_eur": 1_000.0,
+        "eom_balance_eur": [5_000.0, 5_100.0, np.nan, 5_300.0, 5_400.0, 5_500.0],
+        "min_balance_eur": [4_000.0, 4_100.0, 4_200.0, 4_300.0, 4_400.0, 4_500.0],
+        "debt_service_6m_eur": np.nan,
+    })
+    hs = pj.histories(f)
+    # 2025-01 no tiene Δeom; 2025-03 no tiene saldo; 2025-04 lo mediría contra un NaN
+    assert sorted(m for _, m in hs) == ["2025-02", "2025-05", "2025-06"]
+    for hist in hs.values():
+        assert np.isfinite(hist.eom) and np.isfinite(hist.inflows).all()

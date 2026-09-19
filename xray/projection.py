@@ -30,7 +30,17 @@ Dos convenios que conviene tener presentes, porque son decisiones y no descuidos
    del saldo. Comisiones, fees de apertura e intereses de póliza sí salen de la caja.
 2. El coste del descubierto se contabiliza en `cost` pero **no** se resta de `eom_j` (así la
    recursión no se realimenta y el saldo sigue siendo el de la operativa). El interés de la póliza
-   del mes j se liquida a la apertura del mes j+1, porque se calcula después de conocer `min_j`.
+   y la comisión de disponibilidad sí: se calculan después de conocer `min_j` y **se liquidan a
+   cierre del propio mes j**, o sea que bajan `eom_j` y no tocan `min_j`, que es de antes del
+   cierre. Nada queda diferido al mes siguiente: el saldo reportado es el que continúa, que es lo
+   que permite a `advance` arrancar de `paths.eom[k, 0]` sin perder un euro por el camino.
+
+   El límite que queda: al cruzar `advance`, lo dispuesto pasa a `History.line_drawn` y en la
+   llamada siguiente ya es posición de la empresa, no coste de la acción nueva, así que su interés
+   deja de cobrarse (el interés de lo ya dispuesto vive dentro de `out_j`, que viene de la historia
+   de cargos, y cobrarlo otra vez sería contarlo dos veces frente a `none`). Un bucle mensual de
+   `policies.py` infravalora por eso el interés de lo dispuesto en meses anteriores; separarlo
+   pediría un campo nuevo en `History`.
 
 `simulate`, `advance`, `Action`, `History`, `SimConfig`, `Paths` y `FlowPool` son el seam que lee
 `xray/policies.py` (MPC y evaluación en bucle cerrado): los nombres y los campos no se tocan sin
@@ -39,12 +49,15 @@ avisar.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, replace
 
 import numpy as np
 import pandas as pd
 from sklearn.isotonic import IsotonicRegression
 from sklearn.metrics import roc_auc_score
+
+log = logging.getLogger(__name__)
 
 BACKTEST_PATHS = 200
 """Caminos por fila dentro de `backtest`: 200 basta para ordenar empresas y deja el backtest en
@@ -119,9 +132,11 @@ class History:
 class Paths:
     """Resultado de `simulate`: todas las matrices son `(n_paths, horizon)`.
 
-    `cost` es el coste financiero de la acción en € por mes (negativo = ahorro). `draws` guarda el
-    triplete sorteado de cada mes para que `advance` extienda la historia exactamente, y
-    `line_draws` lo dispuesto en la póliza cada mes (lo que `advance` suma a `line_drawn`).
+    `cost` es el coste financiero de la acción en € por mes (negativo = ahorro). `eom` es el saldo
+    de cierre, ya con el interés de la póliza liquidado; `min_balance` es el mínimo intramensual,
+    anterior a esa liquidación. `draws` guarda el triplete sorteado de cada mes para que `advance`
+    extienda la historia exactamente, y `line_draws` lo dispuesto en la póliza cada mes (lo que
+    `advance` suma a `line_drawn`).
     """
 
     eom: np.ndarray
@@ -196,6 +211,7 @@ class FlowPool:
         rows = []
         for _, g in f.groupby("company_id", sort=False):
             g = g.iloc[1:]  # el primer mes no tiene Δeom → no hay entradas
+            g = g[np.isfinite(g[["inflow", "outflow", "dip"]].to_numpy()).all(axis=1)]
             if len(g) < min_months:
                 continue
             med_out = float(np.median(g["outflow"].to_numpy()))
@@ -218,6 +234,37 @@ class FlowPool:
 
 
 # --- mecánica de los productos -----------------------------------------------------------------
+
+
+def _check_finite(name: str, values) -> None:
+    """Corta el paso a NaN e inf: un solo valor no finito envenena `Paths` sin que se note.
+
+    Sin esto, `breach_prob()` sobre caminos NaN devuelve 0,0 (NaN < 0 es False), o sea *ningún
+    riesgo*, que es justo la respuesta que no se puede dar. `policies.py` construye `History` por
+    su cuenta, así que la puerta está en `simulate`, no solo en `histories`.
+    """
+    array = np.asarray(values, dtype=float)
+    if not np.isfinite(array).all():
+        raise ValueError(f"`{name}` tiene valores no finitos (NaN o inf); no se puede simular")
+
+
+def _check_history(hist: History) -> None:
+    """Todo lo que acaba dentro de `Paths` tiene que ser finito antes de empezar."""
+    _check_finite("History.eom", hist.eom)
+    _check_finite("History.inflows", hist.inflows)
+    _check_finite("History.outflows", hist.outflows)
+    _check_finite("History.dips", hist.dips)
+    _check_finite("History.operating_share", hist.operating_share)
+    _check_finite("History.debt_service_m", hist.debt_service_m)
+    # El estado de producto solo entra si la acción lo usa, pero un NaN aquí se cuela por las
+    # comparaciones de `_plan` (NaN > x es False) y llega a `Paths` sin avisar.
+    _check_finite("History.line_limit", hist.line_limit)
+    _check_finite("History.line_drawn", hist.line_drawn)
+    _check_finite("History.receivables", hist.receivables)
+    _check_finite("History.loan_outstanding", hist.loan_outstanding)
+    _check_finite("History.loan_installment", hist.loan_installment)
+    _check_finite("History.loan_remaining", hist.loan_remaining)
+    # `loan_rate` no: None o NaN significan "no consta", y `refinance` ya lo rechaza por su cuenta.
 
 
 def _annuity(principal: float, annual_rate: float, months: int) -> float:
@@ -267,6 +314,9 @@ def _plan(hist: History, action: Action, cfg: SimConfig, h: int) -> _Plan:
     kind = action.kind
     if kind not in ACTION_KINDS:
         raise ValueError(f"acción desconocida: {kind!r}; válidas: {ACTION_KINDS}")
+    _check_finite("Action.amount", action.amount)
+    if action.rate is not None:
+        _check_finite("Action.rate", action.rate)
 
     if kind == "none":
         return plan
@@ -380,9 +430,9 @@ def _plan(hist: History, action: Action, cfg: SimConfig, h: int) -> _Plan:
 
 def _draw_triplets(hist: History, cfg: SimConfig, rng, n: int, h: int, pool: FlowPool | None):
     """Sortea `(n, h, 3)` tripletes `(in, out, dip)` i.i.d., con shrinkage al pool si toca."""
-    inflows = np.nan_to_num(np.asarray(hist.inflows, dtype=float))
-    outflows = np.nan_to_num(np.asarray(hist.outflows, dtype=float))
-    dips = np.clip(np.nan_to_num(np.asarray(hist.dips, dtype=float)), 0.0, None)
+    inflows = np.asarray(hist.inflows, dtype=float)  # `_check_history` ya garantizó finitud
+    outflows = np.asarray(hist.outflows, dtype=float)
+    dips = np.clip(np.asarray(hist.dips, dtype=float), 0.0, None)
     length = min(len(inflows), len(outflows), len(dips))
     length = min(length, cfg.history_months)
     draws = np.zeros((n, h, 3))
@@ -424,6 +474,7 @@ def simulate(
     distintas, como hace `backtest`. `pool` solo interviene si la historia es corta.
     """
     cfg = cfg or SimConfig()
+    _check_history(hist)
     h = int(cfg.horizon if horizon is None else horizon)
     if h < 1:
         raise ValueError("el horizonte tiene que ser >= 1 mes")
@@ -452,22 +503,22 @@ def simulate(
             balance + inflow[:, j] - outflow[:, j] + plan.cash[j] - plan.cost_cash[j] - plan.inst[j]
         )
         low = value - dip[:, j]
-        carry = 0.0
         if plan.cover_capacity > 0:
             take = np.clip(np.minimum(-low, plan.cover_capacity - drawn), 0.0, None)
             value = value + take
             low = low + take
             drawn = drawn + take
             line_draws[:, j] += take
-            carry = month_rate * drawn
+            settled = month_rate * drawn
             if plan.undrawn_limit is not None:
                 undrawn = np.clip(plan.undrawn_limit - drawn, 0.0, None)
-                carry = carry + cfg.line_undrawn_fee_m * undrawn
-            cost[:, j] += carry
+                settled = settled + cfg.line_undrawn_fee_m * undrawn
+            cost[:, j] += settled
+            value = value - settled  # se liquida a cierre: baja eom_j, no min_j (que ya pasó)
         cost[:, j] += overdraft_rate * np.clip(-low, 0.0, None)  # el descubierto no realimenta eom
         eom[:, j] = value
         min_balance[:, j] = low
-        balance = value - carry  # el interés del mes j se liquida al abrir el mes j+1
+        balance = value  # el saldo reportado es el que continúa: `advance` arranca justo de aquí
 
     debt_service = np.clip(np.tile(hist.debt_service_m + plan.ds_delta, (n, 1)), 0.0, None)
     return Paths(
@@ -529,11 +580,13 @@ def advance(
 
 
 def _monthly_flows(features: pd.DataFrame) -> pd.DataFrame:
-    """Entradas, cargos y bache intramensual por empresa y mes, ordenados y sin NaN.
+    """Entradas, cargos y bache intramensual por empresa y mes, ordenados.
 
     Las entradas totales no son columna del contrato: se derivan de `outflows + Δeom` y se recortan
-    en 0 (el primer mes de cada empresa no tiene Δeom y queda con entradas 0; quien lo use, lo
-    salta).
+    en 0. Lo que no se puede calcular queda **NaN y no se rellena**: el primer mes de cada empresa
+    no tiene Δeom, y un mes sin saldo deja sin entradas tanto a él como al siguiente. Quien lee
+    (`histories`, `FlowPool.fit`) salta esas filas; rellenarlas con 0 sería inventar un mes sin
+    cobros, que es justo la mentira que se colaba hasta la revisión.
     """
     cols = ["company_id", "month", "operating_inflows_eur", "outflows_eur", "eom_balance_eur",
             "min_balance_eur"]
@@ -541,9 +594,9 @@ def _monthly_flows(features: pd.DataFrame) -> pd.DataFrame:
     f["month"] = f["month"].astype(str)
     f = f.sort_values(["company_id", "month"], kind="stable").reset_index(drop=True)
     prev_eom = f.groupby("company_id", sort=False)["eom_balance_eur"].shift(1)
-    f["inflow"] = (f["outflows_eur"] + (f["eom_balance_eur"] - prev_eom)).clip(lower=0).fillna(0.0)
-    f["outflow"] = f["outflows_eur"].fillna(0.0).clip(lower=0)
-    f["dip"] = (f["eom_balance_eur"] - f["min_balance_eur"]).clip(lower=0).fillna(0.0)
+    f["inflow"] = (f["outflows_eur"] + (f["eom_balance_eur"] - prev_eom)).clip(lower=0)
+    f["outflow"] = f["outflows_eur"].clip(lower=0)
+    f["dip"] = (f["eom_balance_eur"] - f["min_balance_eur"]).clip(lower=0)
     f["op_ratio"] = (f["operating_inflows_eur"] / f["inflow"].where(f["inflow"] > 0)).clip(0, 1)
     return f
 
@@ -560,6 +613,11 @@ def histories(
     El primer mes de cada empresa se salta porque sin `eom_{t−1}` no hay entradas totales. `extras`
     (el resultado de `company_extras`) se cruza por `(company_id, month)`; lo que falte deja la
     empresa sin línea, sin cartera y sin préstamo, que es lo mismo que no ser elegible.
+
+    Un mes cuyo saldo o cuyos flujos no sean finitos **no sale en el diccionario** (aviso en el log
+    con el recuento), y tampoco entra en la ventana de los meses siguientes: el saldo no se rellena
+    con el del mes anterior porque eso sería inventarlo. Hoy no pasa ni una vez sobre
+    `artifacts/features.parquet`; la puerta está para quien construya la tabla de otra manera.
     """
     cfg = cfg or SimConfig()
     flows = _monthly_flows(features)
@@ -592,14 +650,23 @@ def histories(
     extra = {col: frame[col].to_numpy(float) for col in EXTRA_COLUMNS}
     keep = cfg.history_months
 
+    # Un mes sin saldo reconstruido no da historia: se cae él y se cae el siguiente (su Δeom sale
+    # contra un NaN). Se tira la fila con aviso en el log; rellenar el saldo con el mes anterior
+    # sería inventar el dato, y el contrato de features dice NaN antes que un número falso.
+    finite = (np.isfinite(inflow) & np.isfinite(outflow) & np.isfinite(dip)
+              & np.isfinite(eom) & np.isfinite(debt_service))
+    dropped = 0
+
     out: dict[tuple[str, str], History] = {}
     for company, positions in frame.groupby("company_id", sort=False).indices.items():
-        pos = np.asarray(positions)
-        for t in range(1, len(pos)):  # el primer mes no tiene Δeom
-            window = pos[max(1, t - keep + 1) : t + 1]
+        pos = np.asarray(positions)[1:]  # el primer mes no tiene Δeom
+        usable = pos[finite[pos]]
+        dropped += len(pos) - len(usable)
+        for t in range(len(usable)):
+            window = usable[max(0, t - keep + 1) : t + 1]
             ratios = op_ratio[window]
             ratios = ratios[np.isfinite(ratios)]
-            row = pos[t]
+            row = usable[t]
             rate = extra["loan_rate"][row]
             out[(company, months[row])] = History(
                 company_id=company,
@@ -618,6 +685,8 @@ def histories(
                 loan_rate=None if not np.isfinite(rate) else float(rate),
                 loan_remaining=int(np.nan_to_num(extra["loan_remaining"][row], nan=0.0)),
             )
+    if dropped:
+        log.warning("histories: %d filas sin saldo o flujo finito, fuera del diccionario", dropped)
     return out
 
 

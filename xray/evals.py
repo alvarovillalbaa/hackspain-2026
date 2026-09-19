@@ -73,26 +73,87 @@ def auc_by_horizon(
     return pd.DataFrame(rows).set_index("h")
 
 
+# --- AUC externa --------------------------------------------------------------------------
+
+
+def auc_external_by_horizon(
+    scored: pd.DataFrame,
+    horizons=range(1, 13),
+    test_months: list[str] | None = TEST_MONTHS,
+) -> pd.DataFrame:
+    """AUC de (−score) para «el saldo mínimo bruto pasa a negativo en (t, t+h]», entre filas con
+    saldo ≥ 0 en t y con t+h presente.
+
+    El evento de `auc_by_horizon` sale de los mismos rangos que el score promedia, así que aquella
+    curva mide sobre todo persistencia. Esta usa un resultado que el score no construye y es la
+    cifra de anticipación que se cuenta junto a la otra (revisión del 19 sep)."""
+    o = _sorted(scored)
+    g = o.groupby("company_id")["min_balance_eur"]
+    base_mask = (o["min_balance_eur"] >= 0) & o["score"].notna()
+    if test_months is not None:
+        base_mask &= o["month"].astype(str).isin(test_months)
+    rows = []
+    for h in horizons:
+        fut = np.zeros(len(o), dtype=bool)
+        for k in range(1, h + 1):
+            fut |= (g.shift(-k) < 0).to_numpy()
+        complete = g.shift(-h).notna().to_numpy()
+        mask = base_mask.to_numpy() & complete
+        y = pd.Series(fut[mask])
+        rows.append({"h": h, "auc": _auc(y, -o.loc[mask, "score"]), "n": int(mask.sum()), "n_pos": int(y.sum())})
+    return pd.DataFrame(rows).set_index("h")
+
+
 # --- lead time ----------------------------------------------------------------------------
 
 
 def lead_time(scored: pd.DataFrame, cutoff: float, hold: int = 2) -> pd.DataFrame:
-    """Meses entre el primer cruce sostenido (score < cutoff durante `hold` meses) y cada evento."""
+    """Por evento: meses entre el cruce y el evento, y el tipo de cruce.
+
+    El cruce es el primer mes bajo `cutoff` después del ÚLTIMO mes por encima antes del evento;
+    la versión anterior tomaba el primero de la historia y contaba como anticipación a las
+    empresas crónicamente bajas (49 % de los eventos). `kind`: crossing (≥ `hold` meses bajo el
+    corte antes del evento), late (menos de `hold`), chronic (nunca por encima antes del evento,
+    lead NaN), no_history (el evento es el primer mes).
+    """
     o = _sorted(scored)
     rows = []
     for cid, d in o.groupby("company_id", sort=False):
         s = d["score"].to_numpy(dtype=float)
         months = d["month"].to_numpy()
-        below = s < cutoff
         for e in np.flatnonzero(d["event"].to_numpy(dtype=bool)):
-            lead = float("nan")
-            for m in range(e + 1):
-                window = below[m : m + hold]
-                if len(window) == hold and window.all():
-                    lead = float(e - m)
-                    break
-            rows.append({"company_id": cid, "event_month": months[e], "lead_months": lead})
-    return pd.DataFrame(rows, columns=["company_id", "event_month", "lead_months"])
+            above = np.flatnonzero(s[:e] >= cutoff)
+            if e == 0:
+                kind, lead = "no_history", float("nan")
+            elif len(above) == 0:
+                kind, lead = "chronic", float("nan")
+            else:
+                lead = float(e - (above[-1] + 1))
+                kind = "crossing" if lead >= hold else "late"
+            rows.append({"company_id": cid, "event_month": months[e], "lead_months": lead, "kind": kind})
+    return pd.DataFrame(rows, columns=["company_id", "event_month", "lead_months", "kind"])
+
+
+def lead_time_summary(lt: pd.DataFrame) -> dict:
+    """Las tres cifras del pitch: cuota de eventos crónicos, con cruce y tardíos, y la mediana
+    (con p25 y p75) del lead entre los que cruzan."""
+    n = len(lt)
+    shares = lt["kind"].value_counts(normalize=True) if n else pd.Series(dtype=float)
+    cross = lt.loc[lt["kind"] == "crossing", "lead_months"] if n else pd.Series(dtype=float)
+
+    def q(p: float) -> float:
+        return float(cross.quantile(p)) if len(cross) else float("nan")
+
+    return {
+        "n_events": int(n),
+        "share_crossing": float(shares.get("crossing", 0.0)),
+        "share_late": float(shares.get("late", 0.0)),
+        "share_chronic": float(shares.get("chronic", 0.0)),
+        "share_no_history": float(shares.get("no_history", 0.0)),
+        "median_crossing": q(0.5),
+        "p25_crossing": q(0.25),
+        "p75_crossing": q(0.75),
+    }
 
 
 # --- persistencia -------------------------------------------------------------------------
@@ -121,23 +182,41 @@ def persistence_horizon(p: pd.DataFrame, min_lift: float = 2.0) -> int:
 # --- direccionalidad ----------------------------------------------------------------------
 
 
-def directionality(scored: pd.DataFrame, test_months: list[str] | None = TEST_MONTHS) -> dict:
-    """Spearman entre Δscore(t−3→t) y Δnivel(t→t+6); P(nivel baja | outlook) para negative y stable."""
+def directionality(
+    scored: pd.DataFrame, test_months: list[str] | None = TEST_MONTHS, cfg: RulesConfig | None = None
+) -> dict:
+    """Spearman entre Δscore(t−3→t) y Δnivel(t→t+6), y P(mes rojo en t+6 | outlook) y | trend.
+
+    La versión anterior medía P(nivel baja | outlook) y salía invertida (40 % con outlook negativo
+    frente a 55 % estable): un índice de rangos acotado revierte a la media. El outlook de este
+    diseño afirma que el estado persiste, y eso es lo que se mide (revisión del 19 sep).
+    """
+    cfg = cfg or RulesConfig()
     o = _sorted(scored)
     g = o.groupby("company_id", sort=False)
     d_score = o["score"] - g["score"].shift(3)
     d_level = g["level"].shift(-6) - o["level"]
     m = d_score.notna() & d_level.notna()
+    fut_red = g["n_red"].shift(-6)
+    has_fut = fut_red.notna()
     if test_months is not None:
-        m &= o["month"].astype(str).isin(test_months)
-    neg = m & o["outlook"].eq("negative")
-    stab = m & o["outlook"].eq("stable")
-    return {
+        in_test = o["month"].astype(str).isin(test_months)
+        m &= in_test
+        has_fut &= in_test
+    out = {
         "spearman": float(d_score[m].corr(d_level[m], method="spearman")) if m.sum() >= 3 else float("nan"),
         "n": int(m.sum()),
-        "p_down_given_negative": float((d_level[neg] < 0).mean()) if neg.any() else float("nan"),
-        "p_down_given_stable": float((d_level[stab] < 0).mean()) if stab.any() else float("nan"),
     }
+    for col, values in (("outlook", ("negative", "stable", "positive")),
+                        ("trend", ("improving", "flat", "worsening"))):
+        if col not in o.columns:
+            continue
+        for v in values:
+            sel = has_fut & o[col].eq(v)
+            out[f"p_red_t6_given_{v}"] = (
+                float((fut_red[sel] >= cfg.red_month_min).mean()) if sel.any() else float("nan")
+            )
+    return out
 
 
 # --- GroupKFold ---------------------------------------------------------------------------
@@ -151,6 +230,10 @@ def group_kfold_auc6(
     n_splits: int = 5,
 ) -> pd.DataFrame:
     """Ajusta el mapa con las filas de train de los otros grupos y evalúa AUC(6) en el grupo retenido.
+
+    Es una estimación de DISPERSIÓN, no de generalización: el mapa isotónico es monótono, así que
+    el AUC no depende del ajuste y lo que varía entre pliegues es la subpoblación (19 sep). Solo
+    mediría generalización si se ajustaran los pesos del índice.
 
     `indexed` es la salida de labels + rules.level (rangos ya calculados sobre toda la población).
     `groups` mapea company_id → group_id.
@@ -213,6 +296,7 @@ def run_all(
     scored = rules.run(feats, events_ext=events_ext, cfg=cfg, train_until=train_until)
     model = rules.fit(scored, cfg, train_until)
     auc = auc_by_horizon(scored, test_months=test_months)
+    auc_ext = auc_external_by_horizon(scored, test_months=test_months)
     lt = lead_time(scored, cutoff=model.lead_cutoff)
     per = persistence(scored, cfg=cfg)
     metrics = {
@@ -223,28 +307,29 @@ def run_all(
         "n_events": int(scored["event"].sum()),
         "events_absolute_preview": preview_event_count(feats, cfg),
         "auc_by_horizon": {str(h): {"auc": r["auc"], "n": r["n"], "n_pos": r["n_pos"]} for h, r in auc.iterrows()},
-        "lead_time": {
-            "n_events": len(lt),
-            "n_with_crossing": int(lt["lead_months"].notna().sum()),
-            "median": float(lt["lead_months"].median()) if len(lt) else float("nan"),
-            "p25": float(lt["lead_months"].quantile(0.25)) if len(lt) else float("nan"),
-            "p75": float(lt["lead_months"].quantile(0.75)) if len(lt) else float("nan"),
-            "cutoff": model.lead_cutoff,
+        "auc_external_by_horizon": {
+            str(h): {"auc": r["auc"], "n": r["n"], "n_pos": r["n_pos"]} for h, r in auc_ext.iterrows()
         },
+        "lead_time": {**lead_time_summary(lt), "cutoff": model.lead_cutoff},
         "persistence": {
             "horizon_months": persistence_horizon(per),
             "base_rate": float(per["base_rate"].iloc[0]),
             "p_red_given_red": {str(k): r["p_red_given_red"] for k, r in per.iterrows()},
         },
-        "directionality": directionality(scored, test_months),
+        "directionality": directionality(scored, test_months, cfg),
         "outlook_share": scored["outlook"].value_counts(normalize=True).to_dict(),
+        "trend_share": scored["trend"].value_counts(normalize=True).to_dict(),
         "confidence_share": scored["confidence"].value_counts(normalize=True).to_dict(),
-        "group_kfold": None,
+        "n_signals_share": scored["n_signals"].value_counts(normalize=True).to_dict(),
+        "auc6_group_dispersion": None,
     }
     if groups is not None:
         gk = group_kfold_auc6(scored, groups, cfg, train_until)
-        metrics["group_kfold"] = {"auc6_mean": float(gk["auc6"].mean()), "auc6_std": float(gk["auc6"].std()),
-                                  "folds": gk.to_dict(orient="records")}
+        metrics["auc6_group_dispersion"] = {
+            "auc6_mean": float(gk["auc6"].mean()), "auc6_std": float(gk["auc6"].std()),
+            "folds": gk.to_dict(orient="records"),
+            "note": "dispersión entre pliegues por grupo; el mapa isotónico es monótono y el AUC no depende del ajuste",
+        }
     return metrics, model, scored
 
 
@@ -275,15 +360,24 @@ def write_metrics(metrics: dict, name: str, path: str | Path) -> None:
 def _print_summary(name: str, m: dict) -> None:
     print(f"== {name}: {m['n_rows']:,} filas · {m['n_companies']} empresas · {m['n_events']} eventos "
           f"(umbrales absolutos: {m['events_absolute_preview']['n_events']})")
-    aucs = "  ".join(f"h{h}={v['auc']:.3f}" if v["auc"] is not None and not math.isnan(v["auc"]) else f"h{h}=nan"
-                     for h, v in m["auc_by_horizon"].items())
-    print(f"AUC(h) test: {aucs}")
+    def _curve(key: str) -> str:
+        return "  ".join(f"h{h}={v['auc']:.3f}" if v["auc"] is not None and not math.isnan(v["auc"]) else f"h{h}=nan"
+                         for h, v in m[key].items())
+
+    print(f"AUC(h) test, evento propio (rangos): {_curve('auc_by_horizon')}")
+    print(f"AUC(h) test, externa (saldo bruto < 0):  {_curve('auc_external_by_horizon')}")
     lt, per, d = m["lead_time"], m["persistence"], m["directionality"]
-    print(f"lead time: mediana {lt['median']} m (p25 {lt['p25']}, p75 {lt['p75']}) sobre {lt['n_with_crossing']}/{lt['n_events']} eventos, corte {lt['cutoff']:.1f}")
+    print(f"lead time: {lt['n_events']} eventos · crónicos {lt['share_chronic']:.0%} · con cruce {lt['share_crossing']:.0%} "
+          f"(mediana {lt['median_crossing']} m, p25 {lt['p25_crossing']}, p75 {lt['p75_crossing']}) · tardíos {lt['share_late']:.0%} "
+          f"· corte {lt['cutoff']:.1f}")
     print(f"persistencia: horizonte {per['horizon_months']} m · base {per['base_rate']:.1%} · P(rojo t+6|rojo t) {per['p_red_given_red'].get('6')}")
-    print(f"direccionalidad: Spearman {d['spearman']} (n={d['n']}) · P(baja|negativo) {d['p_down_given_negative']} · P(baja|estable) {d['p_down_given_stable']}")
-    if m.get("group_kfold"):
-        print(f"GroupKFold AUC(6): {m['group_kfold']['auc6_mean']:.3f} ± {m['group_kfold']['auc6_std']:.3f}")
+    print(f"direccionalidad: Spearman {d['spearman']} (n={d['n']}) · P(rojo t+6 | negativo/estable/positivo) "
+          f"{d.get('p_red_t6_given_negative')} / {d.get('p_red_t6_given_stable')} / {d.get('p_red_t6_given_positive')}"
+          f" · | empeora/plano/mejora {d.get('p_red_t6_given_worsening')} / {d.get('p_red_t6_given_flat')} / {d.get('p_red_t6_given_improving')}")
+    print(f"outlook: {m['outlook_share']} · trend: {m['trend_share']} · confidence: {m['confidence_share']}")
+    if m.get("auc6_group_dispersion"):
+        g = m["auc6_group_dispersion"]
+        print(f"AUC(6) por pliegues de grupo (dispersión, no generalización): {g['auc6_mean']:.3f} ± {g['auc6_std']:.3f}")
 
 
 def _read_table(path: Path) -> pd.DataFrame:

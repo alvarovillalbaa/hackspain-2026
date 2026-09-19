@@ -11,7 +11,7 @@ from xray.rules import RulesConfig
 
 
 def _scored(company: str, score: list[float], event_at: list[int] = (), n_red: list[int] | None = None,
-            start: str = "2025-01") -> pd.DataFrame:
+            start: str = "2025-01", min_balance: list[float] | None = None) -> pd.DataFrame:
     n = len(score)
     months = [str(p) for p in pd.period_range(start, periods=n, freq="M")]
     event = np.zeros(n, dtype=bool)
@@ -21,6 +21,8 @@ def _scored(company: str, score: list[float], event_at: list[int] = (), n_red: l
                        "in_event": in_event, "n_red": n_red if n_red is not None else event.astype(int) * 2})
     df["level"] = df["score"] / 100
     df["outlook"] = "stable"
+    df["trend"] = "flat"
+    df["min_balance_eur"] = min_balance if min_balance is not None else 100.0
     return df
 
 
@@ -56,20 +58,44 @@ def test_auc_restricts_to_test_months():
     assert out.loc[1, "n"] == 1  # solo 2025-05: fuera de evento y con t+1
 
 
+# --- AUC externa: el saldo bruto pasa a negativo ---------------------------------------------
+
+
+def test_auc_external_uses_the_raw_balance_turning_negative():
+    bad = _scored("bad", [80, 80, 20, 20, 20, 20, 20, 20], min_balance=[10, 10, 10, 10, 10, -5, -5, 10])
+    good = _scored("good", [80] * 8)
+    out = evals.auc_external_by_horizon(pd.concat([bad, good]), horizons=[1, 3], test_months=None)
+    assert out.loc[3, "auc"] == 1.0
+    assert out.loc[3, "n_pos"] == 3  # t = 2, 3, 4 de "bad": saldo ≥ 0 hoy y negativo en (t, t+3]
+
+
 # --- lead time ----------------------------------------------------------------------------
 
 
-def test_lead_time_is_months_between_sustained_crossing_and_event():
+def test_lead_time_is_months_between_crossing_and_event():
     df = _scored("a", [60, 60, 30, 30, 30, 60, 60], event_at=[4])
     lt = evals.lead_time(df, cutoff=40.0, hold=2)
-    assert list(lt["lead_months"]) == [2]  # cruza en 2025-03 y aguanta; evento en 2025-05
+    assert list(lt["lead_months"]) == [2]  # último mes por encima: 2025-02; cruza en 03; evento en 05
+    assert list(lt["kind"]) == ["crossing"]
 
 
-def test_lead_time_ignores_a_single_month_dip_and_is_nan_without_crossing():
-    dip = _scored("a", [60, 30, 60, 60, 30, 30], event_at=[5])
-    assert list(evals.lead_time(dip, cutoff=40.0, hold=2)["lead_months"]) == [1]
-    never = _scored("b", [60] * 6, event_at=[5])
-    assert np.isnan(evals.lead_time(never, cutoff=40.0, hold=2)["lead_months"].iloc[0])
+def test_lead_time_classifies_late_chronic_and_no_history():
+    late = _scored("a", [60, 30, 60, 60, 30, 30], event_at=[5])  # cruza un mes antes del evento
+    assert evals.lead_time(late, cutoff=40.0)[["lead_months", "kind"]].iloc[0].tolist() == [1, "late"]
+    never = _scored("b", [60] * 6, event_at=[5])  # nunca bajó del corte antes del evento
+    assert evals.lead_time(never, cutoff=40.0)[["lead_months", "kind"]].iloc[0].tolist() == [0, "late"]
+    chronic = evals.lead_time(_scored("c", [30] * 6, event_at=[5]), cutoff=40.0).iloc[0]
+    assert np.isnan(chronic["lead_months"]) and chronic["kind"] == "chronic"
+    assert evals.lead_time(_scored("d", [30] * 3, event_at=[0]), cutoff=40.0)["kind"].iloc[0] == "no_history"
+
+
+def test_lead_time_summary_reports_shares_and_median_among_crossings():
+    lt = pd.DataFrame({"company_id": list("abcd"), "event_month": ["2025-05"] * 4,
+                       "lead_months": [4.0, 6.0, np.nan, 1.0],
+                       "kind": ["crossing", "crossing", "chronic", "late"]})
+    s = evals.lead_time_summary(lt)
+    assert (s["n_events"], s["share_crossing"], s["share_chronic"], s["share_late"]) == (4, 0.5, 0.25, 0.25)
+    assert s["median_crossing"] == 5.0
 
 
 # --- persistencia -------------------------------------------------------------------------
@@ -87,13 +113,16 @@ def test_persistence_probabilities_and_horizon():
 # --- direccionalidad ----------------------------------------------------------------------
 
 
-def test_directionality_returns_spearman_and_conditional_probabilities():
+def test_directionality_returns_spearman_and_persistence_by_outlook_and_trend():
     rng = np.random.default_rng(0)
-    df = _scored("a", list(rng.uniform(20, 80, 20)))
+    df = _scored("a", list(rng.uniform(20, 80, 20)), n_red=[0] * 10 + [2] * 10)
     df.loc[10:, "outlook"] = "negative"
+    df.loc[5:, "trend"] = "worsening"
     out = evals.directionality(df, test_months=None)
-    assert set(out) == {"spearman", "n", "p_down_given_negative", "p_down_given_stable"}
+    assert {"spearman", "n", "p_red_t6_given_negative", "p_red_t6_given_stable",
+            "p_red_t6_given_worsening"} <= set(out)
     assert -1 <= out["spearman"] <= 1
+    assert out["p_red_t6_given_negative"] == pytest.approx(1.0)  # t = 10…13 son rojos y t+6 también
 
 
 # --- métricas a fichero -------------------------------------------------------------------
@@ -116,8 +145,10 @@ def test_cli_runs_on_fixture_and_writes_artifacts(tmp_path):
     rc = evals.main(["--features", str(features.FIXTURE_PATH), "--out-dir", str(out_dir), "--name", "rules"])
     assert rc == 0
     metrics = json.loads((out_dir / "metrics.json").read_text())["rules"]
-    for key in ("auc_by_horizon", "lead_time", "persistence", "directionality", "n_events", "n_rows"):
+    for key in ("auc_by_horizon", "auc_external_by_horizon", "lead_time", "persistence", "directionality",
+                "trend_share", "n_events", "n_rows"):
         assert key in metrics, key
+    assert set(metrics["lead_time"]) >= {"share_crossing", "share_chronic", "share_late", "median_crossing", "cutoff"}
     assert (out_dir / "rules_model.json").exists()
 
 

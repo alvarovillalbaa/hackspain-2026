@@ -95,6 +95,25 @@ def test_model_roundtrips_through_json(tmp_path):
     assert json.loads(path.read_text())["knots_x"]  # legible sin Python
 
 
+# --- identidad nivel(t+6) = etiqueta(t) ---------------------------------------------------
+
+
+def test_level_window_equals_horizon_so_future_score_is_the_map_of_the_label():
+    """El score de dentro de 6 meses es exactamente el mapa aplicado a label_t6 (docs/model_card.md §5).
+
+    Vale porque el nivel promedia los mismos 6 meses que la etiqueta. Si alguien cambia
+    `level_window` o `horizon` por separado, la proyección del score deja de poder leerse de la
+    etiqueta y este test lo dice antes que la pantalla."""
+    cfg = RulesConfig()
+    assert cfg.level_window == cfg.horizon, "level_window y horizon tienen que coincidir (model_card.md §5)"
+    scored = rules.run(features.derive(features.load_fixture()), cfg=cfg).sort_values(["company_id", "month"])
+    future = scored.groupby("company_id")["score"].shift(-cfg.horizon)
+    both = future.notna() & scored["label_t6"].notna()
+    assert both.sum() > 0
+    model = rules.fit(scored, cfg)
+    np.testing.assert_allclose(model.predict(scored.loc[both, "label_t6"]), future[both], atol=1e-9)
+
+
 # --- outlook ------------------------------------------------------------------------------
 
 

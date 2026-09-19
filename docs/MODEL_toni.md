@@ -1,6 +1,6 @@
 # Cómo funciona el score de X Ray, contado sin tecnicismos
 
-> **Para Toni.** Describe el sistema **tal y como está hoy en el código** (rama `feat/rules-tightening`, sábado 19 sep por la tarde). La sección 8 cuenta lo que está en discusión y todavía no es decisión. Las cifras salen de la tabla provisional de 1.265 empresas y cambiarán un poco cuando llegue la tabla definitiva del slice #2.
+> **Para Toni.** Describe el sistema **tal y como está hoy en el código** (rama `main`, sábado 19 sep por la noche). La sección 8 cuenta lo que está en discusión y todavía no es decisión. Las cifras salen de la tabla real (`artifacts/features.parquet`, 1.265 empresas). Los supuestos del modelo, la calibración y sus chequeos, con números, están en [model_card.md](model_card.md).
 
 ## 1. En una frase
 
@@ -53,8 +53,8 @@ Una consecuencia útil para explicarlo: **el orden de las empresas por score es 
 Lo medimos con la segunda mitad de los datos (de septiembre de 2025 a febrero de 2026), usando solo el primer año para construir la tabla del paso 6.
 
 - **Acierto.** Si cogemos una empresa que empezó un deterioro en los seis meses siguientes y otra que no, el score pone a la primera como más arriesgada 7 de cada 10 veces (71 %). Medido contra algo que el score no construye, que el saldo llegue a ponerse en negativo, son 68 de cada 100 a seis meses y 72 a un mes. La meta que nos pusimos era 70.
-- **Persistencia.** Si una empresa está en rojo hoy, tiene un 52 % de probabilidad de seguir en rojo dentro de seis meses; una empresa cualquiera, un 12 %. Es la anticipación que este dataset soporta, y así se cuenta.
-- **Anticipación por evento.** Es la parte floja, y lo decimos. De los deterioros que empiezan, el 27 % ocurre en el primer mes de historia de la empresa (no se pueden anticipar), el 15 % son empresas que ya estaban abajo desde el principio, el 51 % se detectan con menos de dos meses de margen, y solo el 7 % se anticipan con dos meses o más, con una mediana de tres.
+- **Persistencia.** Si una empresa está en rojo hoy, tiene un 54 % de probabilidad de seguir en rojo dentro de seis meses; una empresa cualquiera, un 12 %. Es la anticipación que este dataset soporta, y así se cuenta.
+- **Anticipación por evento.** Es la parte floja, y lo decimos. De los deterioros que empiezan, el 26 % ocurre en el primer mes de historia de la empresa (no se pueden anticipar), el 17 % son empresas que ya estaban abajo desde el principio, el 50 % se detectan con menos de dos meses de margen, y solo el 7 % se anticipan con dos meses o más, con una mediana de tres.
 - **Estabilidad.** Si dividimos la cartera en diez escalones, de un mes al siguiente solo el 4 % de las empresas se mueve dos escalones o más. El nivel de seis meses hace su trabajo: no salta por un mes malo.
 - **Mejora.** Aquí no tenemos señal. La etiqueta "mejora" de la tendencia no predice que la empresa salga del rojo (acierta lo mismo que una moneda), y la perspectiva positiva tampoco lo hace mejor. Lo que sí se distingue es que las que mejoran tienen menos rojo después (8 % frente a 12 %).
 - **Datos sintéticos.** Comprobamos el primer día que el generador no contiene "adelanto" entre señales (ninguna señal a tres meses vista anticipa a otra), pero sí persistencia del estado. Por eso el score es un pronóstico de persistencia por reglas, y no un modelo que busque patrones ocultos.
@@ -92,6 +92,7 @@ Al medir el sistema a fondo vimos que el 71 % de acierto se explica casi entero 
 |---|---|
 | Las reglas, con todos los números por defecto | `xray/rules.py` (clase `RulesConfig`) y `xray/labels.py` |
 | La especificación técnica y las decisiones con fecha | `docs/rules_spec.md` y `docs/plan.md` §2 y §4 |
+| Los supuestos, la calibración y sus chequeos, con cifras | `docs/model_card.md` |
 | Las cuatro señales, definidas columna a columna | `docs/features_seam.md` |
 | Los resultados de la evaluación | `artifacts/evals/metrics.json` (se regenera con `uv run xray-evals`) |
 | La propuesta de cambio del objetivo | `docs/revision_objetivo_score.md` |

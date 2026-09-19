@@ -174,3 +174,26 @@ def test_group_kfold_auc6_returns_one_row_per_fold():
     assert len(out) == 3
     assert set(out.columns) >= {"fold", "auc6", "n_test_rows"}
     assert out["auc6"].dropna().between(0, 1).all()
+
+
+# --- fiabilidad ---------------------------------------------------------------------------
+
+
+def test_reliability_is_exact_when_the_label_equals_the_score():
+    rng = np.random.default_rng(2)
+    scores = list(rng.uniform(20, 70, 40))
+    df = pd.concat([_scored("a", scores[:20]), _scored("b", scores[20:])], ignore_index=True)
+    df["label_t6"] = df["score"] / 100  # etiqueta exactamente igual al score → sin desvío ni bajadas
+    out = evals.reliability(df, test_months=None, n_bins=5)
+    assert out["n"] == 40 and len(out["by_score_decile"]) == 5 and len(out["by_level_decile"]) == 5
+    assert out["mean_abs_gap"] == pytest.approx(0.0)
+    assert out["dips"] == 0 and out["largest_dip"] > 0
+    assert [r["n"] for r in out["by_score_decile"]] == [8] * 5
+
+
+def test_reliability_counts_a_raw_dip_and_handles_too_few_rows():
+    df = _scored("a", [10, 20, 30, 40, 50, 60])
+    df["label_t6"] = [0.1, 0.2, 0.3, 0.6, 0.4, 0.3]  # terciles de nivel: 15 → 45 → 35, una bajada de 10
+    out = evals.reliability(df, test_months=None, n_bins=3)
+    assert out["dips"] == 1 and out["largest_dip"] == pytest.approx(-10.0)
+    assert evals.reliability(df.head(2), test_months=None, n_bins=3)["by_score_decile"] == []

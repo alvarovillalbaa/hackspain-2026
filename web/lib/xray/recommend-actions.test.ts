@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { scoreFromDimensions, radarUplift } from "./scoring";
-import { applyAgentCopy, recommendActions } from "./recommend-actions";
+import {
+  applyAgentCopy,
+  hasPendingCopy,
+  recommendActions,
+} from "./recommend-actions";
 import type { CompanyFacts, ExportedScore } from "./dataset/types";
 import type { ScoreSnapshot } from "./types";
 
@@ -110,11 +114,12 @@ describe("recommendActions", () => {
     expect(a.reasoning).toBe("Hay vencido emitido que frena cobros.");
     expect(a.recommended_amount).toBe(80_000);
     expect(a.origin).toBe("eve");
+    // A pick for a kind that was never grounded adds nothing.
     expect(
       applyAgentCopy(ground, [
         { action: "new_debt", description: "xxxx", reasoning: "no existe aquí" },
       ])
-    ).toEqual([]);
+    ).toEqual(ground);
 
     const [preferred] = applyAgentCopy(ground, [
       {
@@ -124,6 +129,57 @@ describe("recommendActions", () => {
       },
     ]);
     expect(preferred.reasoning).toBe("Tooltip preferido del agente.");
+  });
+
+  it("keeps ids, order and amounts stable when the agent copy lands", () => {
+    const facts: CompanyFacts = {
+      ...emptyFacts,
+      cash_balance: 200_000,
+      implied_debt_rate: 0.08,
+      debt_by_type: { loan: { count: 1, outstanding: 150_000, granted: 150_000 } },
+      invoice_aging: {
+        ...emptyFacts.invoice_aging,
+        issued_overdue: 80_000,
+        received_overdue: 30_000,
+      },
+    };
+    const ground = recommendActions({ snapshot: snapshot(), facts, exported: null });
+    expect(ground.length).toBeGreaterThanOrEqual(3);
+    expect(hasPendingCopy(ground)).toBe(true);
+
+    // Eve answers in a different order and skips one grounded action.
+    const picks = [...ground]
+      .reverse()
+      .slice(0, ground.length - 1)
+      .map((g) => ({
+        action: g.kind,
+        description: `Copia para ${g.kind}`,
+        reasoning: `Motivo redactado para ${g.kind}.`,
+      }));
+    const merged = applyAgentCopy(ground, picks);
+
+    expect(merged.map((a) => a.id)).toEqual(ground.map((a) => a.id));
+    expect(merged.map((a) => a.recommended_amount)).toEqual(
+      ground.map((a) => a.recommended_amount)
+    );
+    expect(merged.map((a) => a.uplift)).toEqual(ground.map((a) => a.uplift));
+    // The first grounded action was the one Eve skipped: it stays deterministic.
+    expect(merged[0]!.origin).toBe("deterministic");
+    expect(merged[0]!.title).toBe(ground[0]!.title);
+    expect(merged[0]!.description).toBeUndefined();
+    for (const a of merged.slice(1)) {
+      expect(a.origin).toBe("eve");
+      expect(a.title).toBe(`Copia para ${a.kind}`);
+    }
+    expect(hasPendingCopy(merged)).toBe(true);
+    expect(
+      hasPendingCopy(applyAgentCopy(ground, [...picks, {
+        action: ground[0]!.kind,
+        description: "Copia final",
+        reasoning: "Motivo final redactado.",
+      }]))
+    ).toBe(false);
+    expect(hasPendingCopy([])).toBe(false);
   });
 
   it("proposes amortizing idle cash at the implied rate", () => {

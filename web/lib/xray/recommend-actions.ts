@@ -207,7 +207,15 @@ export function findRecommended(
   return actions.find((a) => a.id === actionId);
 }
 
-/** Eve writes description + reasoning; amounts and grounded rationale stay. */
+/**
+ * Overlay Eve copy (description + reasoning) on the grounded list.
+ *
+ * Ids, order, amounts and uplift come from `ground` and never move: the ficha
+ * shows the grounded list first and swaps in this copy when enrichment lands,
+ * so nothing may reorder or disappear under the user. A grounded action Eve
+ * did not write for stays deterministic; a pick whose kind is not grounded
+ * is dropped.
+ */
 export function applyAgentCopy(
   ground: ActionRecommendation[],
   picks: {
@@ -220,28 +228,31 @@ export function applyAgentCopy(
     amount?: number;
   }[]
 ): ActionRecommendation[] {
-  const byKind = new Map(ground.map((a) => [a.kind, a] as const));
-  const seen = new Set<ActionKind>();
-  const out: ActionRecommendation[] = [];
+  const byKind = new Map<ActionKind, (typeof picks)[number]>();
   for (const p of picks) {
     const kind = p.action ?? p.kind;
-    if (!kind || seen.has(kind)) continue;
-    const g = byKind.get(kind);
-    if (!g) continue;
-    seen.add(kind);
+    if (kind && !byKind.has(kind)) byKind.set(kind, p);
+  }
+  return ground.map((g) => {
+    const p = byKind.get(g.kind);
+    if (!p) return g;
     const description = (p.description ?? p.title)?.trim();
     const reasoning = p.reasoning?.trim();
-    out.push({
+    const hasDescription = Boolean(description && description.length >= 4);
+    const hasReasoning = Boolean(reasoning && reasoning.length >= 8);
+    if (!hasDescription && !hasReasoning) return g;
+    return {
       ...g,
-      title:
-        description && description.length >= 4 ? description : g.title,
-      description:
-        description && description.length >= 4 ? description : undefined,
-      reasoning:
-        reasoning && reasoning.length >= 8 ? reasoning : undefined,
+      title: hasDescription ? description! : g.title,
+      description: hasDescription ? description : undefined,
+      reasoning: hasReasoning ? reasoning : undefined,
       confidence: p.confidence,
       origin: "eve",
-    });
-  }
-  return out;
+    };
+  });
+}
+
+/** True while at least one action still lacks Eve copy. */
+export function hasPendingCopy(actions: ActionRecommendation[]): boolean {
+  return actions.length > 0 && actions.some((a) => a.origin !== "eve");
 }

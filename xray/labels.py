@@ -142,3 +142,40 @@ def label_t6(indexed: pd.DataFrame, cfg: RulesConfig | None = None) -> pd.DataFr
 
     out["label_t6"] = out.groupby("company_id", sort=False)["state_index"].transform(future_mean)
     return out.sort_index()
+
+
+# --- PD6: rotura de caja en euros (docs/research/revision-objetivo-score.md §3) ---------------
+
+
+def breach_state(features: pd.DataFrame, run: int = 2) -> pd.DataFrame:
+    """`breach`: saldo mínimo reconstruido < 0 durante `run` meses seguidos (este incluido).
+    `breach_entry`: primer mes en rotura de un episodio. Un mes ≥ 0 cierra el episodio.
+
+    Es la única etiqueta absoluta limpia del dataset (el resto de umbrales en euros derivan con la
+    reconstrucción). NaN en `min_balance_eur` cuenta como no negativo. Conserva el orden de filas.
+    """
+    out = features.sort_values(KEYS).copy()
+    neg = out["min_balance_eur"] < 0  # NaN → False
+    company = out["company_id"]
+    block = (~neg).groupby(company, sort=False).cumsum()  # cambia en cada mes no negativo
+    streak = neg.astype(int).groupby([company, block], sort=False).cumsum()
+    out["breach"] = (streak >= run).to_numpy()
+    prev = out.groupby("company_id", sort=False)["breach"].shift(1).fillna(False).astype(bool)
+    out["breach_entry"] = (out["breach"] & ~prev).to_numpy()
+    return out.sort_index()
+
+
+def label_pd6(features: pd.DataFrame, h: int = 6, run: int = 2) -> pd.DataFrame:
+    """Etiqueta binaria: empieza un episodio de rotura en (t, t+h]. Elegibles las filas con saldo
+    mínimo ≥ 0 en t. Un positivo observado vale aunque falte t+h; un 0 exige t+h presente."""
+    out = features if "breach_entry" in features.columns else breach_state(features, run)
+    out = out.sort_values(KEYS).copy()
+    g = out.groupby("company_id", sort=False)
+    fut_entry = np.zeros(len(out), dtype=bool)
+    for k in range(1, h + 1):
+        fut_entry |= g["breach_entry"].shift(-k).fillna(False).astype(bool).to_numpy()
+    complete = g["min_balance_eur"].shift(-h).notna().to_numpy()
+    eligible = (out["min_balance_eur"] >= 0).to_numpy()
+    y = np.where(fut_entry, 1.0, np.where(complete, 0.0, np.nan))
+    out["label_pd6"] = np.where(eligible, y, np.nan)
+    return out.sort_index()

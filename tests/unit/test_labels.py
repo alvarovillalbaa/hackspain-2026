@@ -195,3 +195,67 @@ def test_label_t6_does_not_cross_companies():
     out = labels.label_t6(df, RulesConfig())
     assert np.isnan(out.loc[6, "label_t6"])  # último mes de "a" no mira a "b"
     assert out.loc[0, "label_t6"] == pytest.approx(0.5)
+
+
+# --- PD6: rotura de caja en euros (docs/research/revision-objetivo-score.md §3) ---------------
+
+
+def _fixture_company(name: str) -> pd.DataFrame:
+    from xray import features as features_mod
+
+    f = features_mod.load_fixture()
+    return f[f["company_id"] == name].reset_index(drop=True)
+
+
+def test_breach_needs_two_consecutive_negative_months():
+    dip = labels.breach_state(_fixture_company("MOCK_DIP")).set_index("month")
+    assert not dip["breach"].any()  # un solo mes negativo (2025-11) es un bache
+    det = labels.breach_state(_fixture_company("MOCK_DETERIORATION")).set_index("month")
+    assert not det.loc["2026-03", "breach"]  # primer negativo: todavía no
+    assert det.loc["2026-04", "breach"] and det.loc["2026-04", "breach_entry"]
+    assert det.loc["2026-08", "breach"] and not det.loc["2026-08", "breach_entry"]
+    assert int(det["breach_entry"].sum()) == 1
+
+
+def test_breach_episode_restarts_after_a_positive_month():
+    f = _features(
+        [{"company_id": "a", "month": m, "min_balance_eur": v} for m, v in
+         [("2025-01", -1), ("2025-02", -1), ("2025-03", 5), ("2025-04", -1), ("2025-05", -1), ("2025-06", -1)]]
+    )
+    b = labels.breach_state(f).set_index("month")
+    assert b["breach_entry"].sum() == 2
+    assert b.loc["2025-02", "breach_entry"] and b.loc["2025-05", "breach_entry"]
+    assert not b.loc["2025-04", "breach"]
+
+
+def test_label_pd6_on_fixture_companies():
+    det = labels.label_pd6(_fixture_company("MOCK_DETERIORATION")).set_index("month")["label_pd6"]
+    positives = [m for m, v in det.items() if v == 1.0]
+    assert positives == ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02"]
+    assert det.loc["2025-09"] == 0.0  # (t, t+6] = 2025-10..2026-03: sin entrada, t+6 presente
+    assert np.isnan(det.loc["2026-03"])  # saldo < 0 en t: no elegible
+    assert np.isnan(det.loc["2026-08"])
+    dip = labels.label_pd6(_fixture_company("MOCK_DIP")).set_index("month")["label_pd6"]
+    assert (dip.dropna() == 0.0).all()
+    assert np.isnan(dip.loc["2025-11"])  # mes negativo: no elegible
+    assert dip.loc["2026-02"] == 0.0 and np.isnan(dip.loc["2026-03"])  # t+6 = 2026-09 no existe
+
+
+def test_label_pd6_positive_is_known_even_without_t_plus_h():
+    f = _features(
+        [{"company_id": "a", "month": m, "min_balance_eur": v} for m, v in
+         [("2025-01", 5), ("2025-02", 5), ("2025-03", -1), ("2025-04", -1)]]
+    )
+    y = labels.label_pd6(f).set_index("month")["label_pd6"]
+    assert y.loc["2025-01"] == 1.0 and y.loc["2025-02"] == 1.0
+    assert np.isnan(y.loc["2025-03"])
+
+
+def test_label_pd6_keeps_row_order_and_other_columns():
+    f = _features(
+        [{"company_id": "b", "month": "2025-02", "min_balance_eur": 1.0, "cash_buffer_days": 3.0},
+         {"company_id": "a", "month": "2025-01", "min_balance_eur": 1.0, "cash_buffer_days": 4.0}]
+    )
+    out = labels.label_pd6(f)
+    assert list(out["company_id"]) == ["b", "a"]
+    assert list(out["cash_buffer_days"]) == [3.0, 4.0]

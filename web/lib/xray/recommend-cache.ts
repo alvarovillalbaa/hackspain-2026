@@ -13,8 +13,9 @@ export type QuantitySummary = {
 export type RecommendCacheEntry = {
   matches: ProductMatch[];
   headline: string;
-  source: "eve" | "warm" | "blob" | "engine" | "fallback";
+  source: "agent" | "eve" | "warm" | "blob" | "engine" | "fallback";
   decision?: RecommendationDecision;
+  persisted?: boolean;
 };
 
 export function quantityFromDecision(

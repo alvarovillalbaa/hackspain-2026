@@ -36,7 +36,8 @@ export async function GET(req: Request) {
           closed = true;
         }
       };
-      const unsubscribe = subscribeMarketplaceProgress(key, (event) => {
+      let unsubscribe = () => {};
+      unsubscribe = subscribeMarketplaceProgress(key, (event) => {
         send({
           ...event,
           company_id: companyId,
@@ -52,6 +53,7 @@ export async function GET(req: Request) {
           }
         }
       });
+      if (closed) unsubscribe();
       req.signal.addEventListener("abort", () => {
         unsubscribe();
         closed = true;

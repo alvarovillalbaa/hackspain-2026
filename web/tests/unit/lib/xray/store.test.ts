@@ -8,6 +8,8 @@ import {
   deleteDealsForCompanies,
   readActions,
   readDeal,
+  readDecision,
+  writeDecision,
   readImportedPack,
   readImportSource,
   readSession,
@@ -124,6 +126,23 @@ describe("store (in-repo JSON tier)", () => {
     await writeDeal(deal({ uplift: 7 }));
     clearStoreMemoryForTests();
     expect((await readDeal("COMP_0001"))?.uplift).toBe(7);
+  });
+
+  it("persists recommendations on disk even when Blob is configured locally", async () => {
+    const previous = process.env.BLOB_READ_WRITE_TOKEN;
+    process.env.BLOB_READ_WRITE_TOKEN = "local-test-unused";
+    try {
+      expect(await writeDecision("COMP_0001:action:auto:hash", {
+        decision: { headline: "Respuesta real del agente" },
+      })).toBe(true);
+      clearStoreMemoryForTests();
+      expect((await readDecision("COMP_0001:action:auto:hash"))?.decision).toEqual({
+        headline: "Respuesta real del agente",
+      });
+    } finally {
+      if (previous == null) delete process.env.BLOB_READ_WRITE_TOKEN;
+      else process.env.BLOB_READ_WRITE_TOKEN = previous;
+    }
   });
 
   it("keeps the active group across a restart", async () => {

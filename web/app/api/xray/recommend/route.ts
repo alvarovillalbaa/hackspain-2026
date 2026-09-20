@@ -1,74 +1,47 @@
+import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { Client } from "eve/client";
-import { getVercelOidcToken } from "@vercel/oidc";
 import { RecommendationDecisionSchema } from "@/agent/lib/schemas";
+import { MARKETPLACE_AGENT_VERSION, runMarketplaceAgent } from "@/agent/lib/marketplace";
 import { reassembleMatches } from "@/lib/xray/reassemble";
-import {
-  getCompanyFacts,
-  getDatasetCompany,
-  getExportedScore,
-} from "@/lib/xray/dataset";
+import { getCompanyFacts, getDatasetCompany, getExportedScore } from "@/lib/xray/dataset";
+import { listAllProducts, listEntities } from "@/lib/xray/catalog";
 import { findRecommended, listCompanyActions } from "@/lib/xray/recommend-actions";
 import { resolveLiveSnapshot } from "@/lib/xray/live-snapshot";
 import { readImportedPack, readDecision, writeDecision } from "@/lib/xray/store";
 import {
-  getCachedDecision,
   getRecommendCache,
   quantityFromDecision,
   recommendCacheKey,
   setRecommendCache,
   type RecommendCacheEntry,
 } from "@/lib/xray/recommend-cache";
-import { runMarketplacePipeline } from "@/lib/xray/marketplace-orchestrator";
-import {
-  beginMarketplaceProgress,
-  emitMarketplaceProgress,
-  marketplaceProgressKey,
-} from "@/lib/xray/marketplace-progress";
+import { beginMarketplaceProgress, emitMarketplaceProgress, marketplaceProgressKey } from "@/lib/xray/marketplace-progress";
 import { isTimeoutError, llmErrorStatus } from "@/lib/ai/errors";
-import {
-  decisionWithAmount,
-  phaseFromEvent,
-} from "@/lib/xray/marketplace-pipeline";
 import type { ScoreSnapshot } from "@/lib/xray/types";
-import type { CompanyFacts, ExportedScore } from "@/lib/xray/dataset/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
 const RequestSchema = z.object({
-  company_id: z.string(),
-  action_id: z.string(),
+  company_id: z.string().min(1).max(200),
+  action_id: z.string().min(1).max(200),
   amount: z.number().positive().optional(),
 });
 
-type CacheEntry = RecommendCacheEntry;
+const pending = new Map<string, Promise<{ entry: RecommendCacheEntry; cached: boolean }>>();
 
-async function resolveFacts(companyId: string): Promise<{
-  facts: CompanyFacts | null;
-  exported: ExportedScore | null;
-  currency?: string;
-}> {
+async function resolveFacts(companyId: string) {
   const imported = await readImportedPack(companyId);
-  if (imported) {
-    return {
-      facts: imported.facts,
-      exported: imported.score,
-      currency: imported.company.currency,
-    };
-  }
-  return {
-    facts: getCompanyFacts(companyId),
-    exported: getExportedScore(companyId),
-    currency: getDatasetCompany(companyId)?.currency,
-  };
+  return imported
+    ? { facts: imported.facts, exported: imported.score, company: imported.company }
+    : { facts: getCompanyFacts(companyId), exported: getExportedScore(companyId), company: getDatasetCompany(companyId) };
 }
 
-async function actionsFor(snapshot: ScoreSnapshot) {
-  const { facts, exported, currency } = await resolveFacts(snapshot.company_id);
+function actionsFor(snapshot: ScoreSnapshot, context: Awaited<ReturnType<typeof resolveFacts>>) {
+  const { facts, exported, company } = context;
   // Live path: facts-backed only (no TEMPLATES).
-  return listCompanyActions(snapshot, facts, exported, currency);
+  return listCompanyActions(snapshot, facts, exported, company?.currency);
 }
 
 /**
@@ -76,282 +49,115 @@ async function actionsFor(snapshot: ScoreSnapshot) {
  * (or a TEMPLATE) would quote a marketplace for something the company was
  * never recommended, so an unknown id is an error, not a fallback.
  */
-async function actionFor(actionId: string, snapshot: ScoreSnapshot) {
-  return findRecommended(await actionsFor(snapshot), actionId) ?? null;
-}
-
-async function entryFromDecision(
-  companyId: string,
-  actionId: string,
-  snapshot: ScoreSnapshot,
-  decisionRaw: unknown,
-  headline: string | undefined,
-  source: CacheEntry["source"],
-  amount?: number
-): Promise<CacheEntry | null> {
-  const action = await actionFor(actionId, snapshot);
-  if (!action) return null;
-  const { facts } = await resolveFacts(companyId);
-  const parsed = RecommendationDecisionSchema.parse(decisionRaw);
-  const decision =
-    amount != null ? decisionWithAmount(parsed, amount) : parsed;
-  return {
-    matches: reassembleMatches(decision, snapshot, action, "eve", facts),
-    headline: headline ?? decision.headline,
-    source,
-    decision: parsed,
-  };
-}
-
-async function loadBlob(
-  companyId: string,
-  actionId: string,
-  snapshot: ScoreSnapshot
-): Promise<CacheEntry | null> {
-  const stored = await readDecision(`${companyId}:${actionId}`);
-  if (!stored?.decision) return null;
-  try {
-    return entryFromDecision(
-      companyId,
-      actionId,
-      snapshot,
-      stored.decision,
-      stored.headline,
-      "blob"
-    );
-  } catch {
-    return null;
-  }
-}
-
-function eveHost(): string {
-  if (process.env.EVE_HOST) return process.env.EVE_HOST;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "http://127.0.0.1:3000";
-}
-
-async function createEveClient(): Promise<Client> {
-  const host = eveHost();
-  const onVercel = Boolean(process.env.VERCEL);
-  if (onVercel) {
-    return new Client({
-      host,
-      auth: {
-        vercelOidc: {
-          token: async () => await getVercelOidcToken(),
-        },
-      },
-    });
-  }
-  return new Client({ host });
-}
-
-async function runEveRecommendation(input: {
-  company_id: string;
-  action_id: string;
-  amount?: number;
-  snapshot: ScoreSnapshot;
-  progressKey: string;
-}): Promise<
-  CacheEntry & { decision: z.infer<typeof RecommendationDecisionSchema> }
-> {
-  const action = await actionFor(input.action_id, input.snapshot);
-  if (!action) {
-    throw new Error(`No action for ${input.company_id}/${input.action_id}`);
-  }
-  const { facts } = await resolveFacts(input.company_id);
-
-  const client = await createEveClient();
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 240_000);
-
-  try {
-    const decision = await runMarketplacePipeline({
-      client,
-      snapshot: input.snapshot,
-      company_id: input.company_id,
-      action_id: input.action_id,
-      action_kind: action.kind,
-      recommended_amount: action.recommended_amount,
-      dimension_deltas: action.dimension_deltas,
-      amount: input.amount,
-      signal: controller.signal,
-      onPhase: (phase, detail) =>
-        emitMarketplaceProgress(input.progressKey, { phase, detail }),
-      onEvent: (event) => {
-        const phase = phaseFromEvent(event);
-        if (phase) {
-          emitMarketplaceProgress(input.progressKey, {
-            phase,
-            detail: event.type,
-          });
-        }
-      },
-    });
-
-    return {
-      matches: reassembleMatches(decision, input.snapshot, action, "eve", facts),
-      headline: decision.headline,
-      source: "eve",
-      decision,
-    };
-  } finally {
-    clearTimeout(timer);
-  }
+function actionFor(actionId: string, snapshot: ScoreSnapshot, context: Awaited<ReturnType<typeof resolveFacts>>) {
+  return findRecommended(actionsFor(snapshot, context), actionId) ?? null;
 }
 
 export async function POST(req: Request) {
   let body: z.infer<typeof RequestSchema>;
   try {
     body = RequestSchema.parse(await req.json());
-  } catch (e) {
-    return NextResponse.json(
-      { error: "Invalid request", detail: String(e) },
-      { status: 400 }
-    );
+  } catch {
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  const key = recommendCacheKey(body.company_id, body.action_id, body.amount);
-  const cached = getRecommendCache(key);
-  if (cached) {
-    return NextResponse.json({
-      matches: cached.matches,
-      headline: cached.headline,
-      source: cached.source,
-      quantity: quantityFromDecision(cached.decision),
-      cached: true,
-    });
+  const [snapshot, context] = await Promise.all([
+    resolveLiveSnapshot(body.company_id),
+    resolveFacts(body.company_id),
+  ]);
+  if (!snapshot || !context.company) {
+    return NextResponse.json({ error: `Company not found: ${body.company_id}` }, { status: 404 });
+  }
+  const action = actionFor(body.action_id, snapshot, context);
+  if (!action) {
+    return NextResponse.json({ error: `Action not found: ${body.action_id}` }, { status: 404 });
+  }
+  const { facts, company } = context;
+  if (!facts) {
+    return NextResponse.json({ error: "No hay hechos financieros para esta empresa" }, { status: 422 });
   }
 
-  const snapshot = await resolveLiveSnapshot(body.company_id);
-  if (!snapshot) {
-    return NextResponse.json(
-      { error: `Company not found: ${body.company_id}` },
-      { status: 404 }
-    );
-  }
-
+  const fingerprint = createHash("sha256").update(JSON.stringify({
+    version: MARKETPLACE_AGENT_VERSION,
+    snapshot,
+    facts,
+    company,
+    action,
+    products: listAllProducts(),
+    entities: listEntities(),
+  })).digest("hex");
+  const key = `${recommendCacheKey(body.company_id, body.action_id, body.amount)}:${fingerprint}`;
   const progressKey = marketplaceProgressKey(body.company_id, body.action_id);
-  const imported = await readImportedPack(body.company_id);
-
-  if (body.amount != null) {
-    const fromMem = getCachedDecision(body.company_id, body.action_id);
-    if (fromMem) {
-      const reused = await entryFromDecision(
-        body.company_id,
-        body.action_id,
-        snapshot,
-        fromMem,
-        fromMem.headline,
-        "eve",
-        body.amount
-      );
-      if (reused) {
-        setRecommendCache(key, reused);
-        return NextResponse.json({
-          matches: reused.matches,
-          headline: reused.headline,
-          source: reused.source,
-          quantity: quantityFromDecision(reused.decision),
-          cached: true,
-        });
-      }
-    }
-    const fromBlob = imported
-      ? null
-      : await loadBlob(body.company_id, body.action_id, snapshot);
-    if (fromBlob?.decision) {
-      const reused = await entryFromDecision(
-        body.company_id,
-        body.action_id,
-        snapshot,
-        fromBlob.decision,
-        fromBlob.headline,
-        "eve",
-        body.amount
-      );
-      if (reused) {
-        setRecommendCache(key, reused);
-        return NextResponse.json({
-          matches: reused.matches,
-          headline: reused.headline,
-          source: reused.source,
-          quantity: quantityFromDecision(reused.decision),
-          cached: true,
-        });
-      }
-    }
-  } else if (!imported) {
-    const fromBlob = await loadBlob(body.company_id, body.action_id, snapshot);
-    if (fromBlob) {
-      setRecommendCache(key, fromBlob);
-      emitMarketplaceProgress(progressKey, { phase: "done" });
-      return NextResponse.json({
-        matches: fromBlob.matches,
-        headline: fromBlob.headline,
-        source: fromBlob.source,
-        quantity: quantityFromDecision(fromBlob.decision),
-        cached: false,
-      });
-    }
-  }
-
-  beginMarketplaceProgress(progressKey);
-  emitMarketplaceProgress(progressKey, {
-    phase: "queued",
-    detail: "Pipeline de recomendaciones",
+  const respond = (entry: RecommendCacheEntry, cached: boolean) => NextResponse.json({
+    matches: entry.matches,
+    headline: entry.headline,
+    source: entry.source,
+    quantity: quantityFromDecision(entry.decision),
+    cached,
+    persisted: entry.persisted ?? false,
   });
+  const memory = getRecommendCache(key);
+  if (memory) return respond(memory, true);
+
+  const entryFromDecision = (raw: unknown): RecommendCacheEntry => {
+    const decision = RecommendationDecisionSchema.parse(raw);
+    if (decision.company_id !== company.company_id || decision.action_id !== action.id ||
+        decision.action_kind !== action.kind || decision.quantity.company_id !== company.company_id ||
+        decision.quantity.action_kind !== action.kind ||
+        (body.amount != null && decision.quantity.ideal_amount !== body.amount)) {
+      throw new Error("La recomendación no corresponde a la solicitud");
+    }
+    const matches = reassembleMatches(decision, snapshot, action, "llm", facts);
+    if (!matches.length) throw new Error("El agente no seleccionó ofertas válidas");
+    return { matches, headline: decision.headline, source: "agent", decision };
+  };
+
+  async function loadOrGenerate() {
+    const stored = await readDecision(key);
+    if (stored?.decision) {
+      const parsed = RecommendationDecisionSchema.safeParse(stored.decision);
+      if (parsed.success) {
+        const entry = { ...entryFromDecision(parsed.data), persisted: true };
+        setRecommendCache(key, entry);
+        emitMarketplaceProgress(progressKey, { phase: "done", detail: entry.headline });
+        return { entry, cached: true };
+      }
+    }
+    beginMarketplaceProgress(progressKey);
+    emitMarketplaceProgress(progressKey, { phase: "queued", detail: "Agente de marketplace" });
+    const decision = await runMarketplaceAgent({
+      snapshot: snapshot!,
+      company: company!,
+      action: action!,
+      facts: facts!,
+      amount: body.amount,
+      signal: AbortSignal.timeout(240_000),
+      onPhase: (phase, detail) => emitMarketplaceProgress(progressKey, { phase, detail }),
+    });
+    const entry = entryFromDecision(decision);
+    entry.persisted = await writeDecision(key, { decision, headline: entry.headline });
+    setRecommendCache(key, entry);
+    emitMarketplaceProgress(progressKey, { phase: "done", detail: entry.headline });
+    return { entry, cached: false };
+  }
 
   try {
-    const entry = await runEveRecommendation({
-      company_id: body.company_id,
-      action_id: body.action_id,
-      amount: body.amount,
-      snapshot,
-      progressKey,
-    });
-    setRecommendCache(key, entry);
-    emitMarketplaceProgress(progressKey, {
-      phase: "done",
-      detail: entry.headline,
-    });
-    if (body.amount == null) {
-      void writeDecision(`${body.company_id}:${body.action_id}`, {
-        decision: entry.decision,
-        headline: entry.headline,
-      });
+    let job = pending.get(key);
+    if (!job) {
+      job = loadOrGenerate().finally(() => pending.delete(key));
+      pending.set(key, job);
     }
-    return NextResponse.json({
-      matches: entry.matches,
-      headline: entry.headline,
-      source: entry.source,
-      quantity: quantityFromDecision(entry.decision),
-      cached: false,
-    });
+    const { entry, cached } = await job;
+    return respond(entry, cached);
   } catch (err) {
-    console.error("[recommend] eve failed:", err);
+    console.error("[recommend] agent failed:", err);
     const detail = err instanceof Error ? err.message : String(err);
-    emitMarketplaceProgress(progressKey, {
-      phase: "fallback",
-      detail,
-    });
-    if (isTimeoutError(err)) {
-      return NextResponse.json(
-        {
-          error: "Se ha agotado el tiempo de espera del agente",
-          detail,
-          code: "timeout",
-        },
-        { status: llmErrorStatus(err) }
-      );
-    }
-    return NextResponse.json(
-      {
-        error: "No se ha podido generar la recomendación con el agente",
-        detail,
-        code: "eve_recommend_failed",
-      },
-      { status: 502 }
-    );
+    emitMarketplaceProgress(progressKey, { phase: "fallback", detail });
+    return NextResponse.json({
+      error: isTimeoutError(err)
+        ? "Se ha agotado el tiempo de espera del agente"
+        : "No se ha podido generar la recomendación con el agente",
+      code: isTimeoutError(err) ? "timeout" : "agent_recommend_failed",
+    }, { status: isTimeoutError(err) ? llmErrorStatus(err) : 502 });
   }
 }

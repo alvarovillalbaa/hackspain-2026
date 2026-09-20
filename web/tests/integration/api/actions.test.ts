@@ -19,7 +19,12 @@ vi.mock("@/lib/xray/store", async (importOriginal) => {
 
 import { GET } from "@/app/api/xray/actions/route";
 import * as store from "@/lib/xray/store";
-import { getExportedScore, getCompanyFacts } from "@/lib/xray/dataset";
+import {
+  getCompanyFacts,
+  getExportedScore,
+  listDatasetCompanies,
+} from "@/lib/xray/dataset";
+import { DEFAULT_GROUP_ID } from "@/lib/xray/demo";
 import { snapshotFromExported } from "@/lib/xray/snapshot";
 import { listCompanyActions } from "@/lib/xray/recommend-actions";
 import type { PortfolioAction } from "@/lib/xray/portfolio-actions";
@@ -46,11 +51,21 @@ describe("GET /api/xray/actions (portfolio)", () => {
     vi.mocked(store.listStoredActions).mockClear();
   });
 
-  it("never reads the store per company", async () => {
+  function groupCompanyIds(groupId: string): Set<string> {
+    return new Set(
+      listDatasetCompanies()
+        .filter((company) => company.group_id === groupId)
+        .map((company) => company.company_id)
+    );
+  }
+
+  it("never reads the store per company and stays inside the session group", async () => {
     const res = await GET();
     expect(res.status).toBe(200);
     const rows = (await res.json()) as PortfolioAction[];
-    expect(rows.length).toBeGreaterThan(50);
+    const members = groupCompanyIds(DEFAULT_GROUP_ID);
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((row) => members.has(row.company_id))).toBe(true);
     expect(store.readImportedPack).not.toHaveBeenCalled();
     expect(store.readStoredActions).not.toHaveBeenCalled();
     expect(store.readActions).not.toHaveBeenCalled();
@@ -102,5 +117,21 @@ describe("GET /api/xray/actions (portfolio)", () => {
     await GET();
     expect(store.listImportedPacks).toHaveBeenCalledTimes(2);
     expect(store.listStoredActions).toHaveBeenCalledTimes(2);
+  });
+
+  it("rebuilds when the session group changes without a store write", async () => {
+    const first = (await (await GET()).json()) as PortfolioAction[];
+    const other = listDatasetCompanies().find(
+      (company) =>
+        company.group_id !== DEFAULT_GROUP_ID &&
+        getExportedScore(company.company_id)
+    );
+    expect(other).toBeTruthy();
+    await store.writeSession(other!.group_id);
+    const second = (await (await GET()).json()) as PortfolioAction[];
+    const members = groupCompanyIds(other!.group_id);
+    expect(second.length).toBeGreaterThan(0);
+    expect(second.every((row) => members.has(row.company_id))).toBe(true);
+    expect(second[0]?.company_id).not.toBe(first[0]?.company_id);
   });
 });

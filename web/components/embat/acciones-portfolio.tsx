@@ -10,8 +10,6 @@ import {
   SortableTable,
   type SortableColumn,
 } from "@/components/xray/sortable-table";
-import { useCompanies } from "@/hooks/xray/use-companies";
-import { useDemoSession } from "@/hooks/xray/use-demo-session";
 import { usePortfolioActions } from "@/hooks/xray/use-portfolio-actions";
 import {
   formatCompactEuro,
@@ -19,7 +17,6 @@ import {
   actionKindLabel,
 } from "@/lib/xray/format";
 import {
-  filterPortfolioActionsByGroup,
   portfolioActionHref,
   type PortfolioAction,
 } from "@/lib/xray/portfolio-actions";
@@ -27,13 +24,7 @@ import { cn } from "@/lib/utils";
 
 export function AccionesPortfolio() {
   const router = useRouter();
-  const { data, loading, error } = usePortfolioActions();
-  const { data: companies, loading: companiesLoading } = useCompanies();
-  const focusGroupId = useDemoSession();
-  const rows = useMemo(
-    () => filterPortfolioActionsByGroup(data, companies, focusGroupId),
-    [data, companies, focusGroupId]
-  );
+  const { data: rows, loading, error } = usePortfolioActions();
 
   const columns: SortableColumn<PortfolioAction>[] = useMemo(
     () => [
@@ -86,7 +77,7 @@ export function AccionesPortfolio() {
     []
   );
 
-  if (loading || companiesLoading || focusGroupId === undefined) {
+  if (loading) {
     return (
       <div className="flex flex-col gap-3">
         {Array.from({ length: 6 }, (_, i) => (
@@ -109,7 +100,7 @@ export function AccionesPortfolio() {
     return (
       <EmptyState
         title="Sin acciones"
-        description="Sin acciones recomendadas en la cartera."
+        description="Sin acciones recomendadas en el grupo activo."
       />
     );
   }

@@ -110,4 +110,37 @@ describe("buildPortfolioActions", () => {
       ).map((row) => row.company_id)
     ).toEqual(["COMP_B"]);
   });
+
+  it("filters the group before the 200 cap so a small group is not dropped", () => {
+    const others = Array.from({ length: 200 }, (_, i) => ({
+      company_id: `COMP_X${i}`,
+      company_name: `Other ${i}`,
+      grounded: [action({ id: `x-${i}`, kind: "new_debt" as const, uplift: 9 })],
+    }));
+    const demo = {
+      company_id: "COMP_0793",
+      company_name: "Demo",
+      grounded: [action({ id: "demo-1", kind: "new_debt" as const, uplift: 1 })],
+    };
+    const companies = [
+      ...others.map((row) => ({
+        company_id: row.company_id,
+        group_id: "GROUP_OTHER",
+      })),
+      { company_id: "COMP_0793", group_id: "GROUP_0147" },
+    ];
+
+    expect(
+      filterPortfolioActionsByGroup(
+        buildPortfolioActions([...others, demo]),
+        companies,
+        "GROUP_0147"
+      )
+    ).toEqual([]);
+    expect(
+      buildPortfolioActions(
+        [...others, demo].filter((row) => row.company_id === "COMP_0793")
+      ).map((row) => row.company_id)
+    ).toEqual(["COMP_0793"]);
+  });
 });

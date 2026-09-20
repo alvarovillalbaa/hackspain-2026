@@ -17,22 +17,28 @@ import {
   getStoreVersion,
   listImportedPacks,
   listStoredActions,
+  readSession,
 } from "@/lib/xray/store";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
 /**
- * Assembled portfolio, memoized per store version on this instance. The
- * grounded part is deterministic over the fact pack; the store is the only
- * thing that can change it, and every store write bumps the version.
- * A short TTL bounds staleness across instances that did not see the write.
+ * Assembled portfolio, memoized per store version + session group.
+ * The 200-row cap in `buildPortfolioActions` must run after the group
+ * filter; otherwise a small demo group never appears in the global top 200.
+ * Changing `/start` does not bump the store version, so the memo key
+ * includes `groupId`.
  */
 const MEMO_TTL_MS = 60_000;
-let memo: { version: number; at: number; rows: PortfolioAction[] } | null =
-  null;
+let memo: {
+  version: number;
+  groupId: string;
+  at: number;
+  rows: PortfolioAction[];
+} | null = null;
 
-async function assemble(): Promise<PortfolioAction[]> {
+async function assemble(groupId: string): Promise<PortfolioAction[]> {
   // Two prefix listings, never one read per company: on Vercel every miss
   // used to be a Blob `list()` round trip, times 1.3k companies.
   const [packs, stored] = await Promise.all([
@@ -48,6 +54,7 @@ async function assemble(): Promise<PortfolioAction[]> {
 
   const inputs: PortfolioActionInput[] = [];
   for (const company of byId.values()) {
+    if (company.group_id !== groupId) continue;
     const pack = packById.get(company.company_id);
     const exported = pack?.score ?? getExportedScore(company.company_id);
     if (!exported) continue;
@@ -73,7 +80,7 @@ async function assemble(): Promise<PortfolioAction[]> {
 }
 
 /**
- * Portfolio Acciones: grounded deterministic actions for every scored company.
+ * Portfolio Acciones: grounded deterministic actions for the session group.
  * No Eve fan-out. Stored Eve titles overlay when present.
  */
 export async function GET() {
@@ -87,14 +94,16 @@ export async function GET() {
     );
   }
 
+  const { group_id: groupId } = await readSession();
   const version = getStoreVersion();
   const now = Date.now();
   if (
     !memo ||
     memo.version !== version ||
+    memo.groupId !== groupId ||
     now - memo.at > MEMO_TTL_MS
   ) {
-    memo = { version, at: now, rows: await assemble() };
+    memo = { version, groupId, at: now, rows: await assemble(groupId) };
   }
 
   return NextResponse.json(memo.rows, {

@@ -3,6 +3,7 @@ import { formatRatePct } from "@/lib/xray/format";
 import {
   buildCompanySummaries,
   companySituation,
+  filterCompanySummariesByGroup,
 } from "@/lib/xray/company-summary";
 import type {
   CompanyFacts,
@@ -170,6 +171,21 @@ describe("buildCompanySummaries", () => {
       implied_rate: 0.062,
       cash_close: 10_000,
     });
+  });
+
+  it("keeps only companies from the group selected in start", () => {
+    const rows = buildCompanySummaries(
+      [
+        company("A", "Alfa"),
+        { ...company("B", "Beta"), group_id: "GROUP_2" },
+      ],
+      [exported("A", { score: 20 }), exported("B", { score: 80 })],
+      []
+    );
+
+    expect(
+      filterCompanySummariesByGroup(rows, "GROUP_2").map((row) => row.company_id)
+    ).toEqual(["B"]);
   });
 });
 

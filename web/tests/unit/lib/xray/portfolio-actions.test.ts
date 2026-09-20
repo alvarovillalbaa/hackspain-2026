@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildPortfolioActions,
+  filterPortfolioActionsByGroup,
   mergePortfolioAction,
   portfolioActionHref,
 } from "@/lib/xray/portfolio-actions";
@@ -82,5 +83,31 @@ describe("buildPortfolioActions", () => {
     expect(rows[0].title).toBe("Eve copy");
     expect(rows[1].company_name).toBe("Alpha");
     expect(portfolioActionHref(rows[0])).toBe("/c/COMP_B/a/b-1");
+  });
+
+  it("keeps only actions from the group selected in start", () => {
+    const rows = buildPortfolioActions([
+      {
+        company_id: "COMP_A",
+        company_name: "Alpha",
+        grounded: [action({ id: "a-1", kind: "amortize" })],
+      },
+      {
+        company_id: "COMP_B",
+        company_name: "Beta",
+        grounded: [action({ id: "b-1", kind: "refinance" })],
+      },
+    ]);
+
+    expect(
+      filterPortfolioActionsByGroup(
+        rows,
+        [
+          { company_id: "COMP_A", group_id: "GROUP_1" },
+          { company_id: "COMP_B", group_id: "GROUP_2" },
+        ],
+        "GROUP_2"
+      ).map((row) => row.company_id)
+    ).toEqual(["COMP_B"]);
   });
 });

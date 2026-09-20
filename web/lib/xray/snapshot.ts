@@ -2,33 +2,39 @@
  * ScoreSnapshot from an ExportedScore row.
  * Kept free of `server-only` so Eve tools and Next routes can share it.
  */
-import { scoreToBand } from "./bands";
+import { outlookMeta, scoreToBand } from "./bands";
+import { formatMonth, formatNumber, formatSignedNumber } from "./format";
 import { TreasuryProjectionSchema } from "./schemas";
+import { signalLabel } from "./signal-labels";
 import { subScoresFromDimensions } from "./sub-scores";
 import type { ScoreSnapshot, Trend } from "./types";
 import type { ExportedScore } from "./dataset/types";
 
-/** Deterministic narrative for the Health Score (i) tooltip. */
+const TREND_PHRASE: Record<Trend, string> = {
+  improving: "al alza",
+  worsening: "a la baja",
+  flat: "plana",
+};
+
+/** Deterministic narrative for the Health Score (i) tooltip, in plain Spanish. */
 export function buildScoreExplanation(row: ExportedScore): string {
   const parts: string[] = [
-    `Índice de salud ${row.score.toFixed(1)} (outlook ${row.outlook}, tendencia ${row.trend}).`,
+    `Índice de salud ${formatNumber(row.score)} · ${outlookMeta(row.outlook).label}, tendencia ${TREND_PHRASE[row.trend]}.`,
   ];
   if (row.drivers.length > 0) {
     const top = row.drivers
       .slice(0, 3)
-      .map((d) => {
-        const sign = d.delta >= 0 ? "+" : "";
-        return `${d.signal} (${sign}${d.delta.toFixed(1)} pts desde ${d.since})`;
-      })
+      .map(
+        (d) =>
+          `${signalLabel(d.signal)} ${formatSignedNumber(d.delta)} pts desde ${formatMonth(d.since)}`
+      )
       .join("; ");
-    parts.push(`Actualizaciones: ${top}.`);
+    parts.push(`Últimos movimientos: ${top}.`);
   }
   const dscr = row.signals.dscr_6m;
-  if (dscr != null && dscr > 0) {
+  if (dscr != null && dscr > 0 && dscr < 1.2) {
     parts.push(
-      dscr < 1.2
-        ? `DSCR 6m = ${dscr.toFixed(2)} por debajo del suelo 1,2.`
-        : `DSCR 6m = ${dscr.toFixed(2)}.`
+      "La cobertura de cuotas a 6 meses está por debajo del mínimo de 1,2 veces."
     );
   }
   return parts.join(" ");

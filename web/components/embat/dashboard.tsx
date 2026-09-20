@@ -31,6 +31,8 @@ import {
 } from "@/lib/xray/query-filters";
 import type { CompanySummary } from "@/lib/xray/company-summary";
 
+const fmtInt = (n: number) => new Intl.NumberFormat("es-ES").format(n);
+
 const histConfig = {
   count: { label: "Empresas", color: "var(--chart-1)" },
 } satisfies ChartConfig;
@@ -130,17 +132,15 @@ export function Dashboard() {
     score: Math.round(r.score),
   }));
 
+  const criticalCount = filteredWatch.filter(
+    (w) => w.severity === "critical"
+  ).length;
+  const warningCount = filteredWatch.filter(
+    (w) => w.severity === "warning"
+  ).length;
   const watchBySeverity = [
-    {
-      label: "Críticas",
-      count: filteredWatch.filter((w) => w.severity === "critical").length,
-      fill: "var(--destructive)",
-    },
-    {
-      label: "Avisos",
-      count: filteredWatch.filter((w) => w.severity === "warning").length,
-      fill: "var(--warning)",
-    },
+    { label: "Críticas", count: criticalCount, fill: "var(--destructive)" },
+    { label: "Avisos", count: warningCount, fill: "var(--warning)" },
   ];
 
   const renderWidget = (id: DashboardWidgetId) => {
@@ -157,7 +157,11 @@ export function Dashboard() {
       }
       return (
         <div className="flex flex-wrap gap-4">
-          <KpiCard label="Empresas" value={String(kpis.n_companies)} />
+          <KpiCard
+            label="Empresas"
+            value={fmtInt(kpis.n_companies)}
+            hint={`${fmtInt(kpis.outlook.positive)} ↑ · ${fmtInt(kpis.outlook.stable)} → · ${fmtInt(kpis.outlook.negative)} ↓`}
+          />
           <KpiCard
             label="Score medio"
             value={
@@ -172,8 +176,8 @@ export function Dashboard() {
           />
           <KpiCard
             label="En vigilancia"
-            value={String(kpis.watch_count)}
-            hint={`${kpis.outlook.positive}↑ · ${kpis.outlook.stable}→ · ${kpis.outlook.negative}↓`}
+            value={fmtInt(kpis.watch_count)}
+            hint={`${fmtInt(criticalCount)} críticas · ${fmtInt(warningCount)} avisos`}
           />
         </div>
       );
@@ -207,7 +211,7 @@ export function Dashboard() {
               tickLine={false}
             />
             <ChartTooltip content={<ChartTooltipContent />} />
-            <Bar dataKey="count" fill="var(--chart-1)" radius={6} />
+            <Bar dataKey="count" fill="var(--chart-1)" radius={6} isAnimationActive={false} />
           </BarChart>
         </ChartContainer>
       );
@@ -241,7 +245,7 @@ export function Dashboard() {
               tickLine={false}
             />
             <ChartTooltip content={<ChartTooltipContent />} />
-            <Bar dataKey="count" radius={6}>
+            <Bar dataKey="count" radius={6} isAnimationActive={false}>
               {outlookData.map((d) => (
                 <Cell key={d.label} fill={d.fill} />
               ))}
@@ -278,7 +282,7 @@ export function Dashboard() {
               tickLine={false}
             />
             <ChartTooltip content={<ChartTooltipContent />} />
-            <Bar dataKey="score" fill="var(--chart-1)" radius={4} />
+            <Bar dataKey="score" fill="var(--chart-1)" radius={4} isAnimationActive={false} />
           </BarChart>
         </ChartContainer>
       );
@@ -311,7 +315,7 @@ export function Dashboard() {
               tickLine={false}
             />
             <ChartTooltip content={<ChartTooltipContent />} />
-            <Bar dataKey="score" fill="var(--chart-5)" radius={4} />
+            <Bar dataKey="score" fill="var(--chart-5)" radius={4} isAnimationActive={false} />
           </BarChart>
         </ChartContainer>
       );
@@ -355,7 +359,7 @@ export function Dashboard() {
             tickLine={false}
           />
           <ChartTooltip content={<ChartTooltipContent />} />
-          <Bar dataKey="count" radius={6}>
+          <Bar dataKey="count" radius={6} isAnimationActive={false}>
             {watchBySeverity.map((d) => (
               <Cell key={d.label} fill={d.fill} />
             ))}

@@ -7,7 +7,7 @@ import { ScoreBandBadge } from "@/components/xray/score-band-badge";
 import { ScoreGauge } from "@/components/xray/score-gauge";
 import { ScoreTrajectory } from "@/components/xray/score-trajectory";
 import { ReasoningHint } from "@/components/xray/reasoning-hint";
-import { ErrorState } from "@/components/xray/feedback-state";
+import { EmptyState, ErrorState } from "@/components/xray/feedback-state";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Card,
@@ -191,7 +191,7 @@ function ScoreSnapshotCard({
       <CardContent className="flex flex-col items-center gap-3">
         <ScoreGauge score={snapshot.score} band={snapshot.band} />
         <ScoreBandBadge band={snapshot.band} />
-        <div className="grid w-full grid-cols-2 gap-2 font-mono text-sm tabular-nums">
+        <div className="grid w-full grid-cols-2 gap-2 text-sm tabular-nums">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Liquidez</span>
             <span>{snapshot.sub_scores.liquidity}</span>
@@ -222,16 +222,18 @@ function DebtWaterfall({
   }
   if (plan.rows.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        Sin cuadro de amortización; el impacto es el del modelo.
-      </p>
+      <EmptyState
+        placement="card"
+        title="Sin cuadro de amortización"
+        description="No hay contratos que amortizar; el impacto mostrado es el del modelo."
+      />
     );
   }
 
   return (
     <div className="space-y-4">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm" aria-label="Cuadro de deuda">
           <thead>
             <tr className="border-b text-left text-xs text-muted-foreground">
               <th className="pb-2 pr-3 font-medium">Banco</th>
@@ -253,16 +255,16 @@ function DebtWaterfall({
               >
                 <td className="py-2 pr-3">{row.bank_name}</td>
                 <td className="py-2 pr-3 text-muted-foreground">{row.type}</td>
-                <td className="py-2 pr-3 text-right font-mono tabular-nums">
+                <td className="py-2 pr-3 text-right tabular-nums">
                   {formatCurrency(row.outstanding)}
                 </td>
-                <td className="py-2 pr-3 text-right font-mono tabular-nums">
+                <td className="py-2 pr-3 text-right tabular-nums">
                   {row.annual_rate != null ? formatRate(row.annual_rate) : "—"}
                 </td>
-                <td className="py-2 pr-3 text-right font-mono tabular-nums">
+                <td className="py-2 pr-3 text-right tabular-nums">
                   {formatCurrency(row.allocated)}
                 </td>
-                <td className="py-2 text-right font-mono tabular-nums">
+                <td className="py-2 text-right tabular-nums">
                   {formatCurrency(row.interest_saved_annual)}
                 </td>
               </tr>
@@ -273,7 +275,7 @@ function DebtWaterfall({
       <div className="flex flex-wrap gap-6 text-sm">
         <div>
           <div className="text-xs text-muted-foreground">Principal amortizado</div>
-          <div className="font-mono tabular-nums">
+          <div className="tabular-nums">
             {formatCurrency(plan.total_allocated)}
           </div>
         </div>
@@ -281,7 +283,7 @@ function DebtWaterfall({
           <div className="text-xs text-muted-foreground">
             Intereses anuales evitados
           </div>
-          <div className="font-mono tabular-nums">
+          <div className="tabular-nums">
             {formatCurrency(plan.total_interest_saved_annual)}
           </div>
         </div>

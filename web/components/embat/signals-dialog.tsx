@@ -72,9 +72,8 @@ function redSignalKeys(snapshot: ScoreSnapshot): Set<string> {
 function formatSignalValue(key: string, value: number | null): string {
   if (value == null) return "—";
   if (key === "overdue_flow_rate_3m" || key === "net_cash_flow_ratio_3m") {
-    return `${(value * 100).toFixed(1)} %`;
+    return `${formatNumber(value * 100)} %`;
   }
-  if (key === "dscr_6m") return formatNumber(value);
   return formatNumber(value);
 }
 
@@ -150,7 +149,7 @@ export function SignalsDialog({
                         </p>
                       ) : null}
                       <p className="text-[10px] text-table-header">
-                        {polarity === "high" ? "↑ peor" : "↓ peor"}
+                        {polarity === "high" ? "Más es peor" : "Menos es peor"}
                       </p>
                     </div>
                   </div>

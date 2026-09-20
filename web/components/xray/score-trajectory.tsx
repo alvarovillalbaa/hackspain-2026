@@ -32,6 +32,13 @@ const trajectoryConfig = {
   p90: { label: "P90", color: "var(--border)" },
 } satisfies ChartConfig;
 
+/** `"2026-08"` → `"ago 26"`, so dense X axes do not collide. */
+function shortMonth(month: string): string {
+  const label = formatMonth(month);
+  const match = label.match(/^(\S+)\s+(\d{4})$/);
+  return match ? `${match[1]} ${match[2].slice(2)}` : label;
+}
+
 export type TrajectorySeries = {
   name: string;
   history: HistoryPoint[];
@@ -238,15 +245,19 @@ function SingleTrajectory({
         className="aspect-auto h-full w-full"
         initialDimension={{ width: 480, height: 224 }}
       >
-        <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+        <ComposedChart
+          data={data}
+          margin={{ top: 8, right: embat ? 20 : 8, left: 0, bottom: 0 }}
+        >
           <CartesianGrid stroke={grid} strokeDasharray="3 3" vertical={false} />
           <XAxis
             dataKey="month"
-            tickFormatter={formatMonth}
+            tickFormatter={embat ? shortMonth : formatMonth}
             tick={tickFont}
             axisLine={false}
             tickLine={false}
-            interval={embat ? 0 : "preserveStartEnd"}
+            interval="preserveStartEnd"
+            minTickGap={embat ? 14 : 5}
           />
           <YAxis
             domain={[0, 100]}

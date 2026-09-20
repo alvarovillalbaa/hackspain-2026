@@ -23,6 +23,12 @@ export interface CompanySummary {
   month: string;
 }
 
+export function filterCompanySummariesByGroup<
+  T extends Pick<CompanySummary, "group_id">,
+>(rows: T[], groupId: string | null | undefined): T[] {
+  return groupId ? rows.filter((row) => row.group_id === groupId) : rows;
+}
+
 function remainingPeriods(facts: CompanyFacts | undefined): number | null {
   const periods = (facts?.contracts ?? [])
     .filter(

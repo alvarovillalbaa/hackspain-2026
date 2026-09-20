@@ -40,9 +40,10 @@ export function formatCurrency(
 export function formatCompactEuro(value: number): string {
   const sign = value < 0 ? "-" : "";
   const abs = Math.abs(value);
-  if (abs >= 1_000_000) return `${sign}${Math.round(abs / 1_000_000)}M€`;
-  if (abs >= 1_000) return `${sign}${Math.round(abs / 1_000)}k€`;
-  return `${sign}${Math.round(abs)}€`;
+  const es = (n: number) => new Intl.NumberFormat("es-ES").format(n);
+  if (abs >= 1_000_000) return `${sign}${es(Math.round(abs / 1_000_000))}M€`;
+  if (abs >= 1_000) return `${sign}${es(Math.round(abs / 1_000))}k€`;
+  return `${sign}${es(Math.round(abs))}€`;
 }
 
 /** `"2026-08"` → `"31/08/2026"` (último día del mes, es-ES). */

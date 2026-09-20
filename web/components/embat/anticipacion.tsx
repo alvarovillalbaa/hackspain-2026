@@ -27,7 +27,7 @@ function Tile({ label, value, detail }: { label: string; value: string; detail: 
       <span className="text-[12px] font-medium tracking-[-0.12px] text-muted-foreground">
         {label}
       </span>
-      <span className="text-[22px] font-medium tracking-[-0.4px] text-foreground">
+      <span className="text-[22px] font-medium tracking-[-0.22px] text-foreground tabular-nums">
         {value}
       </span>
       <span className="text-[12px] tracking-[-0.12px] text-muted-foreground">
@@ -80,7 +80,7 @@ export function AnticipacionPanel({
       <CardContent className="px-0 pb-0">
         {loading ? (
           <div className="px-5 pb-[15px]">
-            <Skeleton className="h-16 w-full rounded bg-muted" />
+            <Skeleton className="h-16 w-full rounded-xl bg-muted" />
           </div>
         ) : error ? (
           <ErrorState

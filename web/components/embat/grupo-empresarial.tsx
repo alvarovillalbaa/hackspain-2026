@@ -23,7 +23,11 @@ import { outlookMeta } from "@/lib/xray/bands";
 import type { GroupSummary } from "@/lib/xray/group-summary";
 import type { Outlook } from "@/lib/xray/types";
 import { embatDisplayClass } from "@/components/embat/font";
-import { ErrorState } from "@/components/xray/feedback-state";
+import { EmptyState, ErrorState } from "@/components/xray/feedback-state";
+import {
+  TablePagination,
+  useTablePagination,
+} from "@/components/xray/sortable-table";
 import { cn } from "@/lib/utils";
 
 type OutlookFilter = Outlook | "all";
@@ -77,6 +81,15 @@ function matchesFilters(
   return true;
 }
 
+const COLUMNS = [
+  { label: "Nombre", align: "left" },
+  { label: "Puntuación", align: "right" },
+  { label: "Estado", align: "left" },
+  { label: "Empresas", align: "right" },
+  { label: "Mejor Empresa", align: "left" },
+  { label: "Cierre Agregado", align: "right" },
+] as const;
+
 export function GrupoEmpresarial({ className }: { className?: string }) {
   const router = useRouter();
   const { data, loading, error } = useGroups();
@@ -84,10 +97,17 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
 
-  const rows = useMemo(
-    () => data.filter((g) => matchesFilters(g, query, filters)),
-    [data, query, filters]
-  );
+  const rows = useMemo(() => {
+    const filtered = data.filter((g) => matchesFilters(g, query, filters));
+    // Keep the rehearsal group visible on the first page of the default order.
+    const at = filtered.findIndex((g) => g.group_id === focusGroupId);
+    if (at <= 0) return filtered;
+    const pinned = filtered[at]!;
+    return [pinned, ...filtered.slice(0, at), ...filtered.slice(at + 1)];
+  }, [data, query, filters, focusGroupId]);
+
+  const { pageRows, total, shown, hasMore, showMore } =
+    useTablePagination(rows);
 
   const updatedAt = data[0]?.month
     ? formatSlashDateFromMonth(data[0].month)
@@ -257,20 +277,14 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
           </colgroup>
           <thead className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
             <tr className="border-b border-border">
-              {(
-                [
-                  "Nombre",
-                  "Puntuación",
-                  "Estado",
-                  "Empresas",
-                  "Mejor Empresa",
-                  "Cierre Agregado",
-                ] as const
-              ).map((label) => (
+              {COLUMNS.map(({ label, align }) => (
                 <th
                   key={label}
                   scope="col"
-                  className="overflow-hidden px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] text-ellipsis whitespace-nowrap text-table-header first:pl-5 last:pr-5"
+                  className={cn(
+                    "overflow-hidden px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] text-ellipsis whitespace-nowrap text-table-header first:pl-5 last:pr-5",
+                    align === "right" && "text-right"
+                  )}
                 >
                   {label}
                 </th>
@@ -298,15 +312,16 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td
-                  colSpan={6}
-                  className="px-5 py-8 text-[14px] text-muted-foreground"
-                >
-                  Sin grupos que coincidan con el filtro.
+                <td colSpan={6} className="px-5 py-4">
+                  <EmptyState
+                    title="Sin grupos"
+                    description="Sin grupos que coincidan con el filtro."
+                    placement="card"
+                  />
                 </td>
               </tr>
             ) : (
-              rows.map((group) => {
+              pageRows.map((group) => {
                 const outlook = outlookMeta(group.outlook);
                 return (
                   <tr
@@ -325,7 +340,7 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
                     )}
                   >
                     <td className="px-3 py-[15px] text-[14px] tracking-[-0.14px] text-black first:pl-5">
-                      <div className="flex min-w-0 items-center gap-2">
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                         <Link
                           href={`/g/${group.group_id}`}
                           title={group.name}
@@ -340,7 +355,7 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
                         {focusGroupId === group.group_id ? <DemoChip /> : null}
                       </div>
                     </td>
-                    <td className="px-3 py-[15px]">
+                    <td className="px-3 py-[15px] text-right">
                       <span
                         className={cn(
                           "inline-flex items-center justify-center rounded-xl border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px] tabular-nums",
@@ -360,7 +375,7 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
                         {outlook.label}
                       </span>
                     </td>
-                    <td className="px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] tabular-nums text-muted-foreground">
+                    <td className="px-3 py-[15px] text-right text-[14px] font-medium tracking-[-0.14px] tabular-nums text-muted-foreground">
                       {group.n_companies}
                     </td>
                     <td
@@ -369,7 +384,7 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
                     >
                       {group.best_company_name}
                     </td>
-                    <td className="px-3 py-[15px] pr-5 text-[14px] tracking-[-0.14px] tabular-nums text-black">
+                    <td className="px-3 py-[15px] pr-5 text-right text-[14px] tracking-[-0.14px] tabular-nums text-black">
                       {formatCompactEuro(group.cash_close)}
                     </td>
                   </tr>
@@ -378,6 +393,13 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
             )}
           </tbody>
         </table>
+        <TablePagination
+          total={total}
+          shown={shown}
+          hasMore={hasMore}
+          onShowMore={showMore}
+          className="border-t border-border"
+        />
       </div>
     </section>
   );

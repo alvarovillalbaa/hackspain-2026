@@ -28,6 +28,7 @@ import {
   loadDashboardLayout,
   placeNewWidget,
   saveDashboardLayout,
+  stackedOrder,
   unusedWidgets,
   type DashboardLayoutItem,
   type DashboardWidgetId,
@@ -38,6 +39,16 @@ import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 
 const freeCompactor = getCompactor(null, false, true);
+
+/**
+ * Below this container width a 6-column grid gives ~40 px cells, so the
+ * board stacks its widgets in reading order instead (no drag, no resize).
+ */
+const STACK_BELOW_PX = 640;
+
+function widgetHeightPx(item: DashboardLayoutItem): number {
+  return item.h * DASHBOARD_ROW_HEIGHT + (item.h - 1) * DASHBOARD_GAP;
+}
 
 function WidgetBoardInner({
   renderWidget,
@@ -51,9 +62,11 @@ function WidgetBoardInner({
     loadDashboardLayout()
   );
   const [catalogOpen, setCatalogOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   const available = useMemo(() => unusedWidgets(layout), [layout]);
   const rows = layoutRowCount(layout);
+  const stacked = !mounted || width < STACK_BELOW_PX;
 
   const persist = useCallback((next: DashboardLayoutItem[]) => {
     setLayout(next);
@@ -93,47 +106,78 @@ function WidgetBoardInner({
     persist(DEFAULT_DASHBOARD_LAYOUT.map((x) => ({ ...x })));
   };
 
+  const startEditing = () => setEditing(true);
+  const stopEditing = () => setEditing(false);
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">{toolbarExtra}</div>
-        <div className="flex items-center gap-1.5">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="rounded-xl"
-            onClick={reset}
-          >
-            <RotateCcwIcon className="size-3.5" />
-            Restablecer
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            className="rounded-xl"
-            disabled={available.length === 0}
-            onClick={() => setCatalogOpen(true)}
-          >
-            <PlusIcon className="size-3.5" />
-            Añadir
-          </Button>
-        </div>
+        {stacked ? null : (
+          <div className="flex items-center gap-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-xl"
+              onClick={reset}
+            >
+              <RotateCcwIcon className="size-3.5" />
+              Restablecer
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="rounded-xl"
+              disabled={available.length === 0}
+              onClick={() => setCatalogOpen(true)}
+            >
+              <PlusIcon className="size-3.5" />
+              Añadir
+            </Button>
+          </div>
+        )}
       </div>
 
       <div ref={containerRef} className="relative w-full">
-        {mounted && width > 0 ? (
+        {stacked ? (
+          <div className="flex flex-col gap-4">
+            {stackedOrder(layout).map((item) => (
+              <div
+                key={item.i}
+                // Charts need a definite height to measure; the KPI row may grow.
+                style={
+                  item.i === "resumen"
+                    ? { minHeight: widgetHeightPx(item) }
+                    : { height: widgetHeightPx(item) }
+                }
+                className="flex"
+              >
+                <WidgetFrame
+                  title={WIDGET_META[item.i].title}
+                  className="w-full"
+                  draggable={false}
+                >
+                  {renderWidget(item.i)}
+                </WidgetFrame>
+              </div>
+            ))}
+          </div>
+        ) : (
           <>
-            <GridBackground
-              width={width}
-              cols={DASHBOARD_COLS}
-              rowHeight={DASHBOARD_ROW_HEIGHT}
-              margin={[DASHBOARD_GAP, DASHBOARD_GAP]}
-              containerPadding={[0, 0]}
-              rows={rows}
-              color="color-mix(in srgb, var(--sidebar) 85%, var(--border))"
-              borderRadius={16}
-            />
+            {editing ? (
+              <GridBackground
+                width={width}
+                cols={DASHBOARD_COLS}
+                rowHeight={DASHBOARD_ROW_HEIGHT}
+                margin={[DASHBOARD_GAP, DASHBOARD_GAP]}
+                containerPadding={[0, 0]}
+                rows={rows}
+                color="color-mix(in srgb, var(--sidebar) 85%, var(--border))"
+                borderRadius={16}
+                className="pointer-events-none"
+              />
+            ) : null}
             <GridLayout
               className="xray-widget-grid"
               layout={layout}
@@ -153,6 +197,10 @@ function WidgetBoardInner({
               }}
               compactor={freeCompactor}
               onLayoutChange={onLayoutChange}
+              onDragStart={startEditing}
+              onDragStop={stopEditing}
+              onResizeStart={startEditing}
+              onResizeStop={stopEditing}
             >
               {layout.map((item) => (
                 <div key={item.i} className="h-full">
@@ -166,8 +214,6 @@ function WidgetBoardInner({
               ))}
             </GridLayout>
           </>
-        ) : (
-          <div className="min-h-[400px]" />
         )}
       </div>
 

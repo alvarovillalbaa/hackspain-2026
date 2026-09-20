@@ -38,7 +38,7 @@ function finish(
 ): ActionRecommendation[] {
   return drafts
     .sort((a, b) => b.weight - a.weight)
-    .slice(0, 4)
+    .slice(0, 4) // ficha shows at most four actions
     .map((d, i) => {
       const { weight: _w, ...action } = d;
       return {

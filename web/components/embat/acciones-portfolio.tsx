@@ -4,18 +4,14 @@ import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from "@/components/ui/empty";
 import { signedBadgeClass } from "@/components/embat/chrome";
-import { ErrorState } from "@/components/xray/feedback-state";
+import { EmptyState, ErrorState } from "@/components/xray/feedback-state";
 import {
   SortableTable,
   type SortableColumn,
 } from "@/components/xray/sortable-table";
+import { useCompanies } from "@/hooks/xray/use-companies";
+import { useDemoSession } from "@/hooks/xray/use-demo-session";
 import { usePortfolioActions } from "@/hooks/xray/use-portfolio-actions";
 import {
   formatCompactEuro,
@@ -23,6 +19,7 @@ import {
   actionKindLabel,
 } from "@/lib/xray/format";
 import {
+  filterPortfolioActionsByGroup,
   portfolioActionHref,
   type PortfolioAction,
 } from "@/lib/xray/portfolio-actions";
@@ -31,6 +28,12 @@ import { cn } from "@/lib/utils";
 export function AccionesPortfolio() {
   const router = useRouter();
   const { data, loading, error } = usePortfolioActions();
+  const { data: companies, loading: companiesLoading } = useCompanies();
+  const focusGroupId = useDemoSession();
+  const rows = useMemo(
+    () => filterPortfolioActionsByGroup(data, companies, focusGroupId),
+    [data, companies, focusGroupId]
+  );
 
   const columns: SortableColumn<PortfolioAction>[] = useMemo(
     () => [
@@ -50,6 +53,7 @@ export function AccionesPortfolio() {
       {
         id: "kind",
         header: "Tipo",
+        className: "hidden md:table-cell",
         sortKey: "kind",
         cell: (row) => actionKindLabel(row.kind),
       },
@@ -82,7 +86,7 @@ export function AccionesPortfolio() {
     []
   );
 
-  if (loading) {
+  if (loading || companiesLoading || focusGroupId === undefined) {
     return (
       <div className="flex flex-col gap-3">
         {Array.from({ length: 6 }, (_, i) => (
@@ -101,22 +105,18 @@ export function AccionesPortfolio() {
     );
   }
 
-  if (data.length === 0) {
+  if (rows.length === 0) {
     return (
-      <Empty className="min-h-[280px] border-0">
-        <EmptyHeader>
-          <EmptyTitle>Sin acciones</EmptyTitle>
-          <EmptyDescription>
-            Sin acciones recomendadas en la cartera.
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <EmptyState
+        title="Sin acciones"
+        description="Sin acciones recomendadas en la cartera."
+      />
     );
   }
 
   return (
     <SortableTable
-      rows={data}
+      rows={rows}
       columns={columns}
       rowKey={(r) => `${r.company_id}:${r.id}`}
       defaultSortKey="uplift"

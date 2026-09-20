@@ -1,8 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import {
+  AlertCircleIcon,
+  AlertTriangleIcon,
+  CheckCircle2Icon,
+} from "lucide-react";
 import { AppShell } from "@/components/xray/app-shell";
 import { statusClass } from "@/components/embat/chrome";
+import { embatDisplayClass } from "@/components/embat/font";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
@@ -21,6 +27,11 @@ export default function SettingsPage() {
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
+    if (!webhook.trim()) {
+      setNotice(null);
+      setError("Pega la URL del webhook de Slack para conectar.");
+      return;
+    }
     setBusy("save");
     setError(null);
     setNotice(null);
@@ -68,81 +79,144 @@ export default function SettingsPage() {
     }
   }
 
+  const noticeWarning = notice?.startsWith("Conectado, pero") ?? false;
+
   return (
     <AppShell crumbs={[{ label: "Ajustes" }]}>
-      <section className="max-w-xl rounded-2xl bg-card p-5 shadow-sm ring-1 ring-border/40">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-[14px] font-medium tracking-[-0.14px] text-foreground">
-            Slack
-          </h2>
-          {loading ? null : (
-            <Badge
-              variant="outline"
-              className={cn(
-                "rounded-xl",
-                status.connected
-                  ? statusClass("positive")
-                  : "border-border text-muted-foreground"
-              )}
+      <div className="max-w-xl">
+        <header className="mb-[30px] space-y-1">
+          <h1
+            className={cn(
+              embatDisplayClass,
+              "text-[20px] font-medium tracking-[-0.3px] text-black"
+            )}
+          >
+            Ajustes
+          </h1>
+          <p className="text-[14px] tracking-[-0.14px] text-muted-foreground">
+            Conexiones de este entorno de trabajo. Lo que configures aquí decide
+            dónde llegan las alertas de X Ray.
+          </p>
+        </header>
+
+        <section
+          aria-labelledby="slack-settings-title"
+          className="rounded-2xl bg-card p-5 shadow-sm ring-1 ring-border/40"
+        >
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2
+              id="slack-settings-title"
+              className="text-[14px] font-medium tracking-[-0.14px] text-foreground"
             >
-              {status.connected ? "Conectado" : "Sin conectar"}
-            </Badge>
-          )}
-        </div>
-        <p className="mb-4 text-[13px] tracking-[-0.13px] text-muted-foreground">
-          Webhook de entrada (Apps → Incoming Webhooks). Al guardar se mandan las
-          alertas abiertas. Luego, al abrir X Ray y cada mañana laborable.
-        </p>
-        <form className="space-y-4" onSubmit={save}>
-          <Field>
-            <FieldLabel
-              htmlFor="slack-webhook"
-              className="text-[13px] font-medium text-muted-foreground"
-            >
-              Webhook de entrada
-            </FieldLabel>
-            <Input
-              id="slack-webhook"
-              type="password"
-              autoComplete="off"
-              value={webhook}
-              onChange={(e) => setWebhook(e.target.value)}
-              placeholder="https://hooks.slack.com/services/…"
-              disabled={locked || busy != null}
-              required
-              className="rounded-xl border-border text-[13px] shadow-sm"
-            />
-            <FieldDescription className="text-[12px] text-muted-foreground">
-              {locked
-                ? "Este entorno ya tiene SLACK_WEBHOOK_URL. El formulario no lo pisa."
-                : "Solo se aceptan URLs de hooks.slack.com. No se vuelve a mostrar."}
-            </FieldDescription>
-          </Field>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="submit"
-              size="sm"
-              className="rounded-xl"
-              disabled={locked || busy != null || !webhook}
-            >
-              {busy === "save" ? "Conectando…" : "Conectar"}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => void disconnect()}
-              disabled={locked || !status.connected || busy != null}
-            >
-              {busy === "clear" ? "…" : "Desconectar"}
-            </Button>
+              Slack
+            </h2>
+            {loading ? null : (
+              <Badge
+                variant="outline"
+                className={cn(
+                  "rounded-xl",
+                  status.connected
+                    ? statusClass("positive")
+                    : "border-border text-muted-foreground"
+                )}
+              >
+                {status.connected ? "Conectado" : "Sin conectar"}
+              </Badge>
+            )}
           </div>
-          <div aria-live="polite" className="min-h-5 text-[13px]">
-            {error ? <p className="text-destructive">{error}</p> : null}
-            {notice ? <p className="text-muted-foreground">{notice}</p> : null}
-          </div>
-        </form>
-      </section>
+          <p className="mb-4 text-[13px] tracking-[-0.13px] text-muted-foreground">
+            Webhook de entrada (Apps → Incoming Webhooks). Al guardar se mandan las
+            alertas abiertas. Luego, al abrir X Ray y cada mañana laborable.
+          </p>
+          <form className="space-y-4" onSubmit={save} aria-busy={busy != null}>
+            <Field>
+              <FieldLabel
+                htmlFor="slack-webhook"
+                className="text-[13px] font-medium text-muted-foreground"
+              >
+                Webhook de entrada
+              </FieldLabel>
+              <Input
+                id="slack-webhook"
+                type="password"
+                autoComplete="off"
+                value={webhook}
+                onChange={(e) => {
+                  setWebhook(e.target.value);
+                  if (error) setError(null);
+                }}
+                placeholder="https://hooks.slack.com/services/…"
+                disabled={locked || busy != null}
+                aria-invalid={error ? true : undefined}
+                aria-describedby="slack-webhook-help slack-webhook-status"
+                className="rounded-xl border-border text-[13px] shadow-sm"
+              />
+              <FieldDescription
+                id="slack-webhook-help"
+                className="text-[12px] text-muted-foreground"
+              >
+                {locked
+                  ? "Este entorno ya tiene SLACK_WEBHOOK_URL. El formulario no lo pisa."
+                  : "Solo se aceptan URLs de hooks.slack.com. No se vuelve a mostrar."}
+              </FieldDescription>
+            </Field>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="submit"
+                size="sm"
+                className="rounded-xl"
+                disabled={locked || busy != null}
+                aria-busy={busy === "save"}
+              >
+                {busy === "save" ? "Conectando…" : "Conectar"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => void disconnect()}
+                disabled={locked || !status.connected || busy != null}
+              >
+                {busy === "clear" ? "Desconectando…" : "Desconectar"}
+              </Button>
+            </div>
+            <div
+              id="slack-webhook-status"
+              aria-live="polite"
+              className="min-h-5 text-[13px]"
+            >
+              {error ? (
+                <p
+                  role="alert"
+                  className="flex items-start gap-1.5 text-destructive"
+                >
+                  <AlertCircleIcon
+                    className="mt-0.5 size-3.5 shrink-0"
+                    aria-hidden
+                  />
+                  <span>{error}</span>
+                </p>
+              ) : null}
+              {notice ? (
+                <p className="flex items-start gap-1.5 text-foreground">
+                  {noticeWarning ? (
+                    <AlertTriangleIcon
+                      className="mt-0.5 size-3.5 shrink-0 text-warning"
+                      aria-hidden
+                    />
+                  ) : (
+                    <CheckCircle2Icon
+                      className="mt-0.5 size-3.5 shrink-0 text-positive"
+                      aria-hidden
+                    />
+                  )}
+                  <span>{notice}</span>
+                </p>
+              ) : null}
+            </div>
+          </form>
+        </section>
+      </div>
     </AppShell>
   );
 }

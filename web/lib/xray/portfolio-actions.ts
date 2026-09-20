@@ -1,4 +1,9 @@
-import type { ActionKind, ActionRecommendation, DataOrigin } from "./types";
+import type {
+  ActionKind,
+  ActionRecommendation,
+  CompanyRef,
+  DataOrigin,
+} from "./types";
 
 /** One recommended action row for the portfolio Acciones table. */
 export interface PortfolioAction extends ActionRecommendation {
@@ -62,6 +67,20 @@ export function buildPortfolioActions(
         a.id.localeCompare(b.id)
     )
     .slice(0, limit);
+}
+
+export function filterPortfolioActionsByGroup(
+  rows: PortfolioAction[],
+  companies: Pick<CompanyRef, "company_id" | "group_id">[],
+  groupId: string | null | undefined
+): PortfolioAction[] {
+  if (!groupId) return rows;
+  const companyIds = new Set(
+    companies
+      .filter((company) => company.group_id === groupId)
+      .map((company) => company.company_id)
+  );
+  return rows.filter((row) => companyIds.has(row.company_id));
 }
 
 export function portfolioActionHref(row: PortfolioAction): string {

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SearchIcon } from "lucide-react";
 import { ImportDialog } from "@/components/xray/import/import-dialog";
-import { ErrorState } from "@/components/xray/feedback-state";
+import { EmptyState, ErrorState } from "@/components/xray/feedback-state";
 import { QueryFilterBar } from "@/components/xray/query-filter-bar";
 import {
   SortableTable,
@@ -19,9 +19,13 @@ import { EmbatIcon, statusClass } from "@/components/embat/chrome";
 import { useSearch } from "@/components/xray/search-context";
 import { useCompanies } from "@/hooks/xray/use-companies";
 import { useCompanySummaries } from "@/hooks/xray/use-company-summaries";
+import { useDemoSession } from "@/hooks/xray/use-demo-session";
 import { useSelection } from "@/hooks/xray/use-selection";
 import { outlookMeta } from "@/lib/xray/bands";
-import type { CompanySummary } from "@/lib/xray/company-summary";
+import {
+  filterCompanySummariesByGroup,
+  type CompanySummary,
+} from "@/lib/xray/company-summary";
 import { MAX_COMPARE, compareHref } from "@/lib/xray/compare";
 import {
   formatCompactEuro,
@@ -133,6 +137,7 @@ export function CompaniasToolbar({
 export function useCompaniasState() {
   const { data, loading, error } = useCompanySummaries();
   const { data: companies, addImported } = useCompanies();
+  const focusGroupId = useDemoSession();
   const selection = useSelection<string>([], MAX_COMPARE);
   const [rules, setRules] = useState<QueryFilterRule[]>([]);
   const [importOpen, setImportOpen] = useState(false);
@@ -165,18 +170,17 @@ export function useCompaniasState() {
     });
   }, [data, companies, byCompany]);
 
-  const rows = useMemo(
-    () =>
-      applyQueryFilters(
-        merged as unknown as Record<string, unknown>[],
-        rules
-      ) as unknown as TableRow[],
-    [merged, rules]
-  );
+  const rows = useMemo(() => {
+    const focused = filterCompanySummariesByGroup(merged, focusGroupId);
+    return applyQueryFilters(
+      focused as unknown as Record<string, unknown>[],
+      rules
+    ) as unknown as TableRow[];
+  }, [merged, rules, focusGroupId]);
 
   return {
     rows,
-    loading,
+    loading: loading || focusGroupId === undefined,
     error,
     selection,
     rules,
@@ -262,6 +266,7 @@ export function Companias({
       {
         id: "rate",
         header: "Tipo",
+        className: "hidden md:table-cell",
         sortKey: "implied_rate",
         align: "right",
         cell: (row) => (
@@ -320,11 +325,10 @@ export function Companias({
             );
           }}
           empty={
-            <ErrorState
+            <EmptyState
               title="Sin compañías"
               description="Sin compañías que coincidan con el filtro."
               placement="card"
-              className="[&_[data-slot=empty-icon]]:hidden"
             />
           }
         />

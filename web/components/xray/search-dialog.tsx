@@ -187,12 +187,12 @@ function SearchPreview({ hit }: { hit: SearchHit | null }) {
         </div>
         <div className="flex flex-wrap gap-2">
           {hit.score != null ? (
-            <Badge variant="outline" className="rounded-lg">
+            <Badge variant="outline" className="rounded-xl">
               Score {formatNumber(Math.round(hit.score))}
             </Badge>
           ) : null}
           {outlook ? (
-            <Badge variant="outline" className="rounded-lg">
+            <Badge variant="outline" className="rounded-xl">
               {outlook.label}
             </Badge>
           ) : null}
@@ -252,7 +252,7 @@ function SearchPreview({ hit }: { hit: SearchHit | null }) {
 
 function SearchPreviewHint() {
   return (
-    <div className="flex size-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+    <div className="flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
       <FileText className="size-5" />
     </div>
   );
@@ -378,6 +378,8 @@ export function SearchDialog() {
         >
           <CommandInput
             variant="plain"
+            autoFocus
+            aria-label="Buscar empresas, grupos o páginas"
             placeholder="Buscar empresas, grupos o páginas…"
           />
           <div className="flex flex-wrap gap-1 border-b border-border px-3 py-2">
@@ -393,25 +395,25 @@ export function SearchDialog() {
             >
               <ToggleGroupItem
                 value="all"
-                className="rounded-lg border-0 bg-transparent text-muted-foreground data-[state=on]:bg-muted data-[state=on]:text-foreground"
+                className="rounded-xl border-0 bg-transparent text-muted-foreground data-[state=on]:bg-muted data-[state=on]:text-foreground"
               >
                 Todo
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="empresas"
-                className="rounded-lg border-0 bg-transparent text-muted-foreground data-[state=on]:bg-muted data-[state=on]:text-foreground"
+                className="rounded-xl border-0 bg-transparent text-muted-foreground data-[state=on]:bg-muted data-[state=on]:text-foreground"
               >
                 Empresas
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="grupos"
-                className="rounded-lg border-0 bg-transparent text-muted-foreground data-[state=on]:bg-muted data-[state=on]:text-foreground"
+                className="rounded-xl border-0 bg-transparent text-muted-foreground data-[state=on]:bg-muted data-[state=on]:text-foreground"
               >
                 Grupos
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="paginas"
-                className="rounded-lg border-0 bg-transparent text-muted-foreground data-[state=on]:bg-muted data-[state=on]:text-foreground"
+                className="rounded-xl border-0 bg-transparent text-muted-foreground data-[state=on]:bg-muted data-[state=on]:text-foreground"
               >
                 Páginas
               </ToggleGroupItem>
@@ -419,7 +421,10 @@ export function SearchDialog() {
           </div>
           <div className="grid min-h-[360px] max-h-[min(560px,70vh)] grid-cols-1 md:grid-cols-[1.1fr_0.9fr]">
             <CommandList className="max-h-none border-r border-border md:max-h-[min(560px,70vh)]">
-              <CommandEmpty>No hay resultados.</CommandEmpty>
+              <CommandEmpty className="px-4 text-muted-foreground">
+                No hay resultados. Prueba otro nombre o identificador, o cambia
+                el filtro.
+              </CommandEmpty>
               {showRecents ? (
                 <CommandGroup heading="Recientes">
                   {recentHits.map((hit) => {

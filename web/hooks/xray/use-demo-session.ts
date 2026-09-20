@@ -2,19 +2,21 @@
 
 import { useEffect, useState } from "react";
 
-/** Blob session group — rehearsal focus, not a filter on `/` or `/companies`. */
+/** Blob session group selected from `/start`. `undefined` means it is loading. */
 export function useDemoSession() {
-  const [groupId, setGroupId] = useState<string | null>(null);
+  const [groupId, setGroupId] = useState<string | null | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
     fetch("/api/xray/session", { cache: "no-store" })
       .then(async (res) => {
-        if (!res.ok) return;
+        if (!res.ok) throw new Error(`session HTTP ${res.status}`);
         const json = (await res.json()) as { group_id?: string };
-        if (!cancelled && json.group_id) setGroupId(json.group_id);
+        if (!cancelled) setGroupId(json.group_id ?? null);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!cancelled) setGroupId(null);
+      });
     return () => {
       cancelled = true;
     };

@@ -109,6 +109,7 @@ Fuente: `artifacts/evals/metrics.json` (`uv run xray-evals`). Lo que sale mal se
 - **Bandas** (slice #5) aún no existen; el watch ya sale de `xray/events.py` pero solo cubre lo que los CSV ven: `large_maturity` necesita cuadro de amortización (87 contratos) y `expensive_new_debt` necesita contrato con tipo.
 - **Cobertura**: sin facturas no hay señal de vencidas, sin deuda no hay DSCR; el 31 % de las filas tiene `confidence = low`.
 - **Un solo mapa global**: no hay mapas por tamaño ni por grupo; la dispersión 0,69 ± 0,05 dice cuánto varía el acierto entre subpoblaciones.
+- **Retadores medidos (20 sep 2026)**: sobre la etiqueta PD6 de rotura de caja (`labels.label_pd6`), AUC(6) en test reglas 0,716 · scorecard logístico de 7 variables 0,756 · GBM monótono 0,773; en GroupKFold +0,02 los dos, por debajo del 0,03 del plan §4, así que las reglas se quedan. El scorecard es el candidato explicable y calibrado si el equipo adopta PD6 (`xray/challenger.py`, `xray-evals --challenger`); detalle en [../research/2026-09-20-retador-gbm-pd6.md](../research/2026-09-20-retador-gbm-pd6.md). El score publicado no cambia.
 
 ## 8. Qué modelo describe esta ficha y cuándo actualizarla
 

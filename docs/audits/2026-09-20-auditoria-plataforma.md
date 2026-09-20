@@ -370,7 +370,7 @@ Hooks: `hooks/xray/use-companies`, `use-company-score`, `use-actions`, `use-prod
 |---|---|---|
 | `GET` | `/api/xray/companies` | Fact pack + imports Blob |
 | `GET` | `/api/xray/score/[companyId]` | `ScoreSnapshot` (import gana sobre pack) |
-| `GET` | `/api/xray/actions/[companyId]` | Acciones ground + copy Eve |
+| `GET` | `/api/xray/actions/[companyId]` | Acciones deterministas al instante; copy Eve en segundo plano (`after()`, 20 sep) y refetch del hook |
 | `GET` | `/api/xray/facts/[companyId]` | Contexto amortize |
 | `POST` | `/api/xray/recommend` | Marketplace (timeout Eve 45 s, `maxDuration` 60) |
 | `GET` | `/api/xray/recommend/stream` | SSE de fases (skeleton UX) |

@@ -55,6 +55,11 @@ export type DemoSession = {
 export type StoredActions = {
   actions: ActionRecommendation[];
   saved_at: string;
+  /**
+   * Set once Eve has been asked for copy (even if it returned nothing usable),
+   * so the ficha route does not retry enrichment on every visit.
+   */
+  enriched_at?: string;
 };
 
 export type StoredExplanation = {
@@ -509,28 +514,36 @@ export async function deleteDealsForGroup(
 
 // --- Eve ficha actions ---
 
-export async function readActions(
+export async function readStoredActions(
   companyId: string
-): Promise<ActionRecommendation[] | null> {
+): Promise<StoredActions | null> {
   const mem = memoryActions.get(companyId);
-  if (mem) return mem.actions;
+  if (mem) return mem;
   if (!hasDurable()) return null;
   const pathname = `${ACTIONS_PREFIX}${encodeURIComponent(companyId)}.json`;
   const stored = await blobGetJson<StoredActions>(pathname);
   if (stored?.actions) {
     memoryActions.set(companyId, stored);
-    return stored.actions;
+    return stored;
   }
   return null;
 }
 
+export async function readActions(
+  companyId: string
+): Promise<ActionRecommendation[] | null> {
+  return (await readStoredActions(companyId))?.actions ?? null;
+}
+
 export async function writeActions(
   companyId: string,
-  actions: ActionRecommendation[]
+  actions: ActionRecommendation[],
+  opts: { enriched_at?: string } = {}
 ): Promise<boolean> {
   const body: StoredActions = {
     actions,
     saved_at: new Date().toISOString(),
+    ...(opts.enriched_at ? { enriched_at: opts.enriched_at } : {}),
   };
   memoryActions.set(companyId, body);
   if (!hasDurable()) return true;

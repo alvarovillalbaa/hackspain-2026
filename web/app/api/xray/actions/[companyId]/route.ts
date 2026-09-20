@@ -1,32 +1,47 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { Client } from "eve/client";
 import { getVercelOidcToken } from "@vercel/oidc";
 import { FichaActionsDecisionSchema } from "@/agent/lib/schemas";
 import {
+  buildScoreSnapshot,
   getCompanyFacts,
   getDatasetCompany,
   getExportedScore,
+  hasDataset,
+  snapshotFromExported,
 } from "@/lib/xray/dataset";
 import {
   applyAgentCopy,
+  hasPendingCopy,
   listCompanyActions,
 } from "@/lib/xray/recommend-actions";
-import { resolveLiveSnapshot } from "@/lib/xray/live-snapshot";
 import {
-  readActions,
   readImportedPack,
+  readStoredActions,
   writeActions,
 } from "@/lib/xray/store";
 import type { ActionRecommendation, ScoreSnapshot } from "@/lib/xray/types";
 import type { CompanyFacts, ExportedScore } from "@/lib/xray/dataset/types";
-import { isTimeoutError, llmErrorStatus } from "@/lib/ai/errors";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 type Ctx = { params: Promise<{ companyId: string }> };
 
-const inflight = new Map<string, Promise<ActionRecommendation[]>>();
+/** Everything the ficha needs, resolved from Blob/dataset exactly once. */
+type CompanyContext = {
+  snapshot: ScoreSnapshot;
+  facts: CompanyFacts | null;
+  exported: ExportedScore | null;
+  currency?: string;
+};
+
+/** Eve session in flight per company on this instance. */
+const inflight = new Set<string>();
+/** Last failed enrichment per company, so an outage is not retried per visit. */
+const failedAt = new Map<string, number>();
+const RETRY_AFTER_FAILURE_MS = 2 * 60_000;
+const EVE_TIMEOUT_MS = 45_000;
 
 function eveHost(): string {
   if (process.env.EVE_HOST) return process.env.EVE_HOST;
@@ -45,22 +60,24 @@ async function createEveClient(): Promise<Client> {
   return new Client({ host });
 }
 
-async function resolveFacts(
+/** Imported pack (re-scored) wins over the committed fact pack. One Blob read. */
+async function resolveContext(
   companyId: string
-): Promise<{
-  facts: CompanyFacts | null;
-  exported: ExportedScore | null;
-  currency?: string;
-}> {
+): Promise<CompanyContext | null> {
   const imported = await readImportedPack(companyId);
-  if (imported) {
+  if (imported?.score) {
     return {
+      snapshot: snapshotFromExported(imported.score),
       facts: imported.facts,
       exported: imported.score,
       currency: imported.company.currency,
     };
   }
+  if (!hasDataset()) return null;
+  const snapshot = buildScoreSnapshot(companyId);
+  if (!snapshot) return null;
   return {
+    snapshot,
     facts: getCompanyFacts(companyId),
     exported: getExportedScore(companyId),
     currency: getDatasetCompany(companyId)?.currency,
@@ -68,9 +85,8 @@ async function resolveFacts(
 }
 
 /** Grounded screens only — no TEMPLATES fallback on the live path. */
-async function groundActions(companyId: string, snapshot: ScoreSnapshot) {
-  const { facts, exported, currency } = await resolveFacts(companyId);
-  return listCompanyActions(snapshot, facts, exported, currency);
+function groundActions(ctx: CompanyContext): ActionRecommendation[] {
+  return listCompanyActions(ctx.snapshot, ctx.facts, ctx.exported, ctx.currency);
 }
 
 type FichaActionPick = {
@@ -83,10 +99,9 @@ type FichaActionPick = {
 
 async function runEveFicha(
   companyId: string,
-  snapshot: ScoreSnapshot,
-  facts: CompanyFacts | null,
-  currency?: string
+  ctx: CompanyContext
 ): Promise<FichaActionPick[]> {
+  const { snapshot, facts, currency } = ctx;
   const aging = facts?.invoice_aging;
   const invoices = aging
     ? aging.issued_pending +
@@ -136,7 +151,7 @@ async function runEveFicha(
   ].join("\n");
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 45_000);
+  const timer = setTimeout(() => controller.abort(), EVE_TIMEOUT_MS);
   const signal = controller.signal;
 
   try {
@@ -221,64 +236,78 @@ async function runEveFicha(
   }
 }
 
-async function compute(companyId: string, snapshot: ScoreSnapshot) {
-  const { facts, currency } = await resolveFacts(companyId);
-  const ground = await groundActions(companyId, snapshot);
+/**
+ * Background enrichment: ask Eve for copy and overlay it on the grounded
+ * list. Runs after the response is sent, so the ficha never waits on it.
+ * Any Eve answer is persisted with `enriched_at` so the next visit is a
+ * cache hit; a thrown error keeps the grounded list and backs off.
+ */
+async function enrich(
+  companyId: string,
+  ctx: CompanyContext,
+  ground: ActionRecommendation[]
+): Promise<void> {
+  if (inflight.has(companyId)) return;
+  inflight.add(companyId);
   try {
-    const picks = await runEveFicha(companyId, snapshot, facts, currency);
+    const picks = await runEveFicha(companyId, ctx);
     const merged = applyAgentCopy(ground, picks);
-    const out = merged.length ? merged : ground;
-    if (out.length) await writeActions(companyId, out);
-    return out;
+    await writeActions(companyId, merged, {
+      enriched_at: new Date().toISOString(),
+    });
+    failedAt.delete(companyId);
   } catch (err) {
-    console.error("[actions] eve failed:", err);
-    throw err;
+    failedAt.set(companyId, Date.now());
+    console.error("[actions] eve enrichment failed, grounded copy stays:", err);
+  } finally {
+    inflight.delete(companyId);
   }
 }
 
-async function resolve(companyId: string, snapshot: ScoreSnapshot) {
-  const cached = await readActions(companyId);
-  if (cached?.length) return cached;
-
-  const pending = inflight.get(companyId);
-  if (pending) return pending;
-  const p = compute(companyId, snapshot).finally(() =>
-    inflight.delete(companyId)
-  );
-  inflight.set(companyId, p);
-  return p;
+function shouldEnrich(companyId: string): boolean {
+  if (inflight.has(companyId)) return false;
+  const last = failedAt.get(companyId);
+  return last == null || Date.now() - last > RETRY_AFTER_FAILURE_MS;
 }
 
+/**
+ * Ficha actions. Responds with the deterministic list at once and lets Eve
+ * write copy in the background; `X-Xray-Enrichment` tells the client whether
+ * a later fetch may bring richer text (`pending`) or not (`settled`).
+ */
 export async function GET(_req: Request, ctx: Ctx) {
   const { companyId } = await ctx.params;
-  const snapshot = await resolveLiveSnapshot(companyId);
-  if (!snapshot) {
+  const context = await resolveContext(companyId);
+  if (!context) {
     return NextResponse.json({ error: "company not found" }, { status: 404 });
   }
-  try {
-    const actions = await resolve(companyId, snapshot);
-    return NextResponse.json(actions, {
-      headers: { "Cache-Control": "no-store" },
-    });
-  } catch (err) {
-    const detail = err instanceof Error ? err.message : String(err);
-    if (isTimeoutError(err)) {
-      return NextResponse.json(
-        {
-          error: "Se ha agotado el tiempo de espera del agente",
-          detail,
-          code: "timeout",
-        },
-        { status: llmErrorStatus(err) }
-      );
+
+  const stored = await readStoredActions(companyId);
+  let actions: ActionRecommendation[];
+  let enrichment: "pending" | "settled" = "settled";
+
+  if (stored?.enriched_at && stored.actions.length) {
+    actions = stored.actions;
+  } else {
+    // Deterministic actions are cheap: recompute so rule changes show up
+    // without an invalidation, then persist so the portfolio view agrees.
+    actions = groundActions(context);
+    if (actions.length && !stored) await writeActions(companyId, actions);
+    if (hasPendingCopy(actions)) {
+      if (shouldEnrich(companyId)) {
+        const ground = actions;
+        after(() => enrich(companyId, context, ground));
+        enrichment = "pending";
+      } else if (inflight.has(companyId)) {
+        enrichment = "pending";
+      }
     }
-    return NextResponse.json(
-      {
-        error: "No se han podido redactar las acciones con el agente",
-        detail,
-        code: "eve_actions_failed",
-      },
-      { status: 502 }
-    );
   }
+
+  return NextResponse.json(actions, {
+    headers: {
+      "Cache-Control": "no-store",
+      "X-Xray-Enrichment": enrichment,
+    },
+  });
 }

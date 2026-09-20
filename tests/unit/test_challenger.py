@@ -111,3 +111,20 @@ def test_fixture_without_enough_positives_is_a_clear_error_not_a_crash():
     df = labels.label_pd6(rules.run(f))
     with pytest.raises(ValueError, match="positiv"):
         challenger.fit(df)  # 3 empresas: 5 positivos < min_positives
+
+
+def test_scorecard_kind_uses_the_compact_feature_set():
+    df = _indexed(_synthetic(n_companies=120, months=24, seed=8))
+    model = challenger.fit(df, challenger.ChallengerConfig(kind="scorecard"), train_until="2026-04")
+    assert model.feature_names == list(challenger.COMPACT_FEATURES)
+    imp = model.feature_importance()
+    assert list(imp.index) == list(challenger.COMPACT_FEATURES)
+    assert imp["rank_balance"] < 0  # sin colineales, el signo del colchón es el esperado
+    assert np.all((model.predict_pd6(df) >= 0) & (model.predict_pd6(df) <= 1))
+
+
+def test_explicit_feature_subset_is_respected_by_gbm():
+    df = _indexed(_synthetic(n_companies=120, months=24, seed=9))
+    cfg = challenger.ChallengerConfig(features=("rank_balance", "months_negative_6m"))
+    model = challenger.fit(df, cfg, train_until="2026-04")
+    assert model.feature_names == ["rank_balance", "months_negative_6m"]

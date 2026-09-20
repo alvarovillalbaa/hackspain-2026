@@ -23,7 +23,7 @@ from sklearn.preprocessing import StandardScaler
 
 KEYS = ["company_id", "month"]
 SCORE_COL = "challenger_score"
-KINDS = ("gbm", "logistic")
+KINDS = ("gbm", "logistic", "scorecard")  # scorecard = logístico sobre COMPACT_FEATURES
 
 # columna → restricción de monotonía sobre la PD: +1 sube con la columna, −1 baja, 0 libre.
 # Los rangos y el nivel van a 1 = más sana, así que la PD baja con ellos.
@@ -45,13 +45,20 @@ FEATURES: dict[str, int] = {
     "log_outflows": 0,
     "top_customer_share_12m": 0,
 }
+# Scorecard compacto: las cuatro señales del índice en rango, los meses en negativo, la
+# antigüedad y el tamaño. Sin colineales (nivel, momentum, crudos) para que cada coeficiente se lea.
+COMPACT_FEATURES: tuple[str, ...] = (
+    "rank_balance", "rank_inflows", "rank_dscr", "rank_overdue",
+    "months_negative_6m", "months_of_history", "log_outflows",
+)
 
 
 @dataclass(frozen=True)
 class ChallengerConfig:
     """Hiperparámetros de la auditoría §8 W2.2 más el suavizado a 3 meses que exige."""
 
-    kind: str = "gbm"  # "gbm" | "logistic"
+    kind: str = "gbm"  # "gbm" | "logistic" | "scorecard"
+    features: tuple[str, ...] = ()  # vacío = todas las de FEATURES (scorecard: COMPACT_FEATURES)
     n_estimators: int = 400
     learning_rate: float = 0.03
     num_leaves: int = 15
@@ -100,7 +107,7 @@ class ChallengerModel:
     def feature_importance(self) -> pd.Series:
         """GBM: ganancia por variable (≥ 0). Logístico: coeficiente sobre la variable estandarizada
         (signo legible: negativo = protege)."""
-        if self.cfg.kind == "logistic":
+        if self.cfg.kind in ("logistic", "scorecard"):
             values = self.booster.named_steps["clf"].coef_[0]
         else:
             values = self.booster.booster_.feature_importance(importance_type="gain")
@@ -127,8 +134,17 @@ def training_rows(indexed: pd.DataFrame, cfg: ChallengerConfig, train_until: str
     return mask
 
 
+def feature_columns(cfg: ChallengerConfig) -> list[str]:
+    """Columnas que entran al modelo según la configuración."""
+    if cfg.features:
+        return list(cfg.features)
+    if cfg.kind == "scorecard":
+        return list(COMPACT_FEATURES)
+    return list(FEATURES)
+
+
 def _estimator(cfg: ChallengerConfig, columns: list[str]):
-    if cfg.kind == "logistic":
+    if cfg.kind in ("logistic", "scorecard"):
         return Pipeline([
             ("impute", SimpleImputer(strategy="median")),
             ("scale", StandardScaler()),
@@ -155,7 +171,7 @@ def _estimator(cfg: ChallengerConfig, columns: list[str]):
 def fit(indexed: pd.DataFrame, cfg: ChallengerConfig | None = None, train_until: str = "2025-08") -> ChallengerModel:
     cfg = cfg or ChallengerConfig()
     mask = training_rows(indexed, cfg, train_until)
-    x = design_matrix(indexed.loc[mask])
+    x = design_matrix(indexed.loc[mask])[feature_columns(cfg)]
     y = indexed.loc[mask, "label_pd6"].astype(int)
     if int(y.sum()) < cfg.min_positives:
         raise ValueError(f"challenger.fit: {int(y.sum())} positivos en train (< {cfg.min_positives}); "

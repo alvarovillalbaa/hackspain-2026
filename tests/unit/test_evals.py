@@ -315,11 +315,15 @@ def test_compare_challenger_reports_every_candidate_and_a_verdict():
     groups = pd.Series({c: f"g{i % 7}" for i, c in enumerate(f["company_id"].unique())})
     months = [str(p) for p in pd.period_range("2026-02", "2026-04", freq="M")]
     m, models, out = evals.compare_challenger(scored, groups, train_until="2026-01", test_months=months)
-    for who in ("rules", "gbm", "logistic"):
+    from xray import challenger
+
+    kinds = set(challenger.KINDS)
+    for who in {"rules"} | kinds:
         assert set(m[who]) >= {"auc_pd6_by_horizon", "auc6_clean", "auc6_strict", "stability", "auc6_group_kfold"}
         assert m[who]["auc6_group_kfold"] is not None
-    assert set(m["verdict"]) == {"gbm", "logistic"}
+    assert set(m["verdict"]) == kinds
     assert all(isinstance(v["challenger_wins"], bool) for v in m["verdict"].values())
-    assert set(models) == {"gbm", "logistic"} and models["gbm"].n_pos > 0
-    assert {"score_gbm", "score_logistic"} <= set(out.columns)
-    assert "feature_importance" in m["gbm"] and "feature_importance" in m["logistic"]
+    assert set(models) == kinds and models["gbm"].n_pos > 0
+    assert {f"score_{k}" for k in kinds} <= set(out.columns)
+    assert all("feature_importance" in m[k] for k in kinds)
+    assert models["scorecard"].feature_names == list(challenger.COMPACT_FEATURES)

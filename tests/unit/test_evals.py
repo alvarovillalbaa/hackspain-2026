@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from xray import evals, features
+from xray import evals, features, labels, rules
 from xray.rules import RulesConfig
 
 
@@ -236,3 +236,94 @@ def test_reliability_counts_a_raw_dip_and_handles_too_few_rows():
     out = evals.reliability(df, test_months=None, n_bins=3)
     assert out["dips"] == 1 and out["largest_dip"] == pytest.approx(-10.0)
     assert evals.reliability(df.head(2), test_months=None, n_bins=3)["by_score_decile"] == []
+
+
+# --- PD6, estabilidad y comparación con los retadores -----------------------------------------
+
+
+def _pd6_table() -> pd.DataFrame:
+    """Dos empresas, 9 meses. `a` entra en rotura en 2025-08 (negativa desde 2025-07); `b` nunca.
+    `score` ordena bien, `bad` ordena al revés."""
+    months = [str(p) for p in pd.period_range("2025-01", periods=9, freq="M")]
+    rows = []
+    for m in months:
+        rows.append({"company_id": "a", "month": m, "min_balance_eur": -1.0 if m >= "2025-07" else 1.0,
+                     "months_negative_6m": 0, "score": 60.0 if m == "2025-01" else 30.0,
+                     "bad": 10.0 if m == "2025-01" else 90.0})
+        rows.append({"company_id": "b", "month": m, "min_balance_eur": 1.0,
+                     "months_negative_6m": 0, "score": 80.0, "bad": 20.0})
+    return labels.label_pd6(pd.DataFrame(rows))
+
+
+def test_auc_pd6_uses_breach_entry_and_eligibility():
+    t = _pd6_table()
+    good = evals.auc_pd6_by_horizon(t, "score", horizons=[6], test_months=None)
+    bad = evals.auc_pd6_by_horizon(t, "bad", horizons=[6], test_months=None)
+    assert good.loc[6, "auc"] == 1.0 and bad.loc[6, "auc"] == 0.0
+    assert good.loc[6, "n_pos"] == 5  # a: 2025-02..2025-06 ven la entrada de 2025-08 en (t, t+6]
+    assert good.loc[6, "n"] == 5 + 1 + 3  # a 2025-01 (0, t+6 = 2025-07 presente) + b 2025-01..03
+
+
+def test_auc_pd6_clean_subset_drops_recent_negatives():
+    t = _pd6_table()
+    t.loc[(t["company_id"] == "b") & (t["month"] <= "2025-02"), "months_negative_6m"] = 1
+    full = evals.auc_pd6_by_horizon(t, "score", horizons=[6], test_months=None)
+    clean = evals.auc_pd6_by_horizon(t, "score", horizons=[6], test_months=None, clean=True)
+    assert clean.loc[6, "n"] == full.loc[6, "n"] - 2
+
+
+def test_stability_of_a_frozen_ranking_is_perfect():
+    months = [str(p) for p in pd.period_range("2025-01", periods=4, freq="M")]
+    rows = [{"company_id": c, "month": m, "score": s} for m in months for c, s in zip("abcde", [10, 20, 30, 40, 50])]
+    st = evals.stability(pd.DataFrame(rows), "score", test_months=months[1:])
+    assert st["spearman_month_to_month"] == pytest.approx(1.0) and st["jump_rate_2_deciles"] == 0.0
+
+
+def test_stability_counts_jumps_of_two_deciles():
+    months = ["2025-01", "2025-02"]
+    scores = {"2025-01": list(range(10, 110, 10)), "2025-02": list(range(10, 110, 10))}
+    scores["2025-02"][0], scores["2025-02"][-1] = 100, 10  # la primera y la última se intercambian
+    rows = [{"company_id": f"c{i}", "month": m, "score": scores[m][i]} for m in months for i in range(10)]
+    st = evals.stability(pd.DataFrame(rows), "score", test_months=["2025-02"])
+    assert st["jump_rate_2_deciles"] == pytest.approx(0.2)
+    assert st["spearman_month_to_month"] < 1.0
+
+
+def _synthetic_contract(n_companies: int = 120, months: int = 24, seed: int = 5) -> pd.DataFrame:
+    """Misma construcción que tests/unit/test_challenger.py::_synthetic (duplicada para no importar tests)."""
+    rng = np.random.default_rng(seed)
+    rows = []
+    periods = [str(p) for p in pd.period_range("2024-09", periods=months, freq="M")]
+    for i in range(n_companies):
+        frailty = rng.normal()
+        for k, m in enumerate(periods):
+            buffer = 20 + 15 * frailty + rng.normal(scale=5)
+            rows.append({
+                "company_id": f"c{i:03d}", "month": m, "months_of_history": k + 1,
+                "operating_inflows_eur": 1e5, "outflows_eur": 9e4,
+                "min_balance_eur": buffer * 3e3, "months_negative_6m": 0,
+                "cash_buffer_days": buffer, "overdue_flow_rate_3m": rng.uniform(0, 0.5),
+                "dscr_6m": 4 + frailty, "net_cash_flow_ratio_3m": 0.1 * frailty,
+                "credit_line_usage": rng.uniform(0, 1), "top_customer_share_12m": 0.3,
+            })
+    return pd.DataFrame(rows)
+
+
+def test_compare_challenger_reports_every_candidate_and_a_verdict():
+    f = _synthetic_contract()
+    scored = rules.run(f, train_until="2026-01")
+    groups = pd.Series({c: f"g{i % 7}" for i, c in enumerate(f["company_id"].unique())})
+    months = [str(p) for p in pd.period_range("2026-02", "2026-04", freq="M")]
+    m, models, out = evals.compare_challenger(scored, groups, train_until="2026-01", test_months=months)
+    from xray import challenger
+
+    kinds = set(challenger.KINDS)
+    for who in {"rules"} | kinds:
+        assert set(m[who]) >= {"auc_pd6_by_horizon", "auc6_clean", "auc6_strict", "stability", "auc6_group_kfold"}
+        assert m[who]["auc6_group_kfold"] is not None
+    assert set(m["verdict"]) == kinds
+    assert all(isinstance(v["challenger_wins"], bool) for v in m["verdict"].values())
+    assert set(models) == kinds and models["gbm"].n_pos > 0
+    assert {f"score_{k}" for k in kinds} <= set(out.columns)
+    assert all("feature_importance" in m[k] for k in kinds)
+    assert models["scorecard"].feature_names == list(challenger.COMPACT_FEATURES)

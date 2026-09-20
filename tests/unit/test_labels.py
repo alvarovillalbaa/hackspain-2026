@@ -83,17 +83,17 @@ def _ranked(rows: list[dict]) -> pd.DataFrame:
 
 def test_state_index_is_weighted_mean_in_the_plan_order():
     cfg = RulesConfig()
-    assert cfg.weights == {"balance": 0.35, "inflows": 0.25, "dscr": 0.20, "overdue": 0.20}
+    assert cfg.weights == {"balance": 0.50, "inflows": 0.30, "dscr": 0.10, "overdue": 0.10}  # 20 sep 2026
     r = _ranked([{"company_id": "a", "month": "2025-01", "rank_balance": 1.0, "rank_overdue": 0.0,
                   "rank_dscr": 0.0, "rank_inflows": 0.0}])
     out = labels.state_index(r, cfg)
-    assert out.loc[0, "state_index"] == pytest.approx(0.35)
+    assert out.loc[0, "state_index"] == pytest.approx(0.50)
 
 
 def test_state_index_renormalises_weights_over_available_signals():
     r = _ranked([{"company_id": "a", "month": "2025-01", "rank_balance": 0.8, "rank_inflows": 0.4}])
     out = labels.state_index(r, RulesConfig())
-    expected = (0.35 * 0.8 + 0.25 * 0.4) / (0.35 + 0.25)
+    expected = (0.50 * 0.8 + 0.30 * 0.4) / (0.50 + 0.30)
     assert out.loc[0, "state_index"] == pytest.approx(expected)
     assert out.loc[0, "n_signals"] == 2
 

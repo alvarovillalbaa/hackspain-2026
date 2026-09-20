@@ -2,7 +2,6 @@ import type { CompanySummary } from "../company-summary";
 import type { GroupScore } from "../group-score";
 import type { GroupSummary } from "../group-summary";
 import type { PeerCohort } from "../peers";
-import type { BookProduct } from "../book-products";
 import type { PortfolioAction } from "../portfolio-actions";
 import type {
   ActionRecommendation,
@@ -113,10 +112,6 @@ export const eveProvider = {
 
   async listPortfolioActions(): Promise<PortfolioAction[]> {
     return apiGet<PortfolioAction[]>("/api/xray/actions");
-  },
-
-  async listBookProducts(): Promise<BookProduct[]> {
-    return apiGet<BookProduct[]>("/api/xray/book");
   },
 
   async listProducts(

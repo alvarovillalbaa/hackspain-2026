@@ -46,13 +46,4 @@ test.describe("demo journeys", () => {
     expect(body.length).toBeGreaterThan(20);
     expect(body).not.toMatch(/€\s*999\.?999/);
   });
-
-  test("productos marketplace is reachable", async ({ page }) => {
-    await page.goto("/productos");
-    await expect(
-      page.getByRole("navigation", { name: "breadcrumb" }).getByText("Productos")
-    ).toBeVisible({ timeout: 45_000 });
-    const body = await page.locator("body").innerText();
-    expect(body.length).toBeGreaterThan(40);
-  });
 });

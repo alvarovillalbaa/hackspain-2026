@@ -18,7 +18,7 @@ Human map of this folder: [`README.md`](README.md). This Next.js app also hosts 
 - `agent/subagents/watcher/` — portfolio alerts.
 - `lib/ai/` — Eve binds one model (Helmcode if `OPENAI_API_KEY`, else Gateway) with **no** provider failover. Simple AI SDK calls (`generateStructured` / `generatePlain`) try Gateway then Helmcode. Hooks: `hooks/ai/use-ai-object.ts`.
 - `app/chat/`, `app/s/`, `app/_components/` — the web chat that talks to the agent through `useEveAgent` from `eve/react`.
-- `app/page.tsx`, `app/companies/`, `app/acciones/`, `app/productos/`, `app/c/` — demo X Ray (dashboard → empresas → ficha → marketplace). Docs: `docs/specs/frontend-v0.md`. Runtime: `docs/audits/2026-09-20-auditoria-plataforma.md`. LLM ops: `docs/runbooks/ai-runtime.md`.
+- `app/page.tsx`, `app/companies/`, `app/acciones/`, `app/c/` — demo X Ray (dashboard → empresas → ficha → marketplace). Docs: `docs/specs/frontend-v0.md`. Runtime: `docs/audits/2026-09-20-auditoria-plataforma.md`. LLM ops: `docs/runbooks/ai-runtime.md`.
 
 For a content-only change to the agent's identity, purpose, tone, or response guidelines, edit `agent/instructions.md`. Preserve the model resolver in `lib/ai/provider.ts` / `agent/lib/model.ts` unless asked to change it.
 

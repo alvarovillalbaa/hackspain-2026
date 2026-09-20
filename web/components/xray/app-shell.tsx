@@ -9,7 +9,6 @@ import {
   ListTodo,
   Search,
   Settings,
-  Wallet,
 } from "lucide-react";
 import {
   Breadcrumb,
@@ -68,12 +67,6 @@ const PRIMARY_NAV = [
     match: "acciones",
     icon: ListTodo,
   },
-  {
-    href: "/productos",
-    label: "Productos",
-    match: "productos",
-    icon: Wallet,
-  },
 ] as const;
 
 type NavMatch = (typeof PRIMARY_NAV)[number]["match"];
@@ -90,7 +83,6 @@ function navActive(pathname: string, match: NavMatch): boolean {
     );
   }
   if (match === "acciones") return pathname === "/acciones";
-  if (match === "productos") return pathname === "/productos";
   return false;
 }
 

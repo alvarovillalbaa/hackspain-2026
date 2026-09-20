@@ -4,12 +4,21 @@ import {
   RadialBar,
   RadialBarChart,
   PolarAngleAxis,
-  ResponsiveContainer,
 } from "recharts";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 import { bandMeta } from "@/lib/xray/bands";
 import type { Band } from "@/lib/xray/types";
 import { cn } from "@/lib/utils";
 import { ReasoningHint } from "./reasoning-hint";
+
+const chartConfig = {
+  score: { label: "Score", color: "var(--primary)" },
+} satisfies ChartConfig;
 
 export function ScoreGauge({
   score,
@@ -51,27 +60,38 @@ export function ScoreGauge({
           <ReasoningHint text={reasoning} />
         </div>
       ) : null}
-      <div className={box}>
-        <ResponsiveContainer width="100%" height="100%">
-          <RadialBarChart
-            cx="50%"
-            cy="50%"
-            innerRadius="72%"
-            outerRadius="100%"
-            barSize={size === "sm" && !embat ? 8 : 12}
-            data={data}
-            startAngle={220}
-            endAngle={-40}
-          >
-            <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-            <RadialBar
-              background={{ fill: embat ? "#dce0e6" : "var(--muted)" }}
-              dataKey="value"
-              cornerRadius={8}
-            />
-          </RadialBarChart>
-        </ResponsiveContainer>
-      </div>
+      <ChartContainer
+        config={chartConfig}
+        className={cn(box, "aspect-auto")}
+        initialDimension={{ width: 192, height: 192 }}
+      >
+        <RadialBarChart
+          cx="50%"
+          cy="50%"
+          innerRadius="72%"
+          outerRadius="100%"
+          barSize={size === "sm" && !embat ? 8 : 12}
+          data={data}
+          startAngle={220}
+          endAngle={-40}
+        >
+          <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+          <ChartTooltip
+            content={
+              <ChartTooltipContent
+                formatter={(value) =>
+                  typeof value === "number" ? value.toFixed(1) : String(value)
+                }
+              />
+            }
+          />
+          <RadialBar
+            background={{ fill: embat ? "var(--border)" : "var(--muted)" }}
+            dataKey="value"
+            cornerRadius={8}
+          />
+        </RadialBarChart>
+      </ChartContainer>
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pt-2">
         {embat ? (
           <span
@@ -86,7 +106,7 @@ export function ScoreGauge({
               {size === "sm" ? score.toFixed(0) : score.toFixed(1)}
             </span>
             <span className="mt-0.5 max-w-[90%] truncate text-center font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
-              {label ?? ""}
+              {label ?? meta?.label ?? ""}
             </span>
           </>
         )}

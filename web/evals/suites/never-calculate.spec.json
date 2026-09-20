@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "eval_id": "xray-never-calculate",
+  "description": "Ranking match/uplift in a decision payload equals server reassembly.",
+  "manifest": {
+    "dataset_id": "never-calculate-demo",
+    "dataset_version": "2026-09-20",
+    "target_version": "reassemble-v1",
+    "evaluator_version": "deterministic-v1",
+    "prompt_version": "none",
+    "data_policy_fingerprint": "sha256:xray-never-calculate-v1",
+    "sample_manifest_id": "sample_never_calculate_v1"
+  },
+  "variables": {
+    "ok": { "path": "ok", "type": "boolean", "required": true }
+  },
+  "evaluation": {
+    "id": "row-gate",
+    "op": "gate",
+    "hard": [
+      {
+        "id": "reassemble-ok",
+        "op": "eq",
+        "left": { "var": "ok" },
+        "right": true
+      }
+    ]
+  },
+  "dataset_gate": {
+    "min_pass_rate": 1,
+    "max_failed_rows": 0
+  }
+}

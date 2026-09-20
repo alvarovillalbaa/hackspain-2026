@@ -10,6 +10,12 @@ type Draft = Omit<ActionRecommendation, "id" | "uplift" | "origin"> & {
   weight: number;
 };
 
+const DEBT_MARKETPLACE: ActionKind[] = [
+  "refinance",
+  "new_debt",
+  "extend_line",
+];
+
 function money(n: number, currency: string): string {
   return `${new Intl.NumberFormat("es", { maximumFractionDigits: 0 }).format(n)} ${currency}`;
 }
@@ -44,7 +50,11 @@ function finish(
     });
 }
 
-/** Actions from cash/debt/invoices + Health Scorer signals. LLM does not pick amounts. */
+function hasDebtMarketplace(drafts: Draft[]): boolean {
+  return drafts.some((d) => DEBT_MARKETPLACE.includes(d.kind));
+}
+
+/** Actions from cash/debt + Health Scorer signals. LLM does not pick amounts. */
 export function recommendActions(input: {
   snapshot: ScoreSnapshot;
   facts: CompanyFacts | null;
@@ -63,15 +73,20 @@ export function recommendActions(input: {
   const rate = Math.min(facts.implied_debt_rate ?? 0, 0.25);
   const loc = facts.debt_by_type.lineofcredit;
 
-  if (idle >= 10_000 && rate > 0) {
-    const yearly = idle * rate;
+  // Always amortize when there is live debt (operational, non-marketplace).
+  if (debt > 0) {
+    const amt = idle >= 1_000 ? idle : Math.min(debt, Math.max(cash, 5_000));
+    const yearly = amt * (rate > 0 ? rate : 0.04);
     drafts.push({
       kind: "amortize",
       title: "Amortizar con caja ociosa",
-      rationale: `Hay ${money(idle, currency)} de caja frente a deuda viva. Amortizar ahorra unos ${money(yearly, currency)} al año al ${(rate * 100).toFixed(1)} %.`,
-      recommended_amount: ticket(idle),
+      rationale:
+        idle >= 1_000
+          ? `Hay ${money(idle, currency)} de caja frente a deuda viva. Amortizar ahorra unos ${money(yearly, currency)} al año al ${((rate || 0.04) * 100).toFixed(1)} %.`
+          : `Hay ${money(debt, currency)} de deuda viva. Amortizar ${money(amt, currency)} reduce el servicio aunque la caja esté justa.`,
+      recommended_amount: ticket(amt),
       dimension_deltas: { debt: 0.1, liquidity: -0.04, payments: 0.02 },
-      weight: yearly,
+      weight: yearly + debt,
     });
   }
 
@@ -103,34 +118,13 @@ export function recommendActions(input: {
     });
   }
 
-  const issued = facts.invoice_aging.issued_overdue;
-  if (issued >= 5_000) {
-    drafts.push({
-      kind: "factoring",
-      title: "Anticipar cobros vencidos",
-      rationale: `Hay ${money(issued, currency)} en facturas emitidas vencidas. Anticiparlas acelera cobros y sube liquidez.`,
-      recommended_amount: ticket(issued),
-      dimension_deltas: { collections: 0.1, liquidity: 0.08 },
-      weight: issued,
-    });
-  }
-
-  const received = facts.invoice_aging.received_overdue;
-  if (received >= 5_000) {
-    drafts.push({
-      kind: "confirming",
-      title: "Estirar pagos a proveedores",
-      rationale: `Hay ${money(received, currency)} en facturas a proveedores vencidas. El confirming alarga caja sin borrar la deuda comercial.`,
-      recommended_amount: ticket(received),
-      dimension_deltas: { payments: 0.09, liquidity: 0.05 },
-      weight: received,
-    });
-  }
-
   if (loc && loc.granted > 0) {
     const usage = Math.abs(loc.outstanding) / loc.granted;
     if (usage >= 0.75) {
-      const extra = Math.max(loc.granted * 0.25, Math.abs(loc.outstanding) - loc.granted);
+      const extra = Math.max(
+        loc.granted * 0.25,
+        Math.abs(loc.outstanding) - loc.granted
+      );
       drafts.push({
         kind: "extend_line",
         title: "Ampliar línea de crédito",
@@ -162,7 +156,13 @@ export function recommendActions(input: {
   }
 
   const dscr = exported?.signals.dscr_6m;
-  if (dscr != null && dscr > 0 && dscr < 1.2 && debt >= 10_000 && !drafts.some((d) => d.kind === "refinance")) {
+  if (
+    dscr != null &&
+    dscr > 0 &&
+    dscr < 1.2 &&
+    debt >= 10_000 &&
+    !drafts.some((d) => d.kind === "refinance")
+  ) {
     drafts.push({
       kind: "refinance",
       title: "Aliviar servicio de deuda (DSCR < 1,2)",
@@ -171,6 +171,29 @@ export function recommendActions(input: {
       dimension_deltas: { debt: 0.12, payments: 0.04 },
       weight: debt,
     });
+  }
+
+  // Guarantee ≥1 debt marketplace action when debt exists or buffer is weak.
+  if (!hasDebtMarketplace(drafts)) {
+    if (debt > 0) {
+      drafts.push({
+        kind: "refinance",
+        title: "Revisar coste de la deuda",
+        rationale: `Hay ${money(debt, currency)} de deuda viva. Conviene revisar tipo y plazo con el banco.`,
+        recommended_amount: ticket(debt),
+        dimension_deltas: { debt: 0.08, payments: 0.02 },
+        weight: debt * 0.5,
+      });
+    } else if (buffer != null && buffer < 15 && outflow > 0) {
+      drafts.push({
+        kind: "new_debt",
+        title: "Reconstruir colchón de caja",
+        rationale: `Sin deuda viva y con ${buffer.toFixed(0)} días de caja. Cubrir un mes de pagos (${money(outflow, currency)}).`,
+        recommended_amount: ticket(outflow),
+        dimension_deltas: { liquidity: 0.14, debt: -0.03 },
+        weight: outflow,
+      });
+    }
   }
 
   return finish(cid, snapshot, drafts);
@@ -194,7 +217,7 @@ export function actionKindLabel(kind: ActionKind): string {
     new_debt: "Nueva deuda",
     amortize: "Amortización",
     extend_line: "Línea de crédito",
-    factoring: "Factoring",
+    factoring: "Anticipo de facturas",
     confirming: "Confirming",
   };
   return map[kind];

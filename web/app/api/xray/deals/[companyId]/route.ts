@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import {
-  deleteDeal,
-  readDeal,
-  writeDeal,
-} from "@/lib/xray/store";
+import { materializeDealPack } from "@/lib/xray/materialize-deal";
+import { deleteDeal, readDeal, writeDeal } from "@/lib/xray/store";
 import type { AcceptedDeal } from "@/lib/xray/types";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 type Ctx = { params: Promise<{ companyId: string }> };
 
@@ -56,8 +54,14 @@ export async function PUT(req: Request, ctx: Ctx) {
   }
   const deal = parsed.data as AcceptedDeal;
   await writeDeal(deal);
+  let rescore = false;
+  try {
+    rescore = await materializeDealPack(deal);
+  } catch (err) {
+    console.warn("[deals] materializeDealPack failed:", err);
+  }
   return NextResponse.json(
-    { deal },
+    { deal, rescore },
     { headers: { "Cache-Control": "no-store" } }
   );
 }

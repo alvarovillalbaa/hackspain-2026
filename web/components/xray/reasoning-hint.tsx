@@ -7,19 +7,45 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useAiObject } from "@/hooks/ai/use-ai-object";
 import { cn } from "@/lib/utils";
 
-/** Info icon whose tooltip holds reasoning / rationale copy. */
+type Layers = { plain: string; technical: string };
+
+/**
+ * Info icon whose tooltip holds dual-register reasoning (plain + technical).
+ * On explain failure, shows the original grounded sentence — never a fake rewrite.
+ */
 export function ReasoningHint({
   text,
+  context,
   className,
   side = "top",
 }: {
   text: string | null | undefined;
+  /** Extra grounded facts passed to the explain endpoint. */
+  context?: Record<string, unknown>;
   className?: string;
   side?: "top" | "bottom" | "left" | "right";
 }) {
+  const enabled = Boolean(text?.trim());
+  const { data, error } = useAiObject<Layers>({
+    url: enabled ? "/api/xray/explain" : null,
+    body: enabled
+      ? {
+          text: text!,
+          context,
+        }
+      : undefined,
+    enabled,
+  });
+
   if (!text?.trim()) return null;
+
+  // Grounded source always available; AI layers only when rewrite succeeded.
+  const plain = !error && data?.plain ? data.plain : text;
+  const technical = !error && data?.technical ? data.technical : text;
+  const same = plain.trim() === technical.trim();
 
   return (
     <TooltipProvider>
@@ -42,9 +68,14 @@ export function ReasoningHint({
         />
         <TooltipContent
           side={side}
-          className="max-w-sm whitespace-pre-wrap text-left leading-snug"
+          className="max-w-sm space-y-2 whitespace-pre-wrap text-left leading-snug"
         >
-          {text}
+          <p>{plain}</p>
+          {!same ? (
+            <p className="border-t border-border/60 pt-2 text-[11px] text-muted-foreground">
+              {technical}
+            </p>
+          ) : null}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

@@ -1,14 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from "@/components/ui/empty";
 import {
   Item,
   ItemActions,
@@ -34,9 +28,11 @@ import {
   SignedMetricBadge,
 } from "@/components/embat/offer-ui";
 import { AmortizeDashboard } from "@/components/xray/amortize-dashboard";
-import { AmountSolver } from "@/components/xray/amount-solver";
+import { EmptyState, ErrorState, AiFailureState } from "@/components/xray/feedback-state";
 import { MarketplacePipeline } from "@/components/xray/marketplace-pipeline";
 import { ReasoningHint } from "@/components/xray/reasoning-hint";
+import { ScoreDeltaBar } from "@/components/xray/score-delta-bar";
+import { ScoreUplift } from "@/components/xray/score-uplift";
 import { useActions } from "@/hooks/xray/use-actions";
 import { useCompanies } from "@/hooks/xray/use-companies";
 import { useCompanyScore } from "@/hooks/xray/use-company-score";
@@ -51,7 +47,6 @@ import {
 import {
   annualInterestSaving,
   embatOriginationFee,
-  scoreImprovement,
 } from "@/lib/xray/offer-metrics";
 import { publishedProjection } from "@/lib/xray/scoring";
 import type { ProductMatch } from "@/lib/xray/types";
@@ -68,7 +63,6 @@ function OfferItem({
 }) {
   const offerRate = match.product.issuer_terms.rate_annual;
   const saving = annualInterestSaving(match.amount, currentRate, offerRate);
-  const uplift = scoreImprovement(match.uplift);
   const fee = embatOriginationFee(match.amount);
   const issuer = match.product.issuer.name;
   const matchPct = Math.round(match.breakdown.match * 100);
@@ -114,7 +108,6 @@ function OfferItem({
             {formatSavingPerYear(saving)}
           </SignedMetricBadge>
         )}
-        <SignedMetricBadge value={uplift}>{String(uplift)}</SignedMetricBadge>
         <FeeBadge amount={fee} />
       </ItemActions>
     </Item>
@@ -139,7 +132,6 @@ export function Ofertas({
     summaries.find((s) => s.company_id === companyId)?.implied_rate ?? null;
   const isAmortize = action?.kind === "amortize";
 
-  const [amount, setAmount] = useState<number | undefined>(undefined);
   const {
     data: matches,
     loading: matchesLoading,
@@ -147,43 +139,30 @@ export function Ofertas({
     phase,
     detail,
     headline,
-    source,
-    fallbackReason,
     quantity,
   } = useProductMatches(
     isAmortize ? undefined : companyId,
-    isAmortize || !action ? undefined : actionId,
-    amount
+    isAmortize || !action ? undefined : actionId
   );
 
   const banner = score ? pickBannerAlert(score.alerts) : null;
   const loading =
     actionsLoading || scoreLoading || (!isAmortize && matchesLoading);
 
-  const effectiveAmount =
-    amount ?? matches[0]?.amount ?? action?.recommended_amount;
-
-  const amountBounds = useMemo(() => {
-    const rec = action?.recommended_amount ?? 50_000;
-    if (matches.length === 0) {
-      return { min: Math.min(50_000, rec), max: Math.max(1_000_000, rec) };
-    }
-    return {
-      min: Math.min(rec, ...matches.map((m) => m.product.amount_min)),
-      max: Math.max(rec, ...matches.map((m) => m.product.amount_max)),
-    };
-  }, [matches, action]);
-
   const liveUplift = useMemo(() => {
-    if (!score || !action || effectiveAmount == null) return null;
-    const p = publishedProjection(score, action, effectiveAmount);
+    if (!score || !action) return null;
+    const p = publishedProjection(
+      score,
+      action,
+      action.recommended_amount
+    );
     return {
       uplift: p.uplift,
       band: p.toBand,
       from: p.before,
       to: p.after,
     };
-  }, [score, action, effectiveAmount]);
+  }, [score, action]);
 
   const amountReasoning = quantity
     ? [quantity.reasoning, ...(quantity.risks ?? [])]
@@ -212,7 +191,7 @@ export function Ofertas({
       <FichaFrame banner={banner}>
         <MarketplacePipeline
           phase={phase === "idle" ? "queued" : phase}
-          detail={fallbackReason ?? detail}
+          detail={detail}
         />
       </FichaFrame>
     );
@@ -222,40 +201,29 @@ export function Ofertas({
     <FichaFrame banner={banner}>
       <div className="mb-3 flex flex-wrap items-center gap-2 px-5 text-[12px] font-medium tracking-[-0.12px] text-muted-foreground">
         {action ? <span>{actionKindLabel(action.kind)}</span> : null}
-        {source === "engine" || fallbackReason ? (
-          <span>· motor determinista</span>
-        ) : null}
-        {headline ? <ReasoningHint text={headline} /> : null}
+        {headline && !matchesError ? <ReasoningHint text={headline} /> : null}
       </div>
-
-      {phase === "fallback" ? (
-        <div className="px-5 pb-3">
-          <MarketplacePipeline
-            phase="fallback"
-            detail={fallbackReason ?? detail}
-          />
-        </div>
-      ) : null}
 
       <div className="flex flex-wrap items-start gap-[30px] px-5">
         <section className="min-w-0 flex-1" aria-label="Ofertas de financiación">
           {!action ? (
-            <p className="py-8 text-sm text-destructive">
-              No se ha encontrado esta acción.
-            </p>
+            <ErrorState
+              title="Acción no encontrada"
+              description="No se ha encontrado esta acción."
+              placement="card"
+            />
           ) : matchesError ? (
-            <p className="py-8 text-sm text-destructive">
-              No se han podido cargar las ofertas. {matchesError.message}
-            </p>
+            <AiFailureState
+              error={matchesError}
+              title="No se han podido cargar las ofertas"
+              placement="card"
+            />
           ) : matches.length === 0 ? (
-            <Empty className="min-h-[200px] border-0">
-              <EmptyHeader>
-                <EmptyTitle>Sin ofertas</EmptyTitle>
-                <EmptyDescription>
-                  Sin ofertas para esta acción.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
+            <EmptyState
+              title="Sin ofertas"
+              description="Sin ofertas para esta acción."
+              placement="card"
+            />
           ) : (
             <ItemGroup className="gap-0">
               {matches.map((match, i) => (
@@ -273,33 +241,42 @@ export function Ofertas({
         </section>
 
         <div className="w-full max-w-[280px] shrink-0">
-          {matches.length > 0 && action && liveUplift ? (
+          {matches.length > 0 && action && score && liveUplift ? (
             <Card
               size="sm"
               className="rounded-2xl border-border bg-white shadow-sm"
             >
               <CardHeader>
-                <CardTitle className="text-[14px] font-medium tracking-[-0.14px] text-muted-foreground">
+                <CardTitle className="flex items-center gap-1.5 text-[14px] font-medium tracking-[-0.14px] text-muted-foreground">
                   Importe
+                  <ReasoningHint text={amountReasoning} />
                 </CardTitle>
                 <CardDescription className="text-[13px] text-muted-foreground">
                   Recomendado{" "}
                   {formatCurrency(action.recommended_amount, currency)}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <AmountSolver
-                  value={effectiveAmount ?? action.recommended_amount}
-                  min={amountBounds.min}
-                  max={amountBounds.max}
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono text-lg tabular-nums">
+                    {formatCurrency(action.recommended_amount, currency)}
+                  </span>
+                  <ScoreUplift
+                    uplift={liveUplift.uplift}
+                    from={liveUplift.from}
+                    to={liveUplift.to}
+                    toBand={liveUplift.band}
+                  />
+                </div>
+                <ScoreDeltaBar
+                  current={score.score}
                   uplift={liveUplift.uplift}
-                  from={liveUplift.from}
-                  to={liveUplift.to}
                   toBand={liveUplift.band}
-                  currency={currency}
-                  reasoning={amountReasoning}
-                  onChange={setAmount}
                 />
+                <p className="text-[11px] text-muted-foreground">
+                  Misma mejora de Health Score para cualquiera de estos
+                  productos.
+                </p>
               </CardContent>
             </Card>
           ) : null}

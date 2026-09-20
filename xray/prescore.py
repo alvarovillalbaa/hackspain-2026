@@ -3,7 +3,7 @@
     uv run xray-prescore-packs
 
 El score lo calcula siempre el Health Scorer de Python. Lo que hace este módulo
-es correrlo *offline* sobre los packs de `docs/data/raw/new/` por el mismo seam
+es correrlo *offline* sobre los packs de `data/packs/` por el mismo seam
 que usa `POST /ingest` (unify → features.build → rules.run con el modelo
 congelado → records_from_scored) y dejar el resultado en
 `web/lib/xray/dataset/import_packs.json`.
@@ -58,7 +58,7 @@ def default_out() -> Path:
 
 
 def default_packs_root() -> Path:
-    return repo_root() / "docs" / "data" / "raw" / "new"
+    return repo_root() / "data" / "packs"
 
 
 def _uploads_from_dir(pack: Path) -> list[UploadedFile]:
@@ -214,7 +214,7 @@ def build(
         "source": "xray-prescore-packs",
         "note": (
             "Scores del Health Scorer de Python calculados offline sobre los packs "
-            "de docs/data/raw/new/. Los sirve /api/xray/import cuando no hay "
+            "de data/packs/. Los sirve /api/xray/import cuando no hay "
             "XRAY_API_URL alcanzable (Vercel)."
         ),
         "packs": packs,

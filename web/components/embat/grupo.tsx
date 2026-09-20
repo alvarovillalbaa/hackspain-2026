@@ -18,6 +18,7 @@ import {
   scoreBadgeClass,
   statusClass,
 } from "@/components/embat/chrome";
+import { ErrorState } from "@/components/xray/feedback-state";
 import { useCompanySummaries } from "@/hooks/xray/use-company-summaries";
 import { useDemoSession } from "@/hooks/xray/use-demo-session";
 import { useGroupActions, type GroupAction } from "@/hooks/xray/use-group-actions";
@@ -32,7 +33,11 @@ export function Grupo({ groupId }: { groupId: string }) {
   const { data: summaries } = useCompanySummaries();
   const focusGroupId = useDemoSession();
   const members = group?.members ?? [];
-  const { data: actions, loading: actionsLoading } = useGroupActions(members);
+  const {
+    data: actions,
+    loading: actionsLoading,
+    error: actionsError,
+  } = useGroupActions(members);
   const banner = group ? pickBannerAlert(group.snapshot.alerts) : null;
 
   return (
@@ -40,15 +45,20 @@ export function Grupo({ groupId }: { groupId: string }) {
       {loading ? (
         <FichaSkeleton />
       ) : error || !group ? (
-        <p className="px-5 text-[14px] text-destructive">
-          {error?.message ?? "No se ha podido cargar el score de este grupo."}
-        </p>
+        <ErrorState
+          title="No se ha podido cargar el grupo"
+          description={
+            error?.message ?? "No se ha podido cargar el score de este grupo."
+          }
+          placement="page"
+        />
       ) : (
         <GrupoBody
           groupId={groupId}
           group={group}
           actions={actions}
           actionsLoading={actionsLoading}
+          actionsError={actionsError}
           summaries={summaries}
           isDemoFocus={focusGroupId === groupId}
         />
@@ -62,6 +72,7 @@ function GrupoBody({
   group,
   actions,
   actionsLoading,
+  actionsError,
   summaries,
   isDemoFocus,
 }: {
@@ -69,6 +80,7 @@ function GrupoBody({
   group: GroupScore;
   actions: GroupAction[];
   actionsLoading: boolean;
+  actionsError: Error | null;
   summaries: CompanySummary[];
   isDemoFocus: boolean;
 }) {
@@ -90,6 +102,7 @@ function GrupoBody({
         <AccionesCard
           actions={actions}
           loading={actionsLoading}
+          error={actionsError}
           snapshot={score}
           hrefFor={(action) => `/c/${action.company_id}/a/${action.id}`}
           subtitleFor={many ? (action) => action.company_name : undefined}
@@ -118,10 +131,10 @@ function EmpresasCard({
       className={cn(fichaCardClass, "min-w-0")}
       aria-labelledby="empresas-grupo"
     >
-      <header className="border-b border-[#dce0e6] px-5 py-[15px]">
+      <header className="px-5 py-[15px]">
         <h2
           id="empresas-grupo"
-          className="text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]"
+          className="text-[14px] font-medium tracking-[-0.14px] text-table-header"
         >
           Empresas del grupo
         </h2>
@@ -142,12 +155,12 @@ function EmpresasCard({
             >
               <div className="min-w-0 flex-1">
                 <p
-                  className="truncate text-[15px] font-medium tracking-[-0.15px] text-[#666]"
+                  className="truncate text-[15px] font-medium tracking-[-0.15px] text-muted-foreground"
                   title={m.name}
                 >
                   {m.name}
                 </p>
-                <p className="text-[12px] text-[#6b6b6b]" title={m.company_id}>
+                <p className="text-[12px] text-table-header" title={m.company_id}>
                   {m.company_id}
                 </p>
               </div>

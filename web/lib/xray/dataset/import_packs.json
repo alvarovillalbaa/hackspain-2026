@@ -1,7 +1,7 @@
 {
   "generated_at": "2026-09-19T22:50:26+00:00",
   "source": "xray-prescore-packs",
-  "note": "Scores del Health Scorer de Python calculados offline sobre los packs de docs/data/raw/new/. Los sirve /api/xray/import cuando no hay XRAY_API_URL alcanzable (Vercel).",
+  "note": "Scores del Health Scorer de Python calculados offline sobre los packs de data/packs/. Los sirve /api/xray/import cuando no hay XRAY_API_URL alcanzable (Vercel).",
   "packs": [
     {
       "case": "group",

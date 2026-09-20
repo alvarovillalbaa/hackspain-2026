@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,23 +10,88 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemSeparator,
-  ItemTitle,
-} from "@/components/ui/item";
 import { IssuerMark } from "@/components/embat/offer-ui";
-import { embatRowFocusRing } from "@/components/embat/chrome";
+import { ErrorState } from "@/components/xray/feedback-state";
+import {
+  SortableTable,
+  type SortableColumn,
+} from "@/components/xray/sortable-table";
 import { useBookProducts } from "@/hooks/xray/use-book-products";
+import type { BookProduct } from "@/lib/xray/book-products";
 import { formatCompactEuro, formatRatePct } from "@/lib/xray/format";
-import { cn } from "@/lib/utils";
 
 export function ProductosBook() {
+  const router = useRouter();
   const { data, loading, error } = useBookProducts();
+
+  const columns: SortableColumn<BookProduct>[] = useMemo(
+    () => [
+      {
+        id: "company",
+        header: "Empresa",
+        sortKey: "company_name",
+        cell: (row) => (
+          <div className="flex items-center gap-3">
+            <IssuerMark name={row.entity_name} />
+            <div>
+              <div className="font-medium">{row.company_name}</div>
+              <div className="text-[12px] text-muted-foreground">
+                {row.entity_name}
+              </div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: "type",
+        header: "Tipo",
+        sortKey: "type_label",
+        cell: (row) => (
+          <Badge variant="secondary" className="rounded-xl">
+            {row.type_label}
+          </Badge>
+        ),
+      },
+      {
+        id: "outstanding",
+        header: "Vivo",
+        sortKey: "outstanding",
+        align: "right",
+        cell: (row) => (
+          <span className="tabular-nums">
+            {row.outstanding != null
+              ? formatCompactEuro(row.outstanding)
+              : "—"}
+          </span>
+        ),
+      },
+      {
+        id: "rate",
+        header: "Tipo %",
+        sortKey: "annual_rate",
+        align: "right",
+        cell: (row) => (
+          <span className="tabular-nums text-muted-foreground">
+            {formatRatePct(row.annual_rate)}
+          </span>
+        ),
+      },
+      {
+        id: "residual",
+        header: "Plazo",
+        sortKey: "residual_periods",
+        align: "right",
+        cell: (row) => (
+          <span className="tabular-nums text-muted-foreground">
+            {row.residual_periods != null
+              ? `${row.residual_periods} m`
+              : "—"}
+          </span>
+        ),
+      },
+    ],
+    []
+  );
 
   if (loading) {
     return (
@@ -39,9 +105,10 @@ export function ProductosBook() {
 
   if (error) {
     return (
-      <p className="py-8 text-sm text-destructive">
-        No se ha podido cargar el libro. {error.message}
-      </p>
+      <ErrorState
+        title="No se ha podido cargar el libro"
+        description={error.message}
+      />
     );
   }
 
@@ -59,48 +126,12 @@ export function ProductosBook() {
   }
 
   return (
-    <ItemGroup className="gap-0">
-      {data.map((row, i) => (
-        <div key={row.id}>
-          {i > 0 ? <ItemSeparator className="my-0" /> : null}
-          <Item
-            size="sm"
-            className={cn(
-              "rounded-none border-0 px-0 py-3 transition-colors duration-150 ease-out hover:bg-muted/50 motion-reduce:transition-none",
-              embatRowFocusRing
-            )}
-            render={<Link href={`/c/${row.company_id}`} />}
-          >
-            <div className="flex shrink-0 items-center pr-3">
-              <IssuerMark name={row.entity_name} />
-            </div>
-            <ItemContent>
-              <ItemTitle className="text-[15px]" title={row.company_name}>
-                {row.company_name}
-              </ItemTitle>
-              <ItemDescription>{row.entity_name}</ItemDescription>
-            </ItemContent>
-            <ItemActions className="flex-wrap justify-end gap-2">
-              <Badge variant="secondary" className="rounded-xl">
-                {row.type_label}
-              </Badge>
-              <span className="min-w-[4.5rem] text-right text-sm tabular-nums">
-                {row.outstanding != null
-                  ? formatCompactEuro(row.outstanding)
-                  : "—"}
-              </span>
-              <span className="text-sm text-muted-foreground tabular-nums">
-                {formatRatePct(row.annual_rate)}
-              </span>
-              <span className="text-sm text-muted-foreground tabular-nums">
-                {row.residual_periods != null
-                  ? `${row.residual_periods} m`
-                  : "—"}
-              </span>
-            </ItemActions>
-          </Item>
-        </div>
-      ))}
-    </ItemGroup>
+    <SortableTable
+      rows={data}
+      columns={columns}
+      rowKey={(r) => r.id}
+      defaultSortKey="outstanding"
+      onRowClick={(row) => router.push(`/c/${row.company_id}`)}
+    />
   );
 }

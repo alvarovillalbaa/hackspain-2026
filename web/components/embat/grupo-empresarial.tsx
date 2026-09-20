@@ -23,6 +23,7 @@ import { outlookMeta } from "@/lib/xray/bands";
 import type { GroupSummary } from "@/lib/xray/group-summary";
 import type { Outlook } from "@/lib/xray/types";
 import { embatDisplayClass } from "@/components/embat/font";
+import { ErrorState } from "@/components/xray/feedback-state";
 import { cn } from "@/lib/utils";
 
 type OutlookFilter = Outlook | "all";
@@ -95,14 +96,14 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
   return (
     <section
       className={cn(
-        "flex w-full flex-col overflow-hidden rounded-2xl border border-[#dce0e6] bg-white shadow-[0px_1px_2px_0px_rgba(13,19,30,0.1)]",
+        "flex w-full flex-col overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-border/40",
         className
       )}
     >
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#dce0e6] px-5 py-[15px]">
+      <header className="flex flex-wrap items-center justify-between gap-3 px-5 py-[15px]">
         <div className="flex min-w-0 flex-wrap items-center gap-2.5">
           <h1
-            className={`${embatDisplayClass} shrink-0 text-[20px] font-medium tracking-[-0.3px] text-nowrap text-black`}
+            className={`${embatDisplayClass} shrink-0 text-[20px] font-medium tracking-[-0.3px] text-nowrap text-foreground`}
           >
             Grupos Empresariales
           </h1>
@@ -112,19 +113,19 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
             </p>
           ) : null}
         </div>
-        <label className="flex w-[200px] max-w-full shrink-0 items-center gap-[5px] rounded-xl border border-[#dce0e6] bg-white px-[5px] py-[2px] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-solid focus-within:outline-ring">
+        <label className="flex w-[200px] max-w-full shrink-0 items-center gap-[5px] rounded-xl bg-muted px-[5px] py-[2px] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-solid focus-within:outline-ring">
           <span className="sr-only">Buscar grupo</span>
           <EmbatIcon src="/embat/icon-search.svg" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar grupo"
-            className="min-w-0 flex-1 bg-transparent text-[13px] font-medium tracking-[-0.13px] text-black outline-none placeholder:text-[#666]"
+            className="min-w-0 flex-1 bg-transparent text-[13px] font-medium tracking-[-0.13px] text-foreground outline-none placeholder:text-muted-foreground"
           />
         </label>
       </header>
 
-      <div className="flex flex-wrap items-center gap-2.5 border-b border-[#dce0e6] px-5 py-[15px]">
+      <div className="flex flex-wrap items-center gap-2.5 px-5 py-[15px]">
         <FilterChip
           icon="/embat/icon-filter.svg"
           label="Nombre"
@@ -189,7 +190,7 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
                     embatFocusRing,
                     filters.outlook === value
                       ? "bg-primary font-semibold text-white"
-                      : "border border-[#dce0e6] bg-white text-[#666]"
+                      : "border border-border bg-white text-muted-foreground"
                   )}
                 >
                   {text}
@@ -254,8 +255,8 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
             <col className="w-[22%]" />
             <col className="w-[22%]" />
           </colgroup>
-          <thead>
-            <tr className="border-b border-[#dce0e6]">
+          <thead className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+            <tr className="border-b border-border">
               {(
                 [
                   "Nombre",
@@ -269,7 +270,7 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
                 <th
                   key={label}
                   scope="col"
-                  className="overflow-hidden px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] text-ellipsis whitespace-nowrap text-[#6b6b6b] first:pl-5 last:pr-5"
+                  className="overflow-hidden px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] text-ellipsis whitespace-nowrap text-table-header first:pl-5 last:pr-5"
                 >
                   {label}
                 </th>
@@ -279,7 +280,7 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
           <tbody>
             {loading ? (
               Array.from({ length: 8 }, (_, i) => (
-                <tr key={i} className="border-b border-[#dce0e6]">
+                <tr key={i} className="border-b border-border">
                   <td colSpan={6} className="px-5 py-3">
                     <Skeleton className="h-4 w-full rounded bg-[#dce0e6]/50" />
                   </td>
@@ -287,18 +288,19 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
               ))
             ) : error ? (
               <tr>
-                <td
-                  colSpan={6}
-                  className="px-5 py-8 text-[14px] text-destructive"
-                >
-                  No se han podido cargar los grupos. {error.message}
+                <td colSpan={6} className="px-5 py-4">
+                  <ErrorState
+                    title="No se han podido cargar los grupos"
+                    description={error.message}
+                    placement="card"
+                  />
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
                 <td
                   colSpan={6}
-                  className="px-5 py-8 text-[14px] text-[#666]"
+                  className="px-5 py-8 text-[14px] text-muted-foreground"
                 >
                   Sin grupos que coincidan con el filtro.
                 </td>
@@ -318,7 +320,7 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
                       }
                     }}
                     className={cn(
-                      "cursor-pointer border-b border-[#dce0e6] transition-colors duration-150 ease-out even:bg-[rgba(220,224,230,0.2)] hover:bg-[rgba(220,224,230,0.45)] motion-reduce:transition-none",
+                      "cursor-pointer border-b border-border transition-colors duration-150 ease-out even:bg-[rgba(220,224,230,0.2)] hover:bg-[rgba(220,224,230,0.45)] motion-reduce:transition-none",
                       embatRowFocusRing
                     )}
                   >
@@ -358,11 +360,11 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
                         {outlook.label}
                       </span>
                     </td>
-                    <td className="px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] tabular-nums text-[#666]">
+                    <td className="px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] tabular-nums text-muted-foreground">
                       {group.n_companies}
                     </td>
                     <td
-                      className="truncate px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] text-[#666]"
+                      className="truncate px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] text-muted-foreground"
                       title={group.best_company_name}
                     >
                       {group.best_company_name}

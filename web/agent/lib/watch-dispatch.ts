@@ -53,8 +53,8 @@ export function formatWatchPrompt(
       .join("\n");
 
   return [
-    "X Ray Watcher — alerta de cartera.",
-    "Entrega este aviso al canal. No invoques quantity, offering ni match.",
+    "X Ray — vigilancia — alerta de cartera.",
+    "Entrega este aviso al canal. No invoques financing_finale, quantity, offering ni match.",
     "Cifras ya validadas por evaluate_watch; no recalcules.",
     "",
     body,

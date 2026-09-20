@@ -10,6 +10,11 @@ import {
 } from "@/lib/xray/facts-builder";
 import { getDatasetCompany } from "@/lib/xray/dataset";
 import { matchPrescoredPack, sha256 } from "@/lib/xray/import-packs";
+import { xrayApiUrl, type IngestResponse } from "@/lib/xray/ingest-client";
+import {
+  ensureCompanyRow,
+  filterTablesForCompany,
+} from "@/lib/xray/import-source";
 import { invalidateRecommendCache } from "@/lib/xray/recommend-cache";
 import { snapshotFromExported } from "@/lib/xray/snapshot";
 import {
@@ -18,10 +23,10 @@ import {
   invalidateActions,
   readImportedPack,
   writeImportedPack,
+  writeImportSource,
 } from "@/lib/xray/store";
 import { triggerWatcherAfterImport } from "@/lib/xray/watch-on-import";
 import type { CompanyRef, DatasetKind } from "@/lib/xray/types";
-import type { ExportedScore } from "@/lib/xray/dataset/types";
 
 export const runtime = "nodejs";
 /** Ingest can take a few seconds while Python scores. */
@@ -34,19 +39,6 @@ type MappingEntry = {
   mapping: Record<string, string | null>;
 };
 
-type IngestResponse = {
-  companies: CompanyRef[];
-  scores: ExportedScore[];
-  summary: unknown;
-  warnings: string[];
-};
-
-function xrayApiUrl(): string {
-  return (
-    process.env.XRAY_API_URL?.replace(/\/$/, "") || "http://127.0.0.1:8000"
-  );
-}
-
 async function resolveIdentity(companyId: string): Promise<CompanyRef | null> {
   const imported = await readImportedPack(companyId);
   if (imported?.company) return imported.company;
@@ -58,7 +50,7 @@ export async function POST(req: Request) {
   if (contentLength > MAX_BODY_BYTES) {
     return NextResponse.json(
       {
-        error: `Payload ${Math.round(contentLength / 1024)} KB supera el límite de 4,5 MB de Vercel. Usa un pack más pequeño (p. ej. docs/data/raw/new/update).`,
+        error: `Payload ${Math.round(contentLength / 1024)} KB supera el límite de 4,5 MB de Vercel. Usa un pack más pequeño (p. ej. data/packs/update).`,
       },
       { status: 413 }
     );
@@ -160,7 +152,7 @@ export async function POST(req: Request) {
     if (!pack) {
       return NextResponse.json(
         {
-          error: `No se pudo puntuar la importación: ${msg}. Arranca \`uv run xray-api\` (y en Vercel expón XRAY_API_URL), o sube un pack de docs/data/raw/new/ ya pre-puntuado con \`uv run xray-prescore-packs\`.`,
+          error: `No se pudo puntuar la importación: ${msg}. Arranca \`uv run xray-api\` (y en Vercel expón XRAY_API_URL), o sube un pack de data/packs/ ya pre-puntuado con \`uv run xray-prescore-packs\`.`,
         },
         { status: 503 }
       );
@@ -211,6 +203,11 @@ export async function POST(req: Request) {
       score,
       facts: factsById.get(company.company_id) ?? null,
     });
+    const sliced = ensureCompanyRow(
+      filterTablesForCompany(tables, company.company_id),
+      company
+    );
+    await writeImportSource(company.company_id, sliced);
     invalidateRecommendCache(company.company_id);
     await deleteDecisionsForCompany(company.company_id);
     await invalidateActions(company.company_id);

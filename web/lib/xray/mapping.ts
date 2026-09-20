@@ -246,7 +246,7 @@ export function missingRequired(
   return spec.fields.filter((f) => f.required && !mapped.has(f.key)).map((f) => f.key);
 }
 
-/** Real headers from docs/data/raw — used in tests. */
+/** Real headers from data/raw — used in tests. */
 export const REAL_HEADERS: Record<DatasetKind, string[]> = {
   groups: ["group_id", "erp", "n_companies_in_sample"],
   companies: ["company_id", "group_id", "country", "currency", "erp", "created_at"],

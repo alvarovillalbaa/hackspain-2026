@@ -19,6 +19,7 @@ import type {
   WatchQueueItem,
 } from "../types";
 import { leversFromMatch } from "../negotiation";
+import { TimeoutError } from "@/lib/ai/errors";
 
 function appBase(): string {
   if (typeof window !== "undefined") return "";
@@ -27,9 +28,29 @@ function appBase(): string {
   return "http://127.0.0.1:3000";
 }
 
+async function throwHttpError(
+  path: string,
+  res: Response,
+  body: { error?: string; code?: string; detail?: string }
+): Promise<never> {
+  if (res.status === 504 || body.code === "timeout") {
+    throw new TimeoutError(
+      body.error || "Se ha agotado el tiempo de espera del agente."
+    );
+  }
+  throw new Error(body.error || `${path} → HTTP ${res.status}`);
+}
+
 async function apiGet<T>(path: string): Promise<T> {
   const res = await fetch(`${appBase()}${path}`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`${path} → HTTP ${res.status}`);
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      code?: string;
+      detail?: string;
+    };
+    await throwHttpError(path, res, body);
+  }
   return res.json() as Promise<T>;
 }
 
@@ -73,13 +94,9 @@ export const eveProvider = {
 
   async getPeers(companyId: string, k?: number): Promise<PeerCohort | null> {
     const q = k != null ? `?k=${k}` : "";
-    try {
-      return await apiGet<PeerCohort>(
-        `/api/xray/peers/${encodeURIComponent(companyId)}${q}`
-      );
-    } catch {
-      return null;
-    }
+    return apiGet<PeerCohort>(
+      `/api/xray/peers/${encodeURIComponent(companyId)}${q}`
+    );
   },
 
   async getGroupScore(groupId: string): Promise<GroupScore> {
@@ -118,7 +135,15 @@ export const eveProvider = {
       }),
     });
     if (!res.ok) {
-      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      const body = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        code?: string;
+      };
+      if (res.status === 504 || body.code === "timeout") {
+        throw new TimeoutError(
+          body.error || "Se ha agotado el tiempo de espera del agente."
+        );
+      }
       throw new Error(body.error || `recommend HTTP ${res.status}`);
     }
     const json = (await res.json()) as { matches?: ProductMatch[] };
@@ -159,7 +184,7 @@ export const eveProvider = {
     const hasFiles = req.datasets.every((d) => d.file);
     if (!hasFiles) {
       throw new Error(
-        "Importación requiere ficheros CSV. Usa un pack de docs/data/raw/new/ (group o update)."
+        "Importación requiere ficheros CSV. Usa un pack de data/packs/ (group o update)."
       );
     }
 

@@ -8,6 +8,7 @@ import { embatDisplayClass } from "@/components/embat/font";
 import { formatCompactEuro, formatCurrency } from "@/lib/xray/format";
 import { termImprovements } from "@/lib/xray/term-improvements";
 import { saveDeal } from "@/lib/xray/deals";
+import { emitDataImported } from "@/lib/xray/import-events";
 import { useCompanySummaries } from "@/hooks/xray/use-company-summaries";
 import type {
   NegotiationLever,
@@ -69,6 +70,7 @@ export function ProductDetail({
       uplift: match.uplift,
       accepted_at: new Date().toISOString(),
     });
+    emitDataImported([companyId]);
     router.push(`/c/${companyId}?closed=1`);
   };
 
@@ -76,7 +78,7 @@ export function ProductDetail({
     <div className="flex flex-col gap-[30px] pb-8">
       <div className="flex flex-wrap items-start justify-between gap-4 px-5">
         <div className="min-w-0">
-          <div className="mb-1 flex items-center gap-2 text-[12px] font-medium tracking-[-0.12px] text-[#999]">
+          <div className="mb-1 flex items-center gap-2 text-[12px] font-medium tracking-[-0.12px] text-table-header">
             <span className="font-mono">{match.product.product_id}</span>
             <ReasoningHint text={reasoning || null} />
           </div>
@@ -85,7 +87,7 @@ export function ProductDetail({
           >
             {match.product.label}
           </h1>
-          <p className="mt-1 text-[14px] tracking-[-0.14px] text-[#666]">
+          <p className="mt-1 text-[14px] tracking-[-0.14px] text-muted-foreground">
             {match.product.description} ·{" "}
             {formatCurrency(match.amount) || formatCompactEuro(match.amount)}
           </p>
@@ -119,10 +121,10 @@ export function ProductDetail({
       </section>
 
       <section className="mx-5 space-y-3">
-        <h2 className="text-[14px] font-medium tracking-[-0.14px] text-[#999]">
+        <h2 className="text-[14px] font-medium tracking-[-0.14px] text-table-header">
           Términos — emisor vs ideal cliente
         </h2>
-        <p className="text-[13px] tracking-[-0.13px] text-[#666]">
+        <p className="text-[13px] tracking-[-0.13px] text-muted-foreground">
           La oferta del emisor maximiza su margen; el ideal del cliente maximiza
           el uplift del score bajo DSCR ≥ 1,2×. El hueco es la superficie de
           negociación.
@@ -134,14 +136,14 @@ export function ProductDetail({
       </section>
 
       <section className="mx-5 space-y-3">
-        <h2 className="text-[14px] font-medium tracking-[-0.14px] text-[#999]">
+        <h2 className="text-[14px] font-medium tracking-[-0.14px] text-table-header">
           Cómo mejorar los términos (lado empresa)
         </h2>
         <TermImprovementList tips={tips} />
       </section>
 
       <section className="mx-5 space-y-3">
-        <h2 className="text-[14px] font-medium tracking-[-0.14px] text-[#999]">
+        <h2 className="text-[14px] font-medium tracking-[-0.14px] text-table-header">
           Palancas para negociar términos
         </h2>
         <NegotiationLevers levers={levers} />

@@ -3,7 +3,7 @@
  *
  * En Vercel no hay proceso Python ni `artifacts/`, así que `/api/xray/import`
  * no puede puntuar en vivo. `uv run xray-prescore-packs` corre el scorer
- * offline sobre `docs/data/raw/new/` y deja el resultado en
+ * offline sobre `data/packs/` y deja el resultado en
  * `dataset/import_packs.json`; aquí solo se empareja y se devuelve.
  *
  * El emparejamiento es por sha256 del contenido subido: un CSV con el mismo

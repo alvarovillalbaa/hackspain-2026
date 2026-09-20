@@ -5,9 +5,15 @@ import {
   PolarGrid,
   Radar,
   RadarChart,
-  ResponsiveContainer,
-  Legend,
 } from "recharts";
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 import type { Dimensions } from "@/lib/xray/types";
 
 const LABELS: Record<keyof Dimensions, string> = {
@@ -17,8 +23,6 @@ const LABELS: Record<keyof Dimensions, string> = {
   debt: "Deuda",
   activity: "Actividad",
 };
-
-const DIMENSION_KEYS = Object.keys(LABELS) as (keyof Dimensions)[];
 
 export type RadarSeries = {
   name: string;
@@ -42,14 +46,14 @@ export function DimensionRadar({
           {
             name: compare ? "Antes" : "Actual",
             dimensions,
-            color: compare ? "var(--muted-foreground)" : "var(--foreground)",
+            color: compare ? "var(--muted-foreground)" : "var(--chart-1)",
           },
           ...(compare
             ? [
                 {
                   name: "Después",
                   dimensions: compare,
-                  color: "var(--foreground)",
+                  color: "var(--chart-1)",
                 },
               ]
             : []),
@@ -57,7 +61,7 @@ export function DimensionRadar({
       : []);
 
   const many = resolved.length > 1;
-  const data = DIMENSION_KEYS.map((key) => {
+  const data = (Object.keys(LABELS) as (keyof Dimensions)[]).map((key) => {
     const row: Record<string, string | number> = { dim: LABELS[key] };
     resolved.forEach((s, i) => {
       row[`v${i}`] = Math.round(s.dimensions[key] * 100);
@@ -65,12 +69,20 @@ export function DimensionRadar({
     return row;
   });
 
+  const config = Object.fromEntries(
+    resolved.map((s, i) => [
+      `v${i}`,
+      { label: s.name, color: s.color ?? "var(--chart-1)" },
+    ])
+  ) satisfies ChartConfig;
+
+  const dimensionKeys = Object.keys(LABELS) as (keyof Dimensions)[];
   const summary = resolved
     .map(
       (s) =>
-        `${s.name}: ${DIMENSION_KEYS.map(
-          (key) => `${LABELS[key]} ${Math.round(s.dimensions[key] * 100)}`
-        ).join(", ")}`
+        `${s.name}: ${dimensionKeys
+          .map((key) => `${LABELS[key]} ${Math.round(s.dimensions[key] * 100)}`)
+          .join(", ")}`
     )
     .join("; ");
   const ariaLabel = resolved.length
@@ -80,34 +92,32 @@ export function DimensionRadar({
   return (
     <div className="h-64 w-full">
       <div role="img" aria-label={ariaLabel} className="h-full w-full">
-        <ResponsiveContainer width="100%" height="100%">
+        <ChartContainer
+          config={config}
+          className="aspect-auto h-full w-full"
+          initialDimension={{ width: 320, height: 256 }}
+        >
           <RadarChart data={data} cx="50%" cy="50%" outerRadius="70%">
             <PolarGrid stroke="var(--border)" />
             <PolarAngleAxis
               dataKey="dim"
               tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
             />
+            <ChartTooltip content={<ChartTooltipContent />} />
             {resolved.map((s, i) => (
               <Radar
                 key={s.name}
                 name={s.name}
                 dataKey={`v${i}`}
-                stroke={s.color ?? "var(--foreground)"}
-                fill={s.color ?? "var(--foreground)"}
+                stroke={s.color ?? "var(--chart-1)"}
+                fill={s.color ?? "var(--chart-1)"}
                 fillOpacity={many ? 0.08 : 0.12}
                 strokeWidth={many && i === 0 ? 1.5 : 2}
               />
             ))}
-            {many ? (
-              <Legend
-                wrapperStyle={{
-                  fontSize: 11,
-                  color: "var(--muted-foreground)",
-                }}
-              />
-            ) : null}
+            {many ? <ChartLegend content={<ChartLegendContent />} /> : null}
           </RadarChart>
-        </ResponsiveContainer>
+        </ChartContainer>
       </div>
       <table className="sr-only">
         <caption>Dimensiones del score (0–100)</caption>
@@ -122,7 +132,7 @@ export function DimensionRadar({
           </tr>
         </thead>
         <tbody>
-          {DIMENSION_KEYS.map((key) => (
+          {dimensionKeys.map((key) => (
             <tr key={key}>
               <th scope="row">{LABELS[key]}</th>
               {resolved.map((s) => (

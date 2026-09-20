@@ -70,8 +70,30 @@ function CommandDialog({
 
 function CommandInput({
   className,
+  variant = "boxed",
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.Input>) {
+}: React.ComponentProps<typeof CommandPrimitive.Input> & {
+  variant?: "boxed" | "plain"
+}) {
+  if (variant === "plain") {
+    return (
+      <div
+        data-slot="command-input-wrapper"
+        className="flex h-12 items-center gap-3 border-b border-border px-4"
+      >
+        <SearchIcon className="size-4 shrink-0 text-muted-foreground" />
+        <CommandPrimitive.Input
+          data-slot="command-input"
+          className={cn(
+            "h-full w-full bg-transparent text-sm outline-hidden placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
+            className
+          )}
+          {...props}
+        />
+      </div>
+    )
+  }
+
   return (
     <div data-slot="command-input-wrapper" className="p-1 pb-0">
       <InputGroup className="h-9 bg-input/30">

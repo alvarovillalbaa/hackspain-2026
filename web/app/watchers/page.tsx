@@ -5,7 +5,7 @@ import { Watchers } from "@/components/embat/watchers";
 
 export default function WatchersPage() {
   return (
-    <AppShell crumbs={[{ label: "Watchers" }]}>
+    <AppShell crumbs={[{ label: "Vigilancia" }]}>
       <Watchers />
     </AppShell>
   );

@@ -2,7 +2,7 @@ import type { WatchQueueItem, WatchRuleId } from "./types";
 
 export const WATCH_RULE_LABEL: Record<WatchRuleId, string> = {
   dscr_floor: "DSCR < 1,2",
-  outlook_negative_worsening: "Outlook negativo",
+  outlook_negative_worsening: "Perspectiva negativa",
   watch_event: "En seguimiento",
 };
 
@@ -56,8 +56,8 @@ export function groupWatchQueue(
 /** Slack mrkdwn for the portfolio queue. */
 export function formatSlackQueue(items: WatchQueueItem[]): string {
   const n = items.length;
-  const header = `*X Ray Watcher* — ${n} empresa${n === 1 ? "" : "s"} en cola`;
-  if (n === 0) return `${header}\nSin hits.`;
+  const header = `*X Ray — vigilancia* — ${n} empresa${n === 1 ? "" : "s"} en cola`;
+  if (n === 0) return `${header}\nSin alertas.`;
   const lines = items.map((item) => {
     const sev = item.severity === "critical" ? "crítica" : "aviso";
     const rules = item.rules.map((r) => WATCH_RULE_LABEL[r]).join(", ");

@@ -1,7 +1,16 @@
 "use client";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { embatDisplayClass } from "@/components/embat/font";
+import { EmptyState, ErrorState } from "@/components/xray/feedback-state";
 import { useMethodMetrics } from "@/hooks/xray/use-method-metrics";
 import { formatMonth } from "@/lib/xray/format";
 import type { MethodMetrics } from "@/lib/xray/types";
@@ -14,10 +23,16 @@ const num = (v: number | null | undefined, digits = 1) =>
 
 function Tile({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1 rounded-[6px] border border-[#dce0e6] bg-white px-4 py-3">
-      <span className="text-[12px] font-medium tracking-[-0.12px] text-[#6b6b6b]">{label}</span>
-      <span className="text-[22px] font-medium tracking-[-0.4px] tabular-nums text-black">{value}</span>
-      <span className="text-[12px] tracking-[-0.12px] text-[#666]">{detail}</span>
+    <div className="flex min-w-0 flex-col gap-1 bg-card px-4 py-3">
+      <span className="text-[12px] font-medium tracking-[-0.12px] text-muted-foreground">
+        {label}
+      </span>
+      <span className="text-[22px] font-medium tracking-[-0.4px] text-foreground">
+        {value}
+      </span>
+      <span className="text-[12px] tracking-[-0.12px] text-muted-foreground">
+        {detail}
+      </span>
     </div>
   );
 }
@@ -25,10 +40,12 @@ function Tile({ label, value, detail }: { label: string; value: string; detail: 
 export function AnticipacionPanel({
   metrics,
   loading,
+  error,
   className,
 }: {
   metrics: MethodMetrics | null;
   loading: boolean;
+  error?: Error | null;
   className?: string;
 }) {
   const window = metrics?.test_months.length
@@ -37,33 +54,49 @@ export function AnticipacionPanel({
   const lt = metrics?.lead_time;
   const p6 = metrics?.persistence.p_red_given_red["6"];
   return (
-    <section
-      className={cn(
-        "flex w-full flex-col overflow-hidden rounded-[8px] border border-[#dce0e6] bg-white shadow-[0px_1px_2px_0px_rgba(13,19,30,0.1)]",
-        className
-      )}
+    <Card
+      size="sm"
+      className={cn("w-full gap-0 py-0 shadow-sm ring-border/40", className)}
       aria-labelledby="anticipacion-title"
     >
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#dce0e6] px-5 py-[15px]">
-        <h2 id="anticipacion-title" className={`${embatDisplayClass} text-[20px] font-medium tracking-[-0.3px] text-black`}>
+      <CardHeader className="flex flex-row items-center justify-between gap-3 px-5 py-[15px]">
+        <CardTitle
+          id="anticipacion-title"
+          className={`${embatDisplayClass} text-[20px] font-medium tracking-[-0.3px]`}
+        >
           Cómo anticipa el score
-        </h2>
+        </CardTitle>
         {window ? (
-          <p className="rounded-[4px] border border-primary/20 bg-primary/5 px-[3px] py-0.5 text-[12px] font-medium text-primary">
-            Prueba: {window}
-          </p>
+          <CardAction>
+            <Badge
+              variant="outline"
+              className="border-primary/20 bg-primary/5 text-primary"
+            >
+              Prueba: {window}
+            </Badge>
+          </CardAction>
         ) : null}
-      </header>
-      <div className="px-5 py-[15px]">
+      </CardHeader>
+      <CardContent className="px-0 pb-0">
         {loading ? (
-          <Skeleton className="h-16 w-full rounded bg-[#dce0e6]/50" />
+          <div className="px-5 pb-[15px]">
+            <Skeleton className="h-16 w-full rounded bg-muted" />
+          </div>
+        ) : error ? (
+          <ErrorState
+            title="No se han podido cargar las métricas"
+            description={error.message}
+            placement="card"
+          />
         ) : !metrics || !lt ? (
-          <p className="text-[14px] text-[#666]">
-            Métricas del método no disponibles en este pack. Regenera con <code>uv run xray-evals</code> y <code>uv run xray-export-web</code>.
-          </p>
+          <EmptyState
+            title="Métricas no disponibles"
+            description="Métricas del método no disponibles en este pack. Regenera con uv run xray-evals y uv run xray-export-web."
+            placement="card"
+          />
         ) : (
           <>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-px bg-border sm:grid-cols-2 lg:grid-cols-3">
               <Tile
                 label="Meses de antelación"
                 value={lt.median_crossing == null ? "—" : `${num(lt.median_crossing, 0)} meses`}
@@ -92,26 +125,33 @@ export function AnticipacionPanel({
                   : "sin medir en este pack"}
               />
               <Tile
-                label="Watch"
+                label="Vigilancia"
                 value={metrics.watch ? pct(metrics.watch.p_red_3m_given_watch) : "—"}
                 detail={metrics.watch
-                  ? `rojo en ≤ 3 meses con watch, frente a ${pct(metrics.watch.p_red_3m_given_no_watch)} sin · ${pct(metrics.watch.share_rows_with_watch, 1)} de los meses con watch`
+                  ? `rojo en ≤ 3 meses con vigilancia, frente a ${pct(metrics.watch.p_red_3m_given_no_watch)} sin · ${pct(metrics.watch.share_rows_with_watch, 1)} de los meses con vigilancia`
                   : "sin medir en este pack"}
               />
             </div>
-            <p className="mt-3 text-[12px] tracking-[-0.12px] text-[#6b6b6b]">
+            <p className="px-5 py-3 text-[12px] tracking-[-0.12px] text-muted-foreground">
               Cifras de <code>xray-evals</code> sobre {new Intl.NumberFormat("es-ES").format(metrics.n_companies)} empresas y{" "}
               {new Intl.NumberFormat("es-ES").format(metrics.n_rows)} meses-empresa, entrenamiento hasta {formatMonth(metrics.train_until)}.
               El score es un pronóstico de persistencia; no son probabilidades de impago.
             </p>
           </>
         )}
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 }
 
 export function Anticipacion({ className }: { className?: string }) {
-  const { data, loading } = useMethodMetrics();
-  return <AnticipacionPanel metrics={data} loading={loading} className={className} />;
+  const { data, loading, error } = useMethodMetrics();
+  return (
+    <AnticipacionPanel
+      metrics={data}
+      loading={loading}
+      error={error}
+      className={className}
+    />
+  );
 }

@@ -1,7 +1,7 @@
-"""Genera packs de demo para el wizard de importación en `docs/data/raw/new/`.
+"""Genera packs de demo para el wizard de importación en `data/packs/`.
 
     uv run xray-demopacks
-    uv run xray-demopacks --out docs/data/raw/new
+    uv run xray-demopacks --out data/packs
 
 Packs:
   group   — las 3 empresas de GROUP_0147 (COMP_0001 + siblings)
@@ -45,10 +45,7 @@ MUTATION_CUTOFF = pd.Timestamp("2026-09-01")
 def _out_root(out: str | Path | None) -> Path:
     if out:
         return Path(out)
-    raw = repo_root() / "docs" / "data" / "raw"
-    if (raw / "companies.csv").exists() or (raw / "new").exists():
-        return raw / "new"
-    return Path(data_dir()) / "new"
+    return repo_root() / "data" / "packs"
 
 
 def _write_meta(
@@ -328,9 +325,9 @@ def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(
-        prog="xray-demopacks", description="Genera packs de demo en docs/data/raw/new"
+        prog="xray-demopacks", description="Genera packs de demo en data/packs"
     )
-    ap.add_argument("--out", default=None, help="carpeta destino (default: docs/data/raw/new)")
+    ap.add_argument("--out", default=None, help="carpeta destino (default: data/packs)")
     ap.add_argument("--pack", default=None, choices=[*ALL_PACKS, "catalog"], help="un pack")
     ap.add_argument("--data-dir", default=None, help="CSV root")
     ap.add_argument("--skip-catalog", action="store_true", help="no escribir new/catalog/")

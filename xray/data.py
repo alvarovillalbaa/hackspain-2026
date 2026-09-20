@@ -9,14 +9,14 @@ Uso desde un notebook (en este repo o en cualquier otro con `xray` instalado):
 El directorio de datos se resuelve, por orden:
   1. argumento `data_dir`
   2. variable de entorno XRAY_DATA_DIR
-  3. <raíz del repo>/docs/data/raw (si existe companies.csv)
+  3. <raíz del repo>/data/raw (si existe companies.csv)
   4. <raíz del repo>/input_data
 
 La primera llamada convierte cada CSV a parquet en <XRAY_ARTIFACTS_DIR | raíz/artifacts>/raw/;
 las siguientes cargan el parquet (transactions.csv pasa de ~40 s a ~2 s). `xray-cache` en la
 terminal fuerza la conversión de todo.
 
-Hechos del dataset que este módulo ya aplica (docs/plan.md §5):
+Hechos del dataset que este módulo ya aplica (docs/plans/ §5):
   - fechas parseadas; en `overdue` el `payment_date` NO es real (se conserva, se anota en el log)
   - `invoices.direction`: 'issued' si amount > 0, 'received' si amount < 0
   - `transactions.date`/`value_date` en datetime; `month` = periodo mensual
@@ -63,11 +63,11 @@ def data_dir(data_dir: str | os.PathLike | None = None) -> Path:
     elif os.environ.get("XRAY_DATA_DIR"):
         p = Path(os.environ["XRAY_DATA_DIR"])
     else:
-        raw = repo_root() / "docs" / "data" / "raw"
+        raw = repo_root() / "data" / "raw"
         p = raw if (raw / "companies.csv").exists() else repo_root() / "input_data"
     if not p.exists():
         raise FileNotFoundError(
-            f"No encuentro el dataset en {p}. Colócalo en docs/data/raw/ o input_data/, "
+            f"No encuentro el dataset en {p}. Colócalo en data/raw/ o input_data/, "
             "o exporta XRAY_DATA_DIR apuntando a la carpeta con los CSV."
         )
     return p

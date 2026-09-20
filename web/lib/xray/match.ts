@@ -192,7 +192,7 @@ export function issuerAppetite(
       { label: "Apetito de riesgo", side: "issuer", score: riskOk },
       { label: "Ticket vs sweet spot", side: "issuer", score: ticket },
       { label: "Margen esperado", side: "issuer", score: marginScore },
-      { label: "Cross-sell", side: "issuer", score: crossSell },
+      { label: "Venta cruzada", side: "issuer", score: crossSell },
     ],
   };
 }

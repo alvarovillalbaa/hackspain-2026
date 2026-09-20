@@ -5,27 +5,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SearchIcon } from "lucide-react";
 import { ImportDialog } from "@/components/xray/import/import-dialog";
+import { ErrorState } from "@/components/xray/feedback-state";
+import { QueryFilterBar } from "@/components/xray/query-filter-bar";
+import {
+  SortableTable,
+  type SortableColumn,
+} from "@/components/xray/sortable-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemSeparator,
-  ItemTitle,
-} from "@/components/ui/item";
-import {
-  EmbatIcon,
-  embatFocusRing,
-  embatRowFocusRing,
-  FilterChip,
-  FilterField,
-  statusClass,
-} from "@/components/embat/chrome";
+import { EmbatIcon, statusClass } from "@/components/embat/chrome";
 import { useSearch } from "@/components/xray/search-context";
 import { useCompanies } from "@/hooks/xray/use-companies";
 import { useCompanySummaries } from "@/hooks/xray/use-company-summaries";
@@ -37,35 +27,16 @@ import {
   formatCompactEuro,
   formatRatePct,
 } from "@/lib/xray/format";
-import type { Outlook } from "@/lib/xray/types";
+import {
+  applyQueryFilters,
+  type QueryFilterRule,
+} from "@/lib/xray/query-filters";
 import { cn } from "@/lib/utils";
-
-type OutlookFilter = Outlook | "all";
-type OriginFilter = "all" | "catalog" | "imported";
-
-interface Filters {
-  name: string;
-  minScore: number | null;
-  outlook: OutlookFilter;
-  minRate: number | null;
-  minCash: number | null;
-  currency: string;
-  origin: OriginFilter;
-}
-
-const EMPTY_FILTERS: Filters = {
-  name: "",
-  minScore: null,
-  outlook: "all",
-  minRate: null,
-  minCash: null,
-  currency: "all",
-  origin: "all",
-};
 
 type TableRow = CompanySummary & {
   currency: string;
   imported?: boolean;
+  origin: "catalog" | "imported";
 };
 
 function stubSummary(
@@ -89,68 +60,40 @@ function stubSummary(
   };
 }
 
-function matchesFilters(row: TableRow, filters: Filters): boolean {
-  if (
-    filters.name &&
-    !row.name.toLowerCase().includes(filters.name.toLowerCase())
-  ) {
-    return false;
-  }
-  if (filters.minScore != null && row.score < filters.minScore) return false;
-  if (filters.outlook !== "all" && row.outlook !== filters.outlook) {
-    return false;
-  }
-  if (filters.minRate != null) {
-    if (row.implied_rate == null || row.implied_rate < filters.minRate) {
-      return false;
-    }
-  }
-  if (filters.minCash != null && row.cash_close < filters.minCash) {
-    return false;
-  }
-  if (filters.currency !== "all" && row.currency !== filters.currency) {
-    return false;
-  }
-  if (filters.origin === "imported" && !row.imported) return false;
-  if (filters.origin === "catalog" && row.imported) return false;
-  return true;
-}
-
-function FilterOptionButtons({
-  options,
-  value,
-  onSelect,
-}: {
-  options: { value: string; label: string }[];
-  value: string;
-  onSelect: (value: string) => void;
-}) {
-  return (
-    <div className="flex w-full flex-col gap-1">
-      {options.map((opt) => (
-        <Button
-          key={opt.value}
-          type="button"
-          size="sm"
-          variant={value === opt.value ? "default" : "outline"}
-          className="w-full justify-start rounded-xl"
-          onClick={() => onSelect(opt.value)}
-        >
-          {opt.label}
-        </Button>
-      ))}
-    </div>
-  );
-}
+const COMPANY_FILTER_FIELDS = [
+  { id: "name", label: "Nombre", type: "string" as const },
+  { id: "score", label: "Puntuación", type: "number" as const },
+  {
+    id: "outlook",
+    label: "Estado",
+    type: "enum" as const,
+    options: [
+      { value: "positive", label: outlookMeta("positive").label },
+      { value: "stable", label: outlookMeta("stable").label },
+      { value: "negative", label: outlookMeta("negative").label },
+    ],
+  },
+  { id: "implied_rate", label: "Tipo", type: "number" as const },
+  { id: "cash_close", label: "Caja", type: "number" as const },
+  { id: "currency", label: "Divisa", type: "string" as const },
+  {
+    id: "origin",
+    label: "Origen",
+    type: "enum" as const,
+    options: [
+      { value: "catalog", label: "Catálogo" },
+      { value: "imported", label: "Importada" },
+    ],
+  },
+];
 
 export function CompaniasToolbar({
-  filters,
-  setFilters,
-  currencies,
+  rules,
+  setRules,
   onImport,
 }: {
-  filters: Filters;
-  setFilters: React.Dispatch<React.SetStateAction<Filters>>;
+  rules: QueryFilterRule[];
+  setRules: React.Dispatch<React.SetStateAction<QueryFilterRule[]>>;
   currencies: string[];
   onImport: () => void;
 }): ReactNode {
@@ -158,137 +101,11 @@ export function CompaniasToolbar({
 
   return (
     <div className="flex flex-wrap items-center justify-end gap-2">
-      <FilterChip
-        icon="/embat/icon-score.svg"
-        label="Puntuación"
-        active={filters.minScore != null}
-      >
-        {(close) => (
-          <FilterField
-            placeholder="Puntuación mín."
-            defaultValue={filters.minScore?.toString() ?? ""}
-            inputMode="decimal"
-            onApply={(value) => {
-              const n = Number(value.replace(",", "."));
-              setFilters((f) => ({
-                ...f,
-                minScore: value.trim() && Number.isFinite(n) ? n : null,
-              }));
-              close();
-            }}
-          />
-        )}
-      </FilterChip>
-      <FilterChip
-        icon="/embat/icon-status.svg"
-        label="Estado"
-        active={filters.outlook !== "all"}
-      >
-        {(close) => (
-          <FilterOptionButtons
-            value={filters.outlook}
-            options={[
-              { value: "all", label: "Todos" },
-              { value: "positive", label: outlookMeta("positive").label },
-              { value: "stable", label: outlookMeta("stable").label },
-              { value: "negative", label: outlookMeta("negative").label },
-            ]}
-            onSelect={(value) => {
-              setFilters((f) => ({
-                ...f,
-                outlook: value as OutlookFilter,
-              }));
-              close();
-            }}
-          />
-        )}
-      </FilterChip>
-      <FilterChip
-        icon="/embat/icon-rate.svg"
-        label="Tipo Actual"
-        active={filters.minRate != null}
-      >
-        {(close) => (
-          <FilterField
-            placeholder="Tipo mín. (%)"
-            defaultValue={
-              filters.minRate != null ? String(filters.minRate * 100) : ""
-            }
-            inputMode="decimal"
-            onApply={(value) => {
-              const n = Number(value.replace(",", "."));
-              setFilters((f) => ({
-                ...f,
-                minRate: value.trim() && Number.isFinite(n) ? n / 100 : null,
-              }));
-              close();
-            }}
-          />
-        )}
-      </FilterChip>
-      <FilterChip
-        icon="/embat/icon-filter.svg"
-        label="Cierre año"
-        active={filters.minCash != null}
-      >
-        {(close) => (
-          <FilterField
-            placeholder="Cierre mín. (€)"
-            defaultValue={filters.minCash?.toString() ?? ""}
-            inputMode="numeric"
-            onApply={(value) => {
-              const n = Number(value.replace(",", "."));
-              setFilters((f) => ({
-                ...f,
-                minCash: value.trim() && Number.isFinite(n) ? n : null,
-              }));
-              close();
-            }}
-          />
-        )}
-      </FilterChip>
-      <FilterChip
-        icon="/embat/icon-filter.svg"
-        label="Divisa"
-        active={filters.currency !== "all"}
-      >
-        {(close) => (
-          <FilterOptionButtons
-            value={filters.currency}
-            options={[
-              { value: "all", label: "Todas" },
-              ...currencies.map((c) => ({ value: c, label: c })),
-            ]}
-            onSelect={(value) => {
-              setFilters((f) => ({ ...f, currency: value }));
-              close();
-            }}
-          />
-        )}
-      </FilterChip>
-      <FilterChip
-        icon="/embat/icon-filter.svg"
-        label="Origen"
-        active={filters.origin !== "all"}
-      >
-        {(close) => (
-          <FilterOptionButtons
-            value={filters.origin}
-            options={[
-              { value: "all", label: "Catálogo + import" },
-              { value: "catalog", label: "Catálogo" },
-              { value: "imported", label: "Importadas" },
-            ]}
-            onSelect={(value) => {
-              setFilters((f) => ({
-                ...f,
-                origin: value as OriginFilter,
-              }));
-              close();
-            }}
-          />
-        )}
-      </FilterChip>
+      <QueryFilterBar
+        fields={COMPANY_FILTER_FIELDS}
+        rules={rules}
+        onChange={setRules}
+      />
       <Button
         type="button"
         variant="outline"
@@ -317,7 +134,7 @@ export function useCompaniasState() {
   const { data, loading, error } = useCompanySummaries();
   const { data: companies, addImported } = useCompanies();
   const selection = useSelection<string>([], MAX_COMPARE);
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [rules, setRules] = useState<QueryFilterRule[]>([]);
   const [importOpen, setImportOpen] = useState(false);
 
   const byCompany = useMemo(
@@ -338,17 +155,23 @@ export function useCompaniasState() {
       .map((c) => stubSummary(c, month));
     return [...data, ...extra].map((row) => {
       const ref = byCompany.get(row.company_id);
+      const imported = Boolean(ref?.imported);
       return {
         ...row,
         currency: ref?.currency ?? "EUR",
-        imported: ref?.imported,
+        imported,
+        origin: imported ? ("imported" as const) : ("catalog" as const),
       };
     });
   }, [data, companies, byCompany]);
 
   const rows = useMemo(
-    () => merged.filter((c) => matchesFilters(c, filters)),
-    [merged, filters]
+    () =>
+      applyQueryFilters(
+        merged as unknown as Record<string, unknown>[],
+        rules
+      ) as unknown as TableRow[],
+    [merged, rules]
   );
 
   return {
@@ -356,8 +179,8 @@ export function useCompaniasState() {
     loading,
     error,
     selection,
-    filters,
-    setFilters,
+    rules,
+    setRules,
     currencies,
     companies,
     addImported,
@@ -385,6 +208,83 @@ export function Companias({
     setImportOpen,
   } = state;
 
+  const columns: SortableColumn<TableRow>[] = useMemo(
+    () => [
+      {
+        id: "name",
+        header: "Empresa",
+        sortKey: "name",
+        cell: (row) => (
+          <div>
+            <div className="font-medium">{row.name}</div>
+            <div className="text-[12px] text-muted-foreground">
+              <Link
+                href={`/g/${row.group_id}`}
+                className="text-primary hover:text-primary/80"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {row.group_id}
+              </Link>
+              {row.imported ? " · Importada" : null}
+              {" · "}
+              {row.situation}
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: "score",
+        header: "Score",
+        sortKey: "score",
+        align: "right",
+        cell: (row) => (
+          <Badge
+            variant="outline"
+            className={cn("rounded-xl", statusClass(row.outlook))}
+          >
+            {Math.round(row.score)}
+          </Badge>
+        ),
+      },
+      {
+        id: "outlook",
+        header: "Estado",
+        sortKey: "outlook",
+        cell: (row) => (
+          <Badge
+            variant="outline"
+            className={cn("rounded-xl", statusClass(row.outlook))}
+          >
+            {outlookMeta(row.outlook).label}
+          </Badge>
+        ),
+      },
+      {
+        id: "rate",
+        header: "Tipo",
+        sortKey: "implied_rate",
+        align: "right",
+        cell: (row) => (
+          <span className="tabular-nums text-muted-foreground">
+            {formatRatePct(row.implied_rate)}
+          </span>
+        ),
+      },
+      {
+        id: "cash",
+        header: "Caja",
+        sortKey: "cash_close",
+        align: "right",
+        cell: (row) => (
+          <span className="tabular-nums">
+            {formatCompactEuro(row.cash_close)}
+          </span>
+        ),
+      },
+    ],
+    []
+  );
+
   return (
     <div className={cn("flex w-full flex-col", className)}>
       {loading ? (
@@ -394,99 +294,44 @@ export function Companias({
           ))}
         </div>
       ) : error ? (
-        <p className="py-8 text-sm text-destructive">
-          No se han podido cargar las compañías. {error.message}
-        </p>
-      ) : rows.length === 0 ? (
-        <p className="py-8 text-sm text-muted-foreground">
-          Sin compañías que coincidan con el filtro.
-        </p>
+        <ErrorState
+          title="No se han podido cargar las compañías"
+          description={error.message}
+          placement="page"
+        />
       ) : (
-        <ItemGroup className="gap-0">
-          {rows.map((row, i) => {
-            const outlook = outlookMeta(row.outlook);
+        <SortableTable
+          rows={rows}
+          columns={columns}
+          rowKey={(r) => r.company_id}
+          defaultSortKey="score"
+          onRowClick={(row) => router.push(`/c/${row.company_id}`)}
+          leading={(row) => {
             const checked = selection.isSelected(row.company_id);
             const selectDisabled =
               !checked && selection.count >= MAX_COMPARE;
             return (
-              <div key={row.company_id}>
-                {i > 0 ? <ItemSeparator className="my-0" /> : null}
-                <Item
-                  size="sm"
-                  tabIndex={0}
-                  className={cn(
-                    "cursor-pointer rounded-none border-0 px-0 py-3 transition-colors duration-150 ease-out hover:bg-muted/50 motion-reduce:transition-none",
-                    embatRowFocusRing
-                  )}
-                  onClick={() => router.push(`/c/${row.company_id}`)}
-                  onKeyDown={(e) => {
-                    if (e.target !== e.currentTarget) return;
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      router.push(`/c/${row.company_id}`);
-                    }
-                  }}
-                >
-                  <div
-                    className="flex shrink-0 items-center pr-3"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Checkbox
-                      checked={checked}
-                      disabled={selectDisabled}
-                      aria-label={`Seleccionar ${row.name}`}
-                      onCheckedChange={() =>
-                        selection.toggle(row.company_id)
-                      }
-                    />
-                  </div>
-                  <ItemContent>
-                    <ItemTitle className="text-[15px]">{row.name}</ItemTitle>
-                    <ItemDescription>
-                      <Link
-                        href={`/g/${row.group_id}`}
-                        className={cn(
-                          "rounded-[2px] text-primary transition-colors duration-150 ease-out hover:text-primary/80 motion-reduce:transition-none",
-                          embatFocusRing
-                        )}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {row.group_id}
-                      </Link>
-                      {row.imported ? " · Importada" : null}
-                      {" · "}
-                      {row.situation}
-                    </ItemDescription>
-                  </ItemContent>
-                  <ItemActions className="flex-wrap justify-end gap-2">
-                    <Badge
-                      variant="outline"
-                      className={cn("rounded-xl", statusClass(row.outlook))}
-                    >
-                      {Math.round(row.score)}
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className={cn("rounded-xl", statusClass(row.outlook))}
-                    >
-                      {outlook.label}
-                    </Badge>
-                    <span className="text-sm text-muted-foreground tabular-nums">
-                      {formatRatePct(row.implied_rate)}
-                    </span>
-                    <span className="min-w-[4.5rem] text-right text-sm tabular-nums">
-                      {formatCompactEuro(row.cash_close)}
-                    </span>
-                  </ItemActions>
-                </Item>
-              </div>
+              <Checkbox
+                checked={checked}
+                disabled={selectDisabled}
+                aria-label={`Seleccionar ${row.name}`}
+                onCheckedChange={() => selection.toggle(row.company_id)}
+              />
             );
-          })}
-        </ItemGroup>
+          }}
+          empty={
+            <ErrorState
+              title="Sin compañías"
+              description="Sin compañías que coincidan con el filtro."
+              placement="card"
+              className="[&_[data-slot=empty-icon]]:hidden"
+            />
+          }
+        />
       )}
 
       {selection.count > 0 ? (
-        <div className="sticky bottom-4 z-30 mt-4 flex items-center justify-between gap-3 rounded-2xl border border-border bg-white px-4 py-3 shadow-sm">
+        <div className="sticky bottom-4 z-30 mt-4 flex items-center justify-between gap-3 rounded-2xl border border-border bg-white/95 px-4 py-3 shadow-sm backdrop-blur-md">
           <p className="text-sm text-muted-foreground">
             {selection.count}/{MAX_COMPARE} seleccionadas
             {selection.count < 2 ? " · elige al menos 2" : ""}

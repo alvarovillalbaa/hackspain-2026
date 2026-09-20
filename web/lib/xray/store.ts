@@ -14,19 +14,24 @@
  * Prefixes:
  *   xray/session.json  (focus group for /start; not a table filter)
  *   xray/imports/{id}.json
+ *   xray/import-csvs/{id}.json  (canonical tables for Python re-ingest)
  *   xray/recommendations/{company:action}.json
  *   xray/actions/{id}.json
  *   xray/deals/{id}.json
+ *   xray/explanations/{key}.json
  */
 import { put, list, del } from "@vercel/blob";
 import { DEFAULT_GROUP_ID } from "./demo";
+import type { StoredImportSource } from "./import-source";
 import type { AcceptedDeal, ActionRecommendation, CompanyRef } from "./types";
 import type { CompanyFacts, ExportedScore } from "./dataset/types";
 
 const REC_PREFIX = "xray/recommendations/";
 const IMPORT_PREFIX = "xray/imports/";
+const SOURCE_PREFIX = "xray/import-csvs/";
 const DEAL_PREFIX = "xray/deals/";
 const ACTIONS_PREFIX = "xray/actions/";
+const EXPLAIN_PREFIX = "xray/explanations/";
 const SESSION_PATH = "xray/session.json";
 
 export type StoredDecision = {
@@ -55,6 +60,12 @@ export type StoredActions = {
    * so the ficha route does not retry enrichment on every visit.
    */
   enriched_at?: string;
+};
+
+export type StoredExplanation = {
+  plain: string;
+  technical: string;
+  saved_at: string;
 };
 
 function hasBlob(): boolean {
@@ -146,9 +157,11 @@ async function fsListPrefix(prefix: string): Promise<string[]> {
 
 /** Process-local fallback when neither Blob nor the repo are writable. */
 const memoryImports = new Map<string, ImportedPack>();
+const memoryImportSources = new Map<string, StoredImportSource>();
 const memoryDeals = new Map<string, AcceptedDeal>();
 const memoryActions = new Map<string, StoredActions>();
 const memoryDecisions = new Map<string, StoredDecision>();
+const memoryExplanations = new Map<string, StoredExplanation>();
 let memorySession: DemoSession | null = null;
 
 async function blobGetJson<T>(pathname: string): Promise<T | null> {
@@ -244,9 +257,11 @@ async function listStoredPaths(prefix: string): Promise<string[]> {
 /** Reset memory maps — tests only. */
 export function clearStoreMemoryForTests(): void {
   memoryImports.clear();
+  memoryImportSources.clear();
   memoryDeals.clear();
   memoryActions.clear();
   memoryDecisions.clear();
+  memoryExplanations.clear();
   memorySession = null;
 }
 
@@ -393,6 +408,45 @@ export async function listImportedCompanies(): Promise<CompanyRef[]> {
   }
 }
 
+// --- import CSVs (Python re-ingest source; not listed with packs) ---
+
+export async function writeImportSource(
+  companyId: string,
+  tables: StoredImportSource["tables"]
+): Promise<boolean> {
+  const body: StoredImportSource = {
+    tables,
+    saved_at: new Date().toISOString(),
+  };
+  memoryImportSources.set(companyId, body);
+  if (!hasDurable()) return true;
+  try {
+    const pathname = `${SOURCE_PREFIX}${encodeURIComponent(companyId)}.json`;
+    await blobPutJson(pathname, body);
+    return true;
+  } catch (err) {
+    console.warn("[blob] writeImportSource failed:", err);
+    return true;
+  }
+}
+
+export async function readImportSource(
+  companyId: string
+): Promise<StoredImportSource | null> {
+  const mem = memoryImportSources.get(companyId);
+  if (mem) return mem;
+  if (!hasDurable()) return null;
+  try {
+    const pathname = `${SOURCE_PREFIX}${encodeURIComponent(companyId)}.json`;
+    const hit = await blobGetJson<StoredImportSource>(pathname);
+    if (hit?.tables) memoryImportSources.set(companyId, hit);
+    return hit;
+  } catch (err) {
+    console.warn("[blob] readImportSource failed:", err);
+    return null;
+  }
+}
+
 // --- deals ---
 
 export async function readDeal(
@@ -513,4 +567,37 @@ export async function invalidateActionsForCompanies(
     if (await invalidateActions(id)) n += 1;
   }
   return n;
+}
+
+// --- dual-register explanations ---
+
+export async function readExplanation(
+  key: string
+): Promise<StoredExplanation | null> {
+  const mem = memoryExplanations.get(key);
+  if (mem) return mem;
+  if (!hasDurable()) return null;
+  try {
+    const pathname = `${EXPLAIN_PREFIX}${encodeURIComponent(key)}.json`;
+    const body = await blobGetJson<StoredExplanation>(pathname);
+    if (body) memoryExplanations.set(key, body);
+    return body;
+  } catch (err) {
+    console.warn("[blob] readExplanation failed:", err);
+    return null;
+  }
+}
+
+export async function writeExplanation(
+  key: string,
+  layers: { plain: string; technical: string }
+): Promise<boolean> {
+  const body: StoredExplanation = {
+    ...layers,
+    saved_at: new Date().toISOString(),
+  };
+  memoryExplanations.set(key, body);
+  if (!hasDurable()) return true;
+  const pathname = `${EXPLAIN_PREFIX}${encodeURIComponent(key)}.json`;
+  return blobPutJson(pathname, body);
 }

@@ -7,6 +7,7 @@ import type { MethodMetrics } from "@/lib/xray/types";
 export function useMethodMetrics() {
   const [data, setData] = useState<MethodMetrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -15,11 +16,13 @@ export function useMethodMetrics() {
       .then((m) => {
         if (cancelled) return;
         setData(m);
+        setError(null);
         setLoading(false);
       })
-      .catch(() => {
+      .catch((e) => {
         if (cancelled) return;
         setData(null);
+        setError(e instanceof Error ? e : new Error(String(e)));
         setLoading(false);
       });
     return () => {
@@ -27,5 +30,5 @@ export function useMethodMetrics() {
     };
   }, []);
 
-  return { data, loading };
+  return { data, loading, error };
 }

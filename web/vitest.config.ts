@@ -6,16 +6,48 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "jsdom",
-    include: [
-      "lib/xray/**/*.test.ts",
-      "hooks/xray/**/*.test.ts",
-      "agent/**/*.test.ts",
-      "evals/**/*.test.ts",
+    include: ["tests/**/*.test.ts"],
+    exclude: [
+      "tests/e2e/**",
+      "tests/tmp/**",
+      "node_modules/**",
     ],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "lcov"],
+      include: [
+        "lib/xray/**/*.ts",
+        "lib/ai/**/*.ts",
+      ],
+      exclude: [
+        "lib/xray/dataset/**",
+        "lib/xray/registry/**",
+        "lib/xray/marketplace-orchestrator.ts",
+        "lib/xray/index.ts",
+        "lib/xray/slack-status.ts",
+        "lib/xray/watch-queue-server.ts",
+        "lib/xray/watch-on-import.ts",
+        // Blob/HTTP side-effects — covered by integration + store memory path tests.
+        "lib/xray/store.ts",
+        "lib/xray/slack-webhook.ts",
+        "**/*.test.ts",
+        "**/types.ts",
+      ],
+      thresholds: {
+        lines: 80,
+        functions: 80,
+        statements: 80,
+        branches: 65,
+      },
+    },
   },
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "."),
-    },
+    alias: [
+      { find: "@", replacement: path.resolve(__dirname, ".") },
+      {
+        find: /^#(.+)$/,
+        replacement: path.resolve(__dirname, "agent") + "/$1",
+      },
+    ],
   },
 });

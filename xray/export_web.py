@@ -4,7 +4,7 @@ Builds features from the raw CSVs, runs the rules score + explain drivers, and w
 `web/lib/xray/dataset/scores.json` — the single source of truth for GET /api/xray/score
 and the Eve agent tools. The LLM never computes these figures.
 
-    XRAY_DATA_DIR=docs/data/raw uv run xray-export-web
+    XRAY_DATA_DIR=data/raw uv run xray-export-web
     uv run xray-export-web --out web/lib/xray/dataset/scores.json
 
 Dimensions keep the same mapping the TS radar/what-if already expect
@@ -465,7 +465,7 @@ def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(prog="xray-export-web", description="Export Health Scorer → web fact pack")
-    ap.add_argument("--data-dir", default=None, help="CSV root (default: docs/data/raw or XRAY_DATA_DIR)")
+    ap.add_argument("--data-dir", default=None, help="CSV root (default: data/raw or XRAY_DATA_DIR)")
     ap.add_argument("--out", default=str(DEFAULT_OUT), help="scores.json path")
     ap.add_argument("--metrics", default=str(artifacts_dir() / "evals" / "metrics.json"),
                     help="metrics.json de xray-evals; si no existe, el pack no lleva métricas")

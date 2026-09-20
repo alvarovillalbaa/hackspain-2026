@@ -89,18 +89,18 @@ function groundActions(ctx: CompanyContext): ActionRecommendation[] {
   return listCompanyActions(ctx.snapshot, ctx.facts, ctx.exported, ctx.currency);
 }
 
+type FichaActionPick = {
+  action: ActionRecommendation["kind"];
+  description: string;
+  reasoning: string;
+  confidence?: "high" | "medium" | "low";
+  amount?: number;
+};
+
 async function runEveFicha(
   companyId: string,
   ctx: CompanyContext
-): Promise<
-  {
-    action: ActionRecommendation["kind"];
-    description: string;
-    reasoning: string;
-    confidence?: "high" | "medium" | "low";
-    amount?: number;
-  }[]
-> {
+): Promise<FichaActionPick[]> {
   const { snapshot, facts, currency } = ctx;
   const aging = facts?.invoice_aging;
   const invoices = aging
@@ -116,7 +116,7 @@ async function runEveFicha(
       )
     : 0;
   const client = await createEveClient();
-  const message = [
+  const brief = [
     `Ficha de ${companyId}. Elige las acciones y ESCRIBE description + reasoning de cada una.`,
     JSON.stringify({
       company_id: snapshot.company_id,
@@ -138,30 +138,99 @@ async function runEveFicha(
     "action (=kind) debe existir en el tool. Tú redactas description (frase corta) y reasoning (tooltip: por qué esta acción para ESTA empresa).",
     "No inventes importes ni el score. Cita señales/hechos del JSON o del tool.",
     "Si has_invoices es false, no digas circulante. Si has_debt es false, no digas refinanciar.",
-    "No copies un título genérico. Máximo 4. Si el tool está vacío, actions: []. No invoques quantity, offering ni match.",
+    "No copies un título genérico. Máximo 4. Si el tool está vacío, actions: []. No invoques financing_finale ni quantity/offering/match.",
+  ].join("\n");
+
+  const message = [
+    "Call `actions_recommender` exactly once. Pass it this brief unchanged.",
+    "Do not call get_recommended_actions yourself — actions_recommender owns that tool.",
+    "---",
+    brief,
+    "---",
+    "Reply with one short line after dispatching.",
   ].join("\n");
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), EVE_TIMEOUT_MS);
+  const signal = controller.signal;
+
   try {
-    const { response } = await client.sessions.create({
+    let childId: string | null = null;
+    let actions: FichaActionPick[] | null = null;
+
+    const absorb = (event: {
+      type: string;
+      data?: Record<string, unknown>;
+    }) => {
+      if (event.type === "subagent.called") {
+        const name = String(event.data?.name ?? event.data?.toolName ?? "");
+        const id = event.data?.childSessionId;
+        if (name === "actions_recommender" && typeof id === "string") {
+          childId = id;
+        }
+      }
+      const tryParse = (raw: unknown) => {
+        const candidate =
+          raw && typeof raw === "object" && !Array.isArray(raw)
+            ? raw
+            : typeof raw === "string"
+              ? (() => {
+                  try {
+                    return JSON.parse(raw) as object;
+                  } catch {
+                    return null;
+                  }
+                })()
+              : null;
+        if (!candidate) return;
+        const ok = FichaActionsDecisionSchema.safeParse({
+          company_id: companyId,
+          actions: [],
+          ...candidate,
+        });
+        if (ok.success) actions = ok.data.actions;
+      };
+      if (event.type === "result.completed") {
+        tryParse(event.data?.result);
+      }
+      if (event.type === "subagent.completed") {
+        const name = String(
+          event.data?.subagentName ?? event.data?.name ?? ""
+        );
+        if (name === "actions_recommender") {
+          tryParse(event.data?.output);
+        }
+      }
+    };
+
+    const { session, response } = await client.sessions.create({
       message,
-      outputSchema: FichaActionsDecisionSchema,
-      signal: controller.signal,
+      signal,
     });
-    const result = await response.result();
-    const raw =
-      result.data &&
-      typeof result.data === "object" &&
-      !Array.isArray(result.data)
-        ? result.data
-        : {};
-    const parsed = FichaActionsDecisionSchema.parse({
-      company_id: companyId,
-      actions: [],
-      ...raw,
-    });
-    return parsed.actions;
+    for await (const event of response) {
+      absorb(event as { type: string; data?: Record<string, unknown> });
+      if (actions) return actions;
+    }
+
+    if (!childId) {
+      for await (const event of session.stream({ signal })) {
+        absorb(event as { type: string; data?: Record<string, unknown> });
+        if (actions) return actions;
+        if (childId) break;
+      }
+    }
+    if (!childId) {
+      throw new Error("actions_recommender was not dispatched");
+    }
+
+    for await (const event of client.sessions.attach(childId).stream({ signal })) {
+      absorb(event as { type: string; data?: Record<string, unknown> });
+      if (actions) return actions;
+      if (event.type === "session.waiting") break;
+    }
+
+    if (actions) return actions;
+    throw new Error("actions_recommender finished without a structured payload");
   } finally {
     clearTimeout(timer);
   }
@@ -204,7 +273,7 @@ function shouldEnrich(companyId: string): boolean {
 /**
  * Ficha actions. Responds with the deterministic list at once and lets Eve
  * write copy in the background; `X-Xray-Enrichment` tells the client whether
- * a later fetch may bring richer text (`pending`) or not (`done` / `none`).
+ * a later fetch may bring richer text (`pending`) or not (`settled`).
  */
 export async function GET(_req: Request, ctx: Ctx) {
   const { companyId } = await ctx.params;

@@ -15,6 +15,7 @@ import {
 import { PeersBenchmarkCard } from "@/components/embat/peers-benchmark";
 import { SignalsDialog } from "@/components/embat/signals-dialog";
 import { TreasuryChartCard } from "@/components/embat/treasury-chart";
+import { EmptyState, ErrorState } from "@/components/xray/feedback-state";
 import { useActions } from "@/hooks/xray/use-actions";
 import { useCashHistory } from "@/hooks/xray/use-cash-history";
 import { useCompanies } from "@/hooks/xray/use-companies";
@@ -53,10 +54,19 @@ function buildSignalDots(
 export function Compania({ companyId }: { companyId: string }) {
   const searchParams = useSearchParams();
   const { data: score, loading, error } = useCompanyScore(companyId);
-  const { data: actions, loading: actionsLoading } = useActions(companyId);
+  const {
+    data: actions,
+    loading: actionsLoading,
+    error: actionsError,
+  } = useActions(companyId);
   const { data: companies } = useCompanies();
-  const { data: peers } = usePeers(companyId);
-  const { data: cashHistory } = useCashHistory(companyId);
+  const { data: peers, error: peersError, loading: peersLoading } =
+    usePeers(companyId);
+  const {
+    data: cashHistory,
+    error: cashError,
+    loading: cashLoading,
+  } = useCashHistory(companyId);
   const company = companies.find((c) => c.company_id === companyId);
   const currency = company?.currency ?? "EUR";
   const banner = score ? pickBannerAlert(score.alerts) : null;
@@ -100,10 +110,14 @@ export function Compania({ companyId }: { companyId: string }) {
       {loading ? (
         <FichaSkeleton />
       ) : error || !score ? (
-        <p className="px-5 text-[14px] text-destructive">
-          {error?.message ??
-            "No se ha podido cargar el score de esta compañía."}
-        </p>
+        <ErrorState
+          title="No se ha podido cargar la ficha"
+          description={
+            error?.message ??
+            "No se ha podido cargar el score de esta compañía."
+          }
+          placement="page"
+        />
       ) : (
         <div className="flex flex-col gap-[30px]">
           <div className="flex flex-wrap items-stretch gap-[30px]">
@@ -113,13 +127,27 @@ export function Compania({ companyId }: { companyId: string }) {
               actionsHref="#acciones"
             />
             <ActualizacionesCard drivers={score.drivers} />
-            {peers && peers.k > 0 ? (
+            {peersError ? (
+              <ErrorState
+                title="No se han podido cargar los pares"
+                description={peersError.message}
+                placement="card"
+                className="min-w-[260px] flex-1"
+              />
+            ) : peersLoading ? null : peers && peers.k > 0 ? (
               <PeersBenchmarkCard
                 cohort={peers}
                 peerPercentile={score.peer_percentile}
                 companyScore={score.score}
               />
-            ) : null}
+            ) : (
+              <EmptyState
+                title="Sin pares"
+                description="No hay cohortes de pares para esta empresa."
+                placement="card"
+                className="min-w-[260px] flex-1"
+              />
+            )}
           </div>
 
           <div className="flex flex-wrap items-stretch gap-[30px]">
@@ -128,16 +156,26 @@ export function Compania({ companyId }: { companyId: string }) {
               projection={score.projection_6m}
               signalDots={signalDots}
             />
-            <TreasuryChartCard
-              history={cashHistory}
-              treasury={score.treasury}
-              currency={currency}
-            />
+            {cashError ? (
+              <ErrorState
+                title="No se ha podido cargar la tesorería"
+                description={cashError.message}
+                placement="card"
+                className="min-w-[260px] flex-1"
+              />
+            ) : (
+              <TreasuryChartCard
+                history={cashLoading ? [] : cashHistory}
+                treasury={score.treasury}
+                currency={currency}
+              />
+            )}
           </div>
 
           <AccionesCard
             actions={closed ? [] : actions}
             loading={actionsLoading}
+            error={closed ? null : actionsError}
             snapshot={score}
             currency={currency}
             hrefFor={(action) => `/c/${companyId}/a/${action.id}`}

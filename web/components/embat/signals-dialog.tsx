@@ -7,6 +7,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { DimensionRadar } from "@/components/xray/dimension-radar";
 import { formatNumber } from "@/lib/xray/format";
 import {
@@ -91,8 +92,8 @@ export function SignalsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto sm:max-w-xl">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[85vh] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-xl">
+        <DialogHeader className="shrink-0 px-6 pt-6 pb-3">
           <DialogTitle>Señales del índice</DialogTitle>
           <DialogDescription>
             {snapshot.n_signals} señales · {nRed} en rojo
@@ -100,60 +101,71 @@ export function SignalsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-2">
-          {SIGNAL_KEYS.map((key) => {
-            const value = snapshot.signals[key];
-            const red = redKeys.has(key);
-            const polarity = signalPolarity(key);
-            return (
-              <div
-                key={key}
-                className={cn(
-                  "rounded-xl border px-3 py-2.5",
-                  red
-                    ? "border-[#fbd3dc] bg-[#fef4f6]"
-                    : "border-[#dce0e6] bg-white"
-                )}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-[14px] font-medium tracking-[-0.14px] text-black">
-                      {signalLabel(key)}
-                    </p>
-                    <p className="mt-0.5 text-[12px] tracking-[-0.12px] text-[#6b6b6b]">
-                      {signalBlurb(key)}
-                    </p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-[14px] font-medium tabular-nums tracking-[-0.14px] text-black">
-                      {formatSignalValue(key, value)}
-                    </p>
-                    {red ? (
-                      <p className="text-[11px] font-medium tracking-[-0.11px] text-[#b3123a]">
-                        En rojo
+        <ScrollArea
+          scrollbarSize="modal"
+          className="min-h-0 max-h-[calc(85vh-5.5rem)] flex-1 rounded-b-[inherit]"
+        >
+          <div className="flex flex-col gap-2 px-6 pb-6">
+            {SIGNAL_KEYS.map((key) => {
+              const value = snapshot.signals[key];
+              const rank = snapshot.ranks?.[key];
+              const red = redKeys.has(key);
+              const polarity = signalPolarity(key);
+              return (
+                <div
+                  key={key}
+                  className={cn(
+                    "rounded-xl border px-3 py-2.5",
+                    red
+                      ? "border-destructive/20 bg-destructive/5"
+                      : "border-border bg-card"
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-[14px] font-medium tracking-[-0.14px] text-foreground">
+                        {signalLabel(key)}
                       </p>
-                    ) : null}
-                    {snapshot.ranks?.[key] != null ? (
-                      <p className="text-[11px] tabular-nums tracking-[-0.11px] text-[#6b6b6b]">
-                        percentil {Math.round(snapshot.ranks[key]! * 100)}
+                      <p className="mt-0.5 text-[12px] tracking-[-0.12px] text-table-header">
+                        {signalBlurb(key)}
                       </p>
-                    ) : null}
-                    <p className="text-[10px] text-[#6b6b6b]">
-                      {polarity === "high" ? "↑ peor" : "↓ peor"}
-                    </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-[14px] font-medium tabular-nums tracking-[-0.14px] text-foreground">
+                        {formatSignalValue(key, value)}
+                      </p>
+                      {rank != null ? (
+                        <p
+                          className={cn(
+                            "text-[11px] font-medium tabular-nums",
+                            red ? "text-destructive" : "text-table-header"
+                          )}
+                        >
+                          p{Math.round(rank * 100)}
+                          {red ? " · cola roja" : ""}
+                        </p>
+                      ) : red ? (
+                        <p className="text-[11px] font-medium text-destructive">
+                          En rojo
+                        </p>
+                      ) : null}
+                      <p className="text-[10px] text-table-header">
+                        {polarity === "high" ? "↑ peor" : "↓ peor"}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
 
-        <div className="mt-2 border-t border-[#dce0e6] pt-3">
-          <p className="mb-2 text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]">
-            Dimensiones
-          </p>
-          <DimensionRadar dimensions={snapshot.dimensions} />
-        </div>
+            <div className="mt-2 border-t border-border pt-3">
+              <p className="mb-2 text-[14px] font-medium tracking-[-0.14px] text-table-header">
+                Dimensiones
+              </p>
+              <DimensionRadar dimensions={snapshot.dimensions} />
+            </div>
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

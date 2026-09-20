@@ -42,10 +42,10 @@ function OfferStat({
   return (
     <div
       className={cn(
-        "flex w-full items-center justify-between px-5 py-[15px] text-[14px] font-medium tracking-[-0.14px] text-[#666]",
+        "flex w-full items-center justify-between px-5 py-[15px] text-[14px] font-medium tracking-[-0.14px] text-muted-foreground",
         last
           ? "bg-[rgba(220,224,230,0.3)]"
-          : "border-b border-[#dce0e6]"
+          : "border-b border-border"
       )}
     >
       <span>{label}</span>
@@ -134,14 +134,14 @@ export function ContratarPrestamoDialog({
           {formatRatePct(offerRate)}, fee Embat {formatCompactEuro(fee)}.
         </DialogDescription>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center gap-5 self-stretch overflow-hidden border-r border-[#dce0e6] p-2.5">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center gap-5 self-stretch overflow-hidden border-r border-border p-2.5">
           <p className="text-[18px] font-medium tracking-[-0.18px] text-black">
             X Ray
           </p>
-          <FeeBadge amount={fee} prefix="Fee operación: " />
+          <FeeBadge amount={fee} prefix="Comisión de operación: " />
           {isPending ? (
             <div className="w-full max-w-[200px] space-y-2 px-4">
-              <p className="text-center text-[12px] font-medium text-[#666]">
+              <p className="text-center text-[12px] font-medium text-muted-foreground">
                 El emisor revisa… {remainingSec}s
               </p>
               <div
@@ -161,13 +161,13 @@ export function ContratarPrestamoDialog({
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col items-start gap-2.5 overflow-hidden p-2.5">
-          <div className="flex w-full flex-col overflow-hidden rounded-xl border border-[#dce0e6] bg-white shadow-[0px_1px_2px_0px_rgba(13,19,30,0.1)]">
-            <div className="flex w-full items-center justify-center border-b border-[#dce0e6] px-5 py-[15px]">
+          <div className="flex w-full flex-col overflow-hidden rounded-xl border border-border bg-white shadow-[0px_1px_2px_0px_rgba(13,19,30,0.1)]">
+            <div className="flex w-full items-center justify-center border-b border-border px-5 py-[15px]">
               <IssuerMark name={issuer} />
             </div>
             <OfferStat label="Ahorro €/año">
               {saving === 0 ? (
-                <span className="text-[14px] font-medium tracking-[-0.14px] text-[#666]">
+                <span className="text-[14px] font-medium tracking-[-0.14px] text-muted-foreground">
                   —
                 </span>
               ) : (
@@ -211,7 +211,7 @@ export function ContratarPrestamoDialog({
               type="button"
               onClick={cancel}
               className={cn(
-                "flex h-8 w-full shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#dce0e6] bg-white px-2.5 text-[15px] leading-none font-semibold tracking-[-0.15px] text-[#666] transition-colors duration-150 ease-out motion-reduce:transition-none",
+                "flex h-8 w-full shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-white px-2.5 text-[15px] leading-none font-semibold tracking-[-0.15px] text-muted-foreground transition-colors duration-150 ease-out motion-reduce:transition-none",
                 embatFocusRing
               )}
             >

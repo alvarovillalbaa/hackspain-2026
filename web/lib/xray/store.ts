@@ -164,6 +164,59 @@ const memoryDecisions = new Map<string, StoredDecision>();
 const memoryExplanations = new Map<string, StoredExplanation>();
 let memorySession: DemoSession | null = null;
 
+/**
+ * Paths known to be absent, with the time the miss expires. Without this a
+ * portfolio-wide read pays one Blob `list()` per company on every request,
+ * because only hits are memoized.
+ */
+const missingUntil = new Map<string, number>();
+const MISS_TTL_MS = 60_000;
+
+function isKnownMissing(pathname: string): boolean {
+  const until = missingUntil.get(pathname);
+  if (until == null) return false;
+  if (Date.now() < until) return true;
+  missingUntil.delete(pathname);
+  return false;
+}
+
+function rememberMiss(pathname: string): void {
+  missingUntil.set(pathname, Date.now() + MISS_TTL_MS);
+}
+
+/**
+ * Bumped on every write or invalidation of imports and actions, so routes
+ * that assemble a portfolio-wide view can memoize until something changed.
+ */
+let storeVersion = 0;
+
+export function getStoreVersion(): number {
+  return storeVersion;
+}
+
+function touch(pathname?: string): void {
+  storeVersion += 1;
+  if (pathname) missingUntil.delete(pathname);
+}
+
+/** Run `fn` over `items` with at most `limit` in flight. */
+async function mapLimit<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await fn(items[i]!);
+    }
+  });
+  await Promise.all(workers);
+  return out;
+}
+
 async function blobGetJson<T>(pathname: string): Promise<T | null> {
   if (hasBlob()) {
     try {
@@ -263,6 +316,8 @@ export function clearStoreMemoryForTests(): void {
   memoryDecisions.clear();
   memoryExplanations.clear();
   memorySession = null;
+  missingUntil.clear();
+  storeVersion = 0;
 }
 
 // --- session ---
@@ -349,10 +404,11 @@ export async function writeImportedPack(
   };
   const id = pack.company.company_id;
   memoryImports.set(id, body);
+  const pathname = `${IMPORT_PREFIX}${encodeURIComponent(id)}.json`;
+  touch(pathname);
 
   if (!hasDurable()) return true;
   try {
-    const pathname = `${IMPORT_PREFIX}${encodeURIComponent(id)}.json`;
     await blobPutJson(pathname, body);
     return true;
   } catch (err) {
@@ -368,10 +424,12 @@ export async function readImportedPack(
   if (mem) return mem;
 
   if (!hasDurable()) return null;
+  const pathname = `${IMPORT_PREFIX}${encodeURIComponent(companyId)}.json`;
+  if (isKnownMissing(pathname)) return null;
   try {
-    const pathname = `${IMPORT_PREFIX}${encodeURIComponent(companyId)}.json`;
     const pack = await blobGetJson<ImportedPack>(pathname);
     if (pack) memoryImports.set(companyId, pack);
+    else rememberMiss(pathname);
     return pack;
   } catch (err) {
     console.warn("[blob] readImportedPack failed:", err);
@@ -521,12 +579,46 @@ export async function readStoredActions(
   if (mem) return mem;
   if (!hasDurable()) return null;
   const pathname = `${ACTIONS_PREFIX}${encodeURIComponent(companyId)}.json`;
+  if (isKnownMissing(pathname)) return null;
   const stored = await blobGetJson<StoredActions>(pathname);
   if (stored?.actions) {
     memoryActions.set(companyId, stored);
     return stored;
   }
+  rememberMiss(pathname);
   return null;
+}
+
+/** `xray/actions/COMP%201.json` → `COMP 1` */
+function companyIdFromPath(pathname: string, prefix: string): string | null {
+  if (!pathname.startsWith(prefix) || !pathname.endsWith(".json")) return null;
+  try {
+    return decodeURIComponent(pathname.slice(prefix.length, -".json".length));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Every company's stored actions in one prefix listing plus parallel reads
+ * of the files not yet in memory. This is what a portfolio-wide view should
+ * call instead of `readStoredActions` per company.
+ */
+export async function listStoredActions(): Promise<Map<string, StoredActions>> {
+  if (hasDurable()) {
+    const pending: { companyId: string; pathname: string }[] = [];
+    for (const pathname of await listStoredPaths(ACTIONS_PREFIX)) {
+      const companyId = companyIdFromPath(pathname, ACTIONS_PREFIX);
+      if (companyId && !memoryActions.has(companyId)) {
+        pending.push({ companyId, pathname });
+      }
+    }
+    await mapLimit(pending, 16, async ({ companyId, pathname }) => {
+      const stored = await blobGetJson<StoredActions>(pathname);
+      if (stored?.actions) memoryActions.set(companyId, stored);
+    });
+  }
+  return new Map(memoryActions);
 }
 
 export async function readActions(
@@ -546,17 +638,18 @@ export async function writeActions(
     ...(opts.enriched_at ? { enriched_at: opts.enriched_at } : {}),
   };
   memoryActions.set(companyId, body);
-  if (!hasDurable()) return true;
   const pathname = `${ACTIONS_PREFIX}${encodeURIComponent(companyId)}.json`;
+  touch(pathname);
+  if (!hasDurable()) return true;
   return blobPutJson(pathname, body);
 }
 
 export async function invalidateActions(companyId: string): Promise<boolean> {
   memoryActions.delete(companyId);
+  const pathname = `${ACTIONS_PREFIX}${encodeURIComponent(companyId)}.json`;
+  touch(pathname);
   if (!hasDurable()) return true;
-  return blobDeletePath(
-    `${ACTIONS_PREFIX}${encodeURIComponent(companyId)}.json`
-  );
+  return blobDeletePath(pathname);
 }
 
 export async function invalidateActionsForCompanies(

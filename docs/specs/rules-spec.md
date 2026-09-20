@@ -155,3 +155,10 @@ Medido (19 sep, noche): 241 meses-empresa con watch activo en la historia —172
 Existen la etiqueta PD6 (`labels.breach_state`, `labels.label_pd6`: rotura = saldo mínimo reconstruido < 0 dos meses seguidos; etiqueta = empieza un episodio en (t, t+6] entre filas con saldo ≥ 0 en t) y tres retadores en `xray/challenger.py` sobre la misma matriz de diseño: `gbm` (LightGBM monótono), `logistic` (16 variables) y `scorecard` (logístico de 7 variables no colineales). `xray-evals --challenger` los compara con las reglas sobre PD6 (AUC(h), subconjunto sin mes negativo, split estricto, GroupKFold por grupo, estabilidad) y aplica la regla del plan §4 (≥ 0,03 en GroupKFold y saltos < 12 %), todo bajo `metrics.json["challenger"]`.
 
 Medido: AUC(6) test reglas 0,716 · scorecard 0,756 · GBM 0,773; GroupKFold +0,022 / +0,021: **las reglas se quedan**. El scorecard es el retador recomendado por explicable (siete coeficientes legibles), calibrado por decil y estable (7,6 % de saltos); el GBM gana 0,017 más a costa del tamaño y la concentración de clientes. Ninguna de las piezas entra en `score`, `export_web` ni el contrato web hasta que el equipo decida el objetivo. Detalle: `docs/research/2026-09-20-retador-gbm-pd6.md`.
+
+## 14. Pesos y ventana del índice por CV anidada (20 sep 2026, rama ML-experiments)
+
+`xray/tune.py` aprende los pesos y la ventana del índice con GroupKFold por `group_id` dentro de train y los compara en test con producción; se lanza con `uv run xray-evals --features artifacts/features.parquet --tune` y escribe `metrics.json["tune"]` (`picks` + `search_top`).
+Medido: el mejor candidato (0,60/0,35/0,05/0,00, L = 6) sube la AUC externa de 0,685 a 0,707 —Δ IC 95 % [+0,003, +0,038], excluye el cero— y PD6 de 0,716 a 0,727, con el intervalo a caballo del cero; el top 10 pone `overdue = 0` y se apoya en balance e inflows.
+No se adopta: la ganancia externa (+0,020) no llega al listón de +0,03 de la regla del plan §4, mover el índice de producción es decisión del equipo y afecta a eventos, outlook, bandas y export, así que `RulesConfig.weights` y `level_window = 6` se quedan como están.
+Detalle: `docs/research/2026-09-20-pesos-por-cv.md`.

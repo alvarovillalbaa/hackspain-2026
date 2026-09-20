@@ -743,6 +743,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--challenger", action="store_true",
                     help="ajusta los retadores (GBM monótono y scorecard logístico) sobre PD6 y los compara "
                          "con las reglas (metrics.json['challenger'])")
+    ap.add_argument("--tune", action="store_true",
+                    help="aprende pesos y ventana del índice por CV anidada (GroupKFold en train) y los "
+                         "compara en test con producción; escribe metrics.json['tune'] (docs/research/"
+                         "2026-09-20-pesos-por-cv.md)")
     args = ap.parse_args(argv)
 
     feats_path = Path(args.features)
@@ -794,6 +798,27 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"[challenger] {kind}: AUC(6) {c['auc_pd6_by_horizon']['6']['auc']:.3f} "
                       f"(limpio {c['auc6_clean']:.3f}, estricto {c['auc6_strict']:.3f}, "
                       f"saltos {c['stability']['jump_rate_2_deciles']:.1%}) · veredicto {cm['verdict'][kind]}")
+    if args.tune:
+        if groups is None:
+            print("[tune] omitido: sin group_id en companies.parquet (no se puede hacer GroupKFold)")
+        else:
+            from xray import tune
+
+            td = tune.compare(scored, groups=groups, train_until=args.train_until)
+            write_metrics(td, "tune", out_dir / "metrics.json")
+
+            def _ci(interval) -> str:
+                return "[" + ", ".join(f"{v:.3f}" if v is not None else "nan" for v in interval) + "]"
+
+            for name, pick in td["picks"].items():
+                w = "/".join(f"{x:.2f}" for x in pick["weights"])
+                ext = f"{pick['test_ext6']:.3f}" if pick["test_ext6"] is not None else "nan"
+                pd6 = f"{pick['test_pd6']:.3f}" if pick["test_pd6"] is not None else "nan"
+                jump = f"{pick['jumps']:.1%}" if pick["jumps"] is not None else "nan"
+                line = (f"[tune] {name}: L={pick['L']} w={w} test_ext6={ext} test_pd6={pd6} saltos={jump}")
+                if "d_ext_ci" in pick:
+                    line += f" · Δext {_ci(pick['d_ext_ci'])} · Δpd6 {_ci(pick['d_pd6_ci'])}"
+                print(line)
     print(f"-> {out_dir / 'metrics.json'} · {out_dir / f'{args.name}_model.json'}")
     return 0
 

@@ -27,7 +27,10 @@ class RulesConfig:
     """Todos los parámetros del score por reglas, con los valores acordados en docs/rules_spec.md."""
 
     weights: dict[str, float] = field(
-        default_factory=lambda: {"balance": 0.35, "inflows": 0.25, "dscr": 0.20, "overdue": 0.20}
+        # 20 sep 2026: aprendidos por CV anidada (GroupKFold en train, docs/research/2026-09-20-pesos-por-cv.md);
+        # antes 0,35/0,25/0,20/0,20 por orden de evidencia. Variante con cada peso >= 0,10 para que las
+        # cuatro señales sigan vivas en pantalla; el óptimo sin restricción es 0,60/0,35/0,05/0,00.
+        default_factory=lambda: {"balance": 0.50, "inflows": 0.30, "dscr": 0.10, "overdue": 0.10}
     )
     red_cutoff: float = 0.20  # rango ≤ red_cutoff es rojo
     min_signals: int = 1  # señales necesarias para que exista el índice; una basta (19 sep), confidence avisa

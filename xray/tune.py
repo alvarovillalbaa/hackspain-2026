@@ -26,7 +26,8 @@ KEYS = ["company_id", "month"]
 SIGNALS = ("balance", "inflows", "dscr", "overdue")  # = orden de las claves de RulesConfig.weights
 RANK_COLS = [f"rank_{s}" for s in SIGNALS]
 WEIGHT_COLS = [f"w_{s}" for s in SIGNALS]
-PRODUCTION_WEIGHTS = (0.35, 0.25, 0.20, 0.20)
+PRODUCTION_WEIGHTS = (0.50, 0.30, 0.10, 0.10)  # RulesConfig.weights desde el 20 sep 2026
+LEGACY_WEIGHTS = (0.35, 0.25, 0.20, 0.20)  # pesos por orden de evidencia, hasta el 20 sep 2026
 PRODUCTION_WINDOW = 6
 
 

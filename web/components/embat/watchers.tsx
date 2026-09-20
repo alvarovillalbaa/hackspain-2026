@@ -4,19 +4,17 @@ import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from "@/components/ui/empty";
-import { ErrorState } from "@/components/xray/feedback-state";
+import { EmptyState, ErrorState } from "@/components/xray/feedback-state";
 import {
   SortableTable,
   type SortableColumn,
 } from "@/components/xray/sortable-table";
 import { useWatchQueue } from "@/hooks/xray/use-watch-queue";
-import { WATCH_RULE_LABEL } from "@/lib/xray/watch-queue";
+import {
+  localizeWatchMessage,
+  severityLabel,
+  watchRuleLabel,
+} from "@/lib/xray/labels";
 import type { WatchQueueItem } from "@/lib/xray/types";
 import { cn } from "@/lib/utils";
 
@@ -34,7 +32,7 @@ export function Watchers() {
           <div>
             <div className="font-medium">{row.name}</div>
             <div className="text-[12px] text-muted-foreground">
-              {row.message}
+              {localizeWatchMessage(row.message)}
             </div>
           </div>
         ),
@@ -42,8 +40,9 @@ export function Watchers() {
       {
         id: "rules",
         header: "Reglas",
+        className: "hidden md:table-cell",
         cell: (row) =>
-          row.rules.map((r) => WATCH_RULE_LABEL[r] ?? r).join(" · "),
+          row.rules.map((r) => watchRuleLabel(r)).join(" · "),
       },
       {
         id: "severity",
@@ -60,7 +59,7 @@ export function Watchers() {
                 : "border-warning/30 bg-warning/10 text-warning"
             )}
           >
-            {row.severity}
+            {severityLabel(row.severity)}
           </Badge>
         ),
       },
@@ -89,14 +88,10 @@ export function Watchers() {
 
   if (data.length === 0) {
     return (
-      <Empty className="min-h-[280px] border-0">
-        <EmptyHeader>
-          <EmptyTitle>Sin alertas</EmptyTitle>
-          <EmptyDescription>
-            No hay empresas en la cola de vigilancia ahora mismo.
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <EmptyState
+        title="Sin alertas"
+        description="No hay empresas en la cola de vigilancia ahora mismo."
+      />
     );
   }
 

@@ -15,7 +15,6 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -88,7 +87,7 @@ function OfferItem({
         <ItemTitle className="text-[15px]" title={issuer}>
           {issuer}
         </ItemTitle>
-        <ItemDescription>
+        <ItemDescription className="tabular-nums">
           {formatCompactEuro(match.amount)} · {formatRatePct(offerRate)}
           {dates ? ` · ${dates}` : ""}
           {" · "}
@@ -248,19 +247,18 @@ export function Ofertas({
             >
               <CardHeader>
                 <CardTitle className="flex items-center gap-1.5 text-[14px] font-medium tracking-[-0.14px] text-muted-foreground">
-                  Importe
+                  Importe recomendado
                   <ReasoningHint text={amountReasoning} />
                 </CardTitle>
-                <CardDescription className="text-[13px] text-muted-foreground">
-                  Recomendado{" "}
-                  {formatCurrency(action.recommended_amount, currency)}
-                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-mono text-lg tabular-nums">
-                    {formatCurrency(action.recommended_amount, currency)}
-                  </span>
+                <div className="text-[18px] font-medium tracking-[-0.18px] tabular-nums">
+                  {formatCurrency(action.recommended_amount, currency)}
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-[12px] font-medium tracking-[-0.12px] text-muted-foreground">
+                    Impacto estimado en el score
+                  </p>
                   <ScoreUplift
                     uplift={liveUplift.uplift}
                     from={liveUplift.from}
@@ -273,9 +271,9 @@ export function Ofertas({
                   uplift={liveUplift.uplift}
                   toBand={liveUplift.band}
                 />
-                <p className="text-[11px] text-muted-foreground">
-                  Misma mejora de Health Score para cualquiera de estos
-                  productos.
+                <p className="text-[11px] leading-snug text-muted-foreground">
+                  Estimación what-if del modelo. La misma mejora aplica a
+                  cualquiera de estos productos.
                 </p>
               </CardContent>
             </Card>

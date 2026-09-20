@@ -10,6 +10,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/xray/feedback-state";
+import {
+  embatFocusRing,
+  embatRowFocusRing,
+} from "@/components/embat/chrome";
+import { formatNumber } from "@/lib/xray/format";
 import { sortRows, type SortDir } from "@/lib/xray/query-filters";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +29,85 @@ export type SortableColumn<T> = {
   align?: "left" | "right" | "center";
   cell: (row: T) => ReactNode;
 };
+
+/** Rows rendered before the "Mostrar más" step. */
+export const TABLE_PAGE_SIZE = 50;
+
+/**
+ * Client-side incremental pagination shared by every long list.
+ * Resets to the first page whenever `rows` or `resetKey` changes, so a new
+ * filter or sort never strands the reader on an empty page.
+ */
+export function useTablePagination<T>(
+  rows: T[],
+  resetKey: string = ""
+): {
+  pageRows: T[];
+  total: number;
+  shown: number;
+  hasMore: boolean;
+  showMore: () => void;
+} {
+  const [visible, setVisible] = useState(TABLE_PAGE_SIZE);
+  const [prev, setPrev] = useState<{ rows: T[]; key: string }>({
+    rows,
+    key: resetKey,
+  });
+  if (prev.rows !== rows || prev.key !== resetKey) {
+    setPrev({ rows, key: resetKey });
+    setVisible(TABLE_PAGE_SIZE);
+  }
+
+  const pageRows = useMemo(() => rows.slice(0, visible), [rows, visible]);
+
+  return {
+    pageRows,
+    total: rows.length,
+    shown: pageRows.length,
+    hasMore: rows.length > pageRows.length,
+    showMore: () => setVisible((v) => v + TABLE_PAGE_SIZE),
+  };
+}
+
+/** Count + "Mostrar 50 más" footer, shared by the five long lists. */
+export function TablePagination({
+  total,
+  shown,
+  hasMore,
+  onShowMore,
+  className,
+}: {
+  total: number;
+  shown: number;
+  hasMore: boolean;
+  onShowMore: () => void;
+  className?: string;
+}) {
+  if (total === 0) return null;
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center justify-between gap-3 px-5 py-[15px]",
+        className
+      )}
+    >
+      <p className="text-[12px] font-medium tracking-[-0.12px] tabular-nums text-muted-foreground">
+        {shown === 0 ? "0" : "1"} a {formatNumber(shown)} de {formatNumber(total)}
+      </p>
+      {hasMore ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className={cn("rounded-xl", embatFocusRing)}
+          onClick={onShowMore}
+        >
+          Mostrar {TABLE_PAGE_SIZE} más
+        </Button>
+      ) : null}
+    </div>
+  );
+}
 
 export function SortableTable<T>({
   rows,
@@ -53,6 +139,11 @@ export function SortableTable<T>({
   const sorted = useMemo(
     () => sortRows(rows, sortKey, sortDir),
     [rows, sortKey, sortDir]
+  );
+
+  const { pageRows, total, shown, hasMore, showMore } = useTablePagination(
+    sorted,
+    `${sortKey ?? ""}:${sortDir}`
   );
 
   const toggle = (key: keyof T & string) => {
@@ -88,7 +179,10 @@ export function SortableTable<T>({
                   {sortable ? (
                     <button
                       type="button"
-                      className="inline-flex items-center gap-1 hover:text-foreground"
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-[2px] hover:text-foreground",
+                        embatFocusRing
+                      )}
                       onClick={() => toggle(col.sortKey!)}
                     >
                       {col.header}
@@ -111,23 +205,41 @@ export function SortableTable<T>({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {sorted.length === 0 ? (
+          {pageRows.length === 0 ? (
             <TableRow>
               <TableCell
                 colSpan={columns.length + (leading ? 1 : 0)}
                 className="py-8"
               >
                 {empty ?? (
-                  <p className="text-sm text-muted-foreground">Sin datos.</p>
+                  <EmptyState
+                    title="Sin resultados"
+                    description="Sin filas que coincidan con el filtro."
+                    placement="card"
+                  />
                 )}
               </TableCell>
             </TableRow>
           ) : (
-            sorted.map((row) => (
+            pageRows.map((row) => (
               <TableRow
                 key={rowKey(row)}
-                className={cn(onRowClick && "cursor-pointer")}
+                tabIndex={onRowClick ? 0 : undefined}
+                className={cn(
+                  onRowClick && "cursor-pointer",
+                  onRowClick && embatRowFocusRing
+                )}
                 onClick={() => onRowClick?.(row)}
+                onKeyDown={
+                  onRowClick
+                    ? (e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onRowClick(row);
+                        }
+                      }
+                    : undefined
+                }
               >
                 {leading ? (
                   <TableCell
@@ -154,6 +266,13 @@ export function SortableTable<T>({
           )}
         </TableBody>
       </Table>
+      <TablePagination
+        total={total}
+        shown={shown}
+        hasMore={hasMore}
+        onShowMore={showMore}
+        className="border-t border-border"
+      />
     </div>
   );
 }

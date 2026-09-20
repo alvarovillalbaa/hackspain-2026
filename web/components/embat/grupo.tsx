@@ -88,33 +88,32 @@ function GrupoBody({
   const many = group.n_companies > 1;
 
   return (
-    <>
-      {isDemoFocus ? (
-        <div className="px-5 pb-2">
-          <DemoChip />
-        </div>
-      ) : null}
-      <div className="flex flex-col gap-[30px]">
-        <div className="flex flex-wrap items-stretch gap-[30px]">
-          <HealthScoreCard snapshot={score} onOpenSignals={() => {}} />
-          <ActualizacionesCard drivers={score.drivers} />
-        </div>
-        <AccionesCard
-          actions={actions}
-          loading={actionsLoading}
-          error={actionsError}
+    <div className="flex flex-col gap-[30px]">
+      <div className="flex flex-wrap items-stretch gap-[30px]">
+        <HealthScoreCard
           snapshot={score}
-          hrefFor={(action) => `/c/${action.company_id}/a/${action.id}`}
-          subtitleFor={many ? (action) => action.company_name : undefined}
-          empty="Ninguna acción recomendada para las empresas de este grupo."
+          onOpenSignals={() => {}}
+          headerExtra={isDemoFocus ? <DemoChip /> : undefined}
         />
-        <TrajectoryCard
-          history={score.history}
-          projection={score.projection_6m}
-        />
-        <EmpresasCard members={group.members} summaries={summaries} />
+        <div className="flex min-w-[260px] flex-1 flex-col gap-[30px]">
+          <ActualizacionesCard drivers={score.drivers} />
+          <TrajectoryCard
+            history={score.history}
+            projection={score.projection_6m}
+          />
+        </div>
       </div>
-    </>
+      <AccionesCard
+        actions={actions}
+        loading={actionsLoading}
+        error={actionsError}
+        snapshot={score}
+        hrefFor={(action) => `/c/${action.company_id}/a/${action.id}`}
+        subtitleFor={many ? (action) => action.company_name : undefined}
+        empty="Ninguna acción recomendada para las empresas de este grupo."
+      />
+      <EmpresasCard members={group.members} summaries={summaries} />
+    </div>
   );
 }
 

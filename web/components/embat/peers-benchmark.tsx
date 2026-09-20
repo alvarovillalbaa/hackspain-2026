@@ -31,6 +31,11 @@ const chartConfig = {
   score: { label: "Score", color: "var(--chart-1)" },
 } satisfies ChartConfig;
 
+/** Short company name for the axis; the full id stays in the tooltip/title. */
+function truncateName(name: string, max = 14): string {
+  return name.length > max ? `${name.slice(0, max - 1).trimEnd()}…` : name;
+}
+
 export function PeersBenchmarkCard({
   cohort,
   peerPercentile,
@@ -101,7 +106,11 @@ export function PeersBenchmarkCard({
             <YAxis
               type="category"
               dataKey="id"
-              width={72}
+              width={96}
+              tickFormatter={(value) => {
+                const row = data.find((d) => d.id === value);
+                return truncateName(row?.name ?? String(value));
+              }}
               tick={{ fill: "var(--muted-foreground)", fontSize: 10 }}
               axisLine={false}
               tickLine={false}
@@ -112,7 +121,7 @@ export function PeersBenchmarkCard({
                   formatter={(value) => formatNumber(Number(value))}
                   labelFormatter={(label) => {
                     const row = data.find((d) => d.id === label);
-                    return row?.name ?? String(label);
+                    return row ? `${row.name} · ${row.id}` : String(label);
                   }}
                 />
               }
@@ -139,9 +148,10 @@ export function PeersBenchmarkCard({
             <Link
               key={n.company_id}
               href={`/c/${n.company_id}`}
+              title={n.company_id}
               className="rounded-lg bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground hover:bg-primary/10 hover:text-primary"
             >
-              {n.company_id}
+              {truncateName(n.name)}
             </Link>
           ))}
         </div>

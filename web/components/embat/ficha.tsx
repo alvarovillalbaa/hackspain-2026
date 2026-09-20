@@ -270,7 +270,7 @@ export function ConfidenceMeter({
                     key={i}
                     className={cn(
                       "size-1.5 rounded-full",
-                      i <= meta.level ? "bg-primary" : "bg-[#dce0e6]"
+                      i <= meta.level ? "bg-primary" : "bg-border"
                     )}
                   />
                 ))}
@@ -300,10 +300,13 @@ export function HealthScoreCard({
   snapshot,
   onOpenSignals,
   actionsHref,
+  headerExtra,
 }: {
   snapshot: ScoreSnapshot;
   onOpenSignals: () => void;
   actionsHref?: string;
+  /** Chip shown next to the card title (e.g. the demo-group marker). */
+  headerExtra?: ReactNode;
 }) {
   const band = bandMeta(snapshot.band);
   const outlook = outlookMeta(snapshot.outlook);
@@ -316,15 +319,18 @@ export function HealthScoreCard({
       aria-labelledby="health-score"
     >
       <header className="flex flex-wrap items-center justify-between gap-2 px-5 py-[15px]">
-        <h2
-          id="health-score"
-          className="text-[14px] font-medium tracking-[-0.14px] text-table-header"
-        >
-          Score de salud
-        </h2>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <h2
+            id="health-score"
+            className="text-[14px] font-medium tracking-[-0.14px] text-table-header"
+          >
+            Score de salud
+          </h2>
+          {headerExtra}
+        </div>
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="inline-flex items-center justify-center rounded-xl border border-border bg-card px-1 py-0.5 text-[12px] font-medium text-muted-foreground">
-            {trend.label}
+            Tendencia: {trend.label}
           </span>
           <ConfidenceMeter
             confidence={snapshot.confidence}
@@ -508,13 +514,13 @@ export function ActionRow({
         </div>
         <RationaleTip text={tip} />
       </div>
-      <span className="w-[72px] shrink-0 text-center text-[12px] font-medium tracking-[-0.12px] text-table-header">
+      <span className="hidden w-[72px] shrink-0 text-center text-[12px] font-medium tracking-[-0.12px] text-table-header sm:block">
         {confidenceMeta(confidence).label}
       </span>
       <Link
         href={href}
         tabIndex={-1}
-        className="w-[110px] shrink-0 truncate text-right text-[14px] font-medium tracking-[-0.14px] tabular-nums text-table-header"
+        className="hidden w-[110px] shrink-0 truncate text-right text-[14px] font-medium tracking-[-0.14px] tabular-nums text-table-header sm:block"
       >
         {action.recommended_amount > 0
           ? formatCurrency(action.recommended_amount, currency)
@@ -576,8 +582,8 @@ export function AccionesCard<T extends ActionRecommendation>({
         </h2>
         <div className="flex items-center px-2.5 text-[14px] font-medium tracking-[-0.14px] text-table-header">
           <span className="min-w-0 flex-1">Acción</span>
-          <span className="w-[72px] text-center">Conf.</span>
-          <span className="w-[110px] text-right">Importe</span>
+          <span className="hidden w-[72px] text-center sm:block">Conf.</span>
+          <span className="hidden w-[110px] text-right sm:block">Importe</span>
           <span className="w-[80px] text-right">Δ</span>
         </div>
         <p className="px-2.5 text-[11px] font-medium tracking-[-0.11px] text-table-header">
@@ -586,9 +592,9 @@ export function AccionesCard<T extends ActionRecommendation>({
         </p>
         {loading ? (
           <>
-            <Skeleton className="h-9 rounded-xl bg-[#dce0e6]/50" />
-            <Skeleton className="h-9 rounded-xl bg-[#dce0e6]/50" />
-            <Skeleton className="h-9 rounded-xl bg-[#dce0e6]/50" />
+            <Skeleton className="h-9 rounded-xl bg-border/50" />
+            <Skeleton className="h-9 rounded-xl bg-border/50" />
+            <Skeleton className="h-9 rounded-xl bg-border/50" />
           </>
         ) : error ? (
           <AiFailureState
@@ -665,15 +671,24 @@ export function TrajectoryCard({
           ))}
         </ToggleGroup>
       </header>
-      <div className="min-h-[180px] flex-1 px-3 pb-3 pt-1">
-        <ScoreTrajectory
-          history={sliced}
-          projection={projection}
-          signalDots={slicedDots}
-          embat
-          className="h-full"
+      {sliced.length === 0 ? (
+        <EmptyState
+          title="Sin trayectoria"
+          description="No hay suficiente histórico de score para dibujar la evolución."
+          placement="card"
+          className="min-h-[238px] p-2"
         />
-      </div>
+      ) : (
+        <div className="h-[238px] px-3 pb-3 pt-1">
+          <ScoreTrajectory
+            history={sliced}
+            projection={projection}
+            signalDots={slicedDots}
+            embat
+            className="h-full"
+          />
+        </div>
+      )}
     </section>
   );
 }
@@ -682,22 +697,22 @@ export function FichaSkeleton() {
   return (
     <>
       <div className="flex items-center gap-2.5 px-5 pb-[5px]">
-        <Skeleton className="h-6 w-48 rounded bg-[#dce0e6]/50" />
-        <Skeleton className="h-5 w-40 rounded bg-[#dce0e6]/50" />
+        <Skeleton className="h-6 w-48 rounded bg-border/50" />
+        <Skeleton className="h-5 w-40 rounded bg-border/50" />
       </div>
       <div className="flex items-center gap-2.5 px-5 pt-[5px] pb-[15px]">
-        <Skeleton className="h-6 w-24 rounded bg-[#dce0e6]/50" />
-        <Skeleton className="h-6 w-32 rounded bg-[#dce0e6]/50" />
+        <Skeleton className="h-6 w-24 rounded bg-border/50" />
+        <Skeleton className="h-6 w-32 rounded bg-border/50" />
       </div>
       <div className="flex flex-col gap-[30px]">
         <div className="flex flex-wrap gap-[30px]">
-          <Skeleton className="h-[266px] w-[428px] max-w-full rounded-2xl bg-[#dce0e6]/50" />
-          <Skeleton className="h-[266px] min-w-[260px] flex-1 rounded-2xl bg-[#dce0e6]/50" />
-          <Skeleton className="h-[300px] min-w-[260px] flex-1 rounded-2xl bg-[#dce0e6]/50" />
+          <Skeleton className="h-[266px] w-[428px] max-w-full rounded-2xl bg-border/50" />
+          <Skeleton className="h-[266px] min-w-[260px] flex-1 rounded-2xl bg-border/50" />
+          <Skeleton className="h-[300px] min-w-[260px] flex-1 rounded-2xl bg-border/50" />
         </div>
         <div className="flex flex-wrap gap-[30px]">
-          <Skeleton className="h-[300px] w-[425px] max-w-full rounded-2xl bg-[#dce0e6]/50" />
-          <Skeleton className="h-[300px] min-w-[260px] flex-1 rounded-2xl bg-[#dce0e6]/50" />
+          <Skeleton className="h-[300px] w-[425px] max-w-full rounded-2xl bg-border/50" />
+          <Skeleton className="h-[300px] min-w-[260px] flex-1 rounded-2xl bg-border/50" />
         </div>
       </div>
     </>

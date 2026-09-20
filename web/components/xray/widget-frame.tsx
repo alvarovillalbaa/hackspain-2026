@@ -15,12 +15,15 @@ export function WidgetFrame({
   children,
   className,
   onRemove,
+  draggable = true,
   dragHandleClassName = "widget-drag-handle",
 }: {
   title: string;
   children: ReactNode;
   className?: string;
   onRemove?: () => void;
+  /** False on the stacked (narrow) board: no grab cursor, no handle class. */
+  draggable?: boolean;
   dragHandleClassName?: string;
 }) {
   return (
@@ -33,8 +36,9 @@ export function WidgetFrame({
       <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border/60 px-3 py-2">
         <h2
           className={cn(
-            "min-w-0 flex-1 cursor-grab truncate text-[14px] font-medium tracking-[-0.14px] text-table-header active:cursor-grabbing",
-            dragHandleClassName
+            "min-w-0 flex-1 truncate text-[14px] font-medium tracking-[-0.14px] text-table-header",
+            draggable && "cursor-grab active:cursor-grabbing",
+            draggable && dragHandleClassName
           )}
         >
           {title}

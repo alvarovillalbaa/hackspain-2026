@@ -43,9 +43,7 @@ function OfferStat({
     <div
       className={cn(
         "flex w-full items-center justify-between px-5 py-[15px] text-[14px] font-medium tracking-[-0.14px] text-muted-foreground",
-        last
-          ? "bg-[rgba(220,224,230,0.3)]"
-          : "border-b border-border"
+        last ? "bg-border/30" : "border-b border-border"
       )}
     >
       <span>{label}</span>
@@ -119,10 +117,10 @@ export function ContratarPrestamoDialog({
     >
       <DialogContent
         showCloseButton={!busy}
-        overlayClassName="embat-contratar-overlay bg-[rgba(0,0,0,0.3)] duration-200 data-closed:animate-none"
+        overlayClassName="embat-contratar-overlay bg-black/30 duration-200 data-closed:animate-none"
         className={cn(
           embatUiClass,
-          "embat-contratar-dialog flex w-[700px] max-w-[calc(100%-2rem)] origin-top gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 text-black shadow-[0px_1px_2px_0px_rgba(13,19,30,0.1)] ring-0 sm:max-w-[700px] data-open:animate-none data-closed:animate-none"
+          "embat-contratar-dialog flex w-[700px] max-w-[calc(100%-2rem)] origin-top flex-col gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 text-black shadow-sm ring-0 sm:max-w-[700px] sm:flex-row data-open:animate-none data-closed:animate-none"
         )}
         aria-busy={busy}
       >
@@ -134,18 +132,21 @@ export function ContratarPrestamoDialog({
           {formatRatePct(offerRate)}, fee Embat {formatCompactEuro(fee)}.
         </DialogDescription>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center gap-5 self-stretch overflow-hidden border-r border-border p-2.5">
+        <div className="flex min-h-0 min-w-0 flex-col items-center justify-center gap-5 self-stretch overflow-hidden border-b border-border p-2.5 sm:flex-1 sm:border-r sm:border-b-0">
           <p className="text-[18px] font-medium tracking-[-0.18px] text-black">
             X Ray
           </p>
           <FeeBadge amount={fee} prefix="Comisión de operación: " />
           {isPending ? (
-            <div className="w-full max-w-[200px] space-y-2 px-4">
+            <div
+              className="w-full max-w-[200px] space-y-2 px-4"
+              aria-live="polite"
+            >
               <p className="text-center text-[12px] font-medium text-muted-foreground">
-                El emisor revisa… {remainingSec}s
+                El emisor está revisando la solicitud… {remainingSec}s
               </p>
               <div
-                className="h-1.5 overflow-hidden rounded-full bg-[#dce0e6]"
+                className="h-1.5 overflow-hidden rounded-full bg-border"
                 role="progressbar"
                 aria-valuenow={Math.round(progress * 100)}
                 aria-valuemin={0}
@@ -161,7 +162,7 @@ export function ContratarPrestamoDialog({
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col items-start gap-2.5 overflow-hidden p-2.5">
-          <div className="flex w-full flex-col overflow-hidden rounded-xl border border-border bg-white shadow-[0px_1px_2px_0px_rgba(13,19,30,0.1)]">
+          <div className="flex w-full flex-col overflow-hidden rounded-xl border border-border bg-white shadow-sm">
             <div className="flex w-full items-center justify-center border-b border-border px-5 py-[15px]">
               <IssuerMark name={issuer} />
             </div>
@@ -202,7 +203,7 @@ export function ContratarPrestamoDialog({
                 embatFocusRing
               )}
             >
-              Solicitar
+              Solicitar oferta
             </button>
           ) : null}
 
@@ -239,7 +240,7 @@ export function ContratarPrestamoDialog({
                   <span className="sr-only">Aprobando</span>
                 </>
               ) : (
-                "Aprobar oferta"
+                "Aceptar y contratar"
               )}
             </button>
           ) : null}

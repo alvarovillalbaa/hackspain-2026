@@ -4,14 +4,8 @@ import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from "@/components/ui/empty";
 import { signedBadgeClass } from "@/components/embat/chrome";
-import { ErrorState } from "@/components/xray/feedback-state";
+import { EmptyState, ErrorState } from "@/components/xray/feedback-state";
 import {
   SortableTable,
   type SortableColumn,
@@ -50,6 +44,7 @@ export function AccionesPortfolio() {
       {
         id: "kind",
         header: "Tipo",
+        className: "hidden md:table-cell",
         sortKey: "kind",
         cell: (row) => actionKindLabel(row.kind),
       },
@@ -103,14 +98,10 @@ export function AccionesPortfolio() {
 
   if (data.length === 0) {
     return (
-      <Empty className="min-h-[280px] border-0">
-        <EmptyHeader>
-          <EmptyTitle>Sin acciones</EmptyTitle>
-          <EmptyDescription>
-            Sin acciones recomendadas en la cartera.
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <EmptyState
+        title="Sin acciones"
+        description="Sin acciones recomendadas en la cartera."
+      />
     );
   }
 

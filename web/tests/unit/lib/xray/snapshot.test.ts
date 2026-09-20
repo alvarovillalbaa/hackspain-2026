@@ -133,12 +133,14 @@ function row(over: Partial<ExportedScore> = {}): ExportedScore {
 }
 
 describe("snapshotFromExported", () => {
-  it("fills a deterministic explanation", () => {
+  it("fills a plain-Spanish explanation with no raw feature ids", () => {
     const snap = snapshotFromExported(row());
     expect(snap.explanation).toBeTruthy();
-    expect(snap.explanation).toMatch(/Índice de salud 56\.9/);
-    expect(snap.explanation).toMatch(/cash_buffer_days/);
-    expect(snap.explanation).toMatch(/DSCR 6m/);
+    expect(snap.explanation).toMatch(/Índice de salud 56,9/);
+    expect(snap.explanation).toMatch(/Estable, tendencia plana/);
+    expect(snap.explanation).toMatch(/Días de colchón de caja/);
+    expect(snap.explanation).not.toMatch(/_/);
+    expect(snap.explanation).not.toMatch(/outlook|flat|DSCR 6m/);
     expect(snap.sub_scores).toEqual({
       liquidity: 40,
       collections: 50,
@@ -164,7 +166,8 @@ describe("snapshotFromExported", () => {
       })
     );
     expect(text).not.toMatch(/En seguimiento/);
-    expect(text).toMatch(/por debajo del suelo/);
+    expect(text).toMatch(/cobertura de cuotas/);
+    expect(text).toMatch(/por debajo del mínimo/);
   });
 
   it("does not push watch into alerts", () => {

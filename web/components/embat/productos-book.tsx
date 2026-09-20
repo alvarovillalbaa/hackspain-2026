@@ -4,14 +4,8 @@ import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from "@/components/ui/empty";
 import { IssuerMark } from "@/components/embat/offer-ui";
-import { ErrorState } from "@/components/xray/feedback-state";
+import { EmptyState, ErrorState } from "@/components/xray/feedback-state";
 import {
   SortableTable,
   type SortableColumn,
@@ -19,6 +13,7 @@ import {
 import { useBookProducts } from "@/hooks/xray/use-book-products";
 import type { BookProduct } from "@/lib/xray/book-products";
 import { formatCompactEuro, formatRatePct } from "@/lib/xray/format";
+import { productTypeLabel } from "@/lib/xray/labels";
 
 export function ProductosBook() {
   const router = useRouter();
@@ -48,7 +43,7 @@ export function ProductosBook() {
         sortKey: "type_label",
         cell: (row) => (
           <Badge variant="secondary" className="rounded-xl">
-            {row.type_label}
+            {productTypeLabel(row.type_label)}
           </Badge>
         ),
       },
@@ -68,6 +63,7 @@ export function ProductosBook() {
       {
         id: "rate",
         header: "Tipo %",
+        className: "hidden md:table-cell",
         sortKey: "annual_rate",
         align: "right",
         cell: (row) => (
@@ -79,6 +75,7 @@ export function ProductosBook() {
       {
         id: "residual",
         header: "Plazo",
+        className: "hidden md:table-cell",
         sortKey: "residual_periods",
         align: "right",
         cell: (row) => (
@@ -114,14 +111,10 @@ export function ProductosBook() {
 
   if (data.length === 0) {
     return (
-      <Empty className="min-h-[280px] border-0">
-        <EmptyHeader>
-          <EmptyTitle>Sin productos</EmptyTitle>
-          <EmptyDescription>
-            Sin deuda viva ni ofertas contratadas.
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <EmptyState
+        title="Sin productos"
+        description="Sin deuda viva ni ofertas contratadas."
+      />
     );
   }
 

@@ -65,8 +65,8 @@ export function FeeBadge({
   prefix?: string;
 }) {
   return (
-    <span className="inline-flex items-center justify-center rounded-xl bg-[rgba(163,75,203,0.1)] px-1 py-0.5">
-      <span className="text-[14px] font-semibold tracking-[-0.14px] tabular-nums text-[#6d28d9]">
+    <span className="inline-flex items-center justify-center rounded-xl bg-violet-700/10 px-1 py-0.5">
+      <span className="text-[14px] font-semibold tracking-[-0.14px] tabular-nums text-violet-700">
         {prefix}
         {formatCompactEuro(amount)}
       </span>

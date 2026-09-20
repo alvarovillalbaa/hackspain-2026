@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SearchIcon } from "lucide-react";
 import { ImportDialog } from "@/components/xray/import/import-dialog";
-import { ErrorState } from "@/components/xray/feedback-state";
+import { EmptyState, ErrorState } from "@/components/xray/feedback-state";
 import { QueryFilterBar } from "@/components/xray/query-filter-bar";
 import {
   SortableTable,
@@ -262,6 +262,7 @@ export function Companias({
       {
         id: "rate",
         header: "Tipo",
+        className: "hidden md:table-cell",
         sortKey: "implied_rate",
         align: "right",
         cell: (row) => (
@@ -320,11 +321,10 @@ export function Companias({
             );
           }}
           empty={
-            <ErrorState
+            <EmptyState
               title="Sin compañías"
               description="Sin compañías que coincidan con el filtro."
               placement="card"
-              className="[&_[data-slot=empty-icon]]:hidden"
             />
           }
         />

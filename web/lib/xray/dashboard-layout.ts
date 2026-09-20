@@ -1,7 +1,8 @@
 /** Dashboard widget board layout — persisted in localStorage. */
 
 export const DASHBOARD_LAYOUT_KEY = "xray-dashboard-layout";
-export const DASHBOARD_LAYOUT_VERSION = 1;
+/** Bump when DEFAULT_DASHBOARD_LAYOUT changes shape so stored boards reset. */
+export const DASHBOARD_LAYOUT_VERSION = 2;
 
 export type DashboardWidgetId =
   | "resumen"
@@ -55,13 +56,17 @@ export const WIDGET_META: Record<
   },
 };
 
+/**
+ * Hole-free default: KPIs on top, the three portfolio charts in one row,
+ * then the two rankings. Every cell of the 6-column grid is covered.
+ */
 export const DEFAULT_DASHBOARD_LAYOUT: DashboardLayoutItem[] = [
   { i: "resumen", x: 0, y: 0, w: 6, h: 1, minW: 3, minH: 1 },
-  { i: "hist", x: 0, y: 1, w: 3, h: 2, minW: 2, minH: 2 },
-  { i: "outlook", x: 3, y: 1, w: 3, h: 2, minW: 2, minH: 2 },
+  { i: "hist", x: 0, y: 1, w: 2, h: 2, minW: 2, minH: 2 },
+  { i: "outlook", x: 2, y: 1, w: 2, h: 2, minW: 2, minH: 2 },
+  { i: "watch", x: 4, y: 1, w: 2, h: 2, minW: 2, minH: 2 },
   { i: "top", x: 0, y: 3, w: 3, h: 2, minW: 2, minH: 2 },
   { i: "bottom", x: 3, y: 3, w: 3, h: 2, minW: 2, minH: 2 },
-  { i: "watch", x: 0, y: 5, w: 3, h: 2, minW: 2, minH: 2 },
 ];
 
 const ALL_IDS = new Set<string>(Object.keys(WIDGET_META));
@@ -182,7 +187,18 @@ export function placeNewWidget(
   ];
 }
 
+/**
+ * Rows the board occupies. Must equal the grid's own height: a taller
+ * background would paint over whatever sits below the board.
+ */
 export function layoutRowCount(layout: DashboardLayoutItem[]): number {
   if (layout.length === 0) return 2;
-  return layout.reduce((m, l) => Math.max(m, l.y + l.h), 0) + 1;
+  return layout.reduce((m, l) => Math.max(m, l.y + l.h), 0);
+}
+
+/** Reading order for the stacked (narrow-screen / pre-measure) rendering. */
+export function stackedOrder(
+  layout: DashboardLayoutItem[]
+): DashboardLayoutItem[] {
+  return [...layout].sort((a, b) => a.y - b.y || a.x - b.x);
 }

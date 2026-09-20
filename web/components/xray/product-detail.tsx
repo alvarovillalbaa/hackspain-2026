@@ -98,9 +98,9 @@ export function ProductDetail({
       </div>
 
       <div className="mx-5 space-y-3 rounded-2xl border border-border bg-white px-4 py-3 shadow-sm">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <span className="text-[14px] font-medium tracking-[-0.14px] text-muted-foreground">
-            Mejora proyectada del score
+            Impacto estimado en el score
           </span>
           <ScoreUplift uplift={match.uplift} toBand={match.projected_band} />
         </div>
@@ -111,6 +111,9 @@ export function ProductDetail({
             toBand={match.projected_band}
           />
         ) : null}
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          Estimación what-if del modelo, no una probabilidad de impago.
+        </p>
       </div>
 
       <section className="mx-5 space-y-3">

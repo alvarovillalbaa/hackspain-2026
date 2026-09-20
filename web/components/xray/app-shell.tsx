@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Building2,
+  FlaskConical,
   LayoutDashboard,
   ListTodo,
   Search,
@@ -18,7 +19,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Kbd } from "@/components/ui/kbd";
 import {
   Sidebar,
@@ -192,14 +192,15 @@ function AppShellInner({
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-                  <Avatar size="sm" className="bg-primary">
-                    <AvatarFallback className="bg-primary text-[11px] font-semibold text-primary-foreground">
-                      AV
-                    </AvatarFallback>
-                  </Avatar>
+                <div
+                  title="Entorno de ensayo"
+                  className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+                >
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <FlaskConical className="size-3.5" aria-hidden />
+                  </span>
                   <span className="min-w-0 truncate text-[13px] font-medium tracking-[-0.13px] text-sidebar-foreground group-data-[collapsible=icon]:hidden">
-                    Alvaro Villalba
+                    Entorno de ensayo
                   </span>
                 </div>
               </SidebarMenuItem>

@@ -113,11 +113,14 @@ async function fsGetJson<T>(pathname: string): Promise<T | null> {
 async function fsPutJson(pathname: string, body: unknown): Promise<boolean> {
   if (!hasFs()) return false;
   try {
-    const { mkdir, writeFile } = await import("node:fs/promises");
+    const { mkdir, writeFile, rename } = await import("node:fs/promises");
+    const { randomUUID } = await import("node:crypto");
     const { dirname } = await import("node:path");
     const file = await fsPathFor(pathname);
     await mkdir(dirname(file), { recursive: true });
-    await writeFile(file, `${JSON.stringify(body, null, 2)}\n`, "utf8");
+    const temp = `${file}.${randomUUID()}.tmp`;
+    await writeFile(temp, `${JSON.stringify(body, null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
+    await rename(temp, file);
     return true;
   } catch (err) {
     fsDisabled = true;
@@ -355,7 +358,9 @@ export async function readDecision(
   if (!hasDurable()) return null;
   try {
     const pathname = `${REC_PREFIX}${encodeURIComponent(key)}.json`;
-    const hit = await blobGetJson<StoredDecision>(pathname);
+    const hit = process.env.VERCEL
+      ? await blobGetJson<StoredDecision>(pathname)
+      : await fsGetJson<StoredDecision>(pathname);
     if (hit) memoryDecisions.set(key, hit);
     return hit;
   } catch (err) {
@@ -372,14 +377,17 @@ export async function writeDecision(
     ...value,
     saved_at: new Date().toISOString(),
   };
-  memoryDecisions.set(key, body);
-  if (!hasDurable()) return true;
+  if (!hasDurable()) return false;
   try {
     const pathname = `${REC_PREFIX}${encodeURIComponent(key)}.json`;
-    return await blobPutJson(pathname, body);
+    const persisted = process.env.VERCEL
+      ? await blobPutJson(pathname, body)
+      : await fsPutJson(pathname, body);
+    if (persisted) memoryDecisions.set(key, body);
+    return persisted;
   } catch (err) {
     console.warn("[blob] writeDecision failed:", err);
-    return true;
+    return false;
   }
 }
 

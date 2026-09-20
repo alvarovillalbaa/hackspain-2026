@@ -62,3 +62,13 @@ Exit code 0 means setup completed, 1 failed, and 2 needs an answer or a prerequi
 npx eve link --non-interactive --project <name-or-id> [--team <team-id-or-slug>]
 npx eve deploy --non-interactive --yes [--project <name-or-id>]
 ```
+
+## Marketplace directo y ensayo local
+
+`POST /api/xray/recommend` usa `agent/lib/marketplace.ts`: un agente AI SDK con el resolver `flash`, contexto precargado, `evaluate_offers` por lote y `submit_recommendation`. No pasa por raíz → `financing_finale` → especialistas; estos siguen disponibles para Eve/chat. No hay fallback determinista. Cálculos en las herramientas; copy/selección del agente (`source: agent`, `origin: llm`).
+
+Las decisiones se guardan antes de responder en `data/runtime/recommendations/` (o `XRAY_RUNTIME_DIR`), incluso con Blob configurado en local. En Vercel sigue Blob. La clave incluye importe y huella de datos, acción, catálogo y `MARKETPLACE_AGENT_VERSION`; actualizar esta versión al cambiar el contrato/prompts del agente. `persisted: false` indica que el resultado no sobrevivirá al proceso.
+
+Con la web arrancada, `npm run demo:marketplace` prepara todas las acciones financiables del grupo de `/start`; `npm run demo:marketplace -- COMP_0793` limita a empresas concretas. Repetir no llama al modelo si los inputs no cambiaron. No confundir con `warm:recommendations` (baseline determinista antiguo).
+
+Verificación real opt-in (genera y guarda una recomendación en disco): `XRAY_LIVE_MARKETPLACE=1 npm test -- tests/integration/api/recommend-live.test.ts --environment node`. Requiere credencial LLM solo si no hay caché; después prueba la lectura del disco sin proveedor. La suite normal omite esta prueba.

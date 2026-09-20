@@ -26,7 +26,8 @@
     "calibrate": "eve eval calibration --strict",
     "deploy": "eve deploy",
     "build:facts": "node --experimental-strip-types scripts/build-facts.mts",
-    "warm:recommendations": "npx tsx scripts/warm-recommendations.mts"
+    "warm:recommendations": "npx tsx scripts/warm-recommendations.mts",
+    "demo:marketplace": "node --experimental-strip-types scripts/prepare-marketplace.mts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.71",

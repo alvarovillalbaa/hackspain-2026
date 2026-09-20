@@ -53,6 +53,14 @@ export interface ScoreSignals {
   net_cash_flow_ratio_3m: number | null;
 }
 
+/** Percentile rank (0–1) of each signal within its month, from the Health Scorer export. */
+export interface SignalRanks {
+  cash_buffer_days: number | null;
+  overdue_flow_rate_3m: number | null;
+  dscr_6m: number | null;
+  net_cash_flow_ratio_3m: number | null;
+}
+
 export interface Projection6m {
   p10: number;
   p50: number;
@@ -104,6 +112,8 @@ export interface ScoreSnapshot {
   n_signals: number;
   n_red: number;
   signals: ScoreSignals;
+  /** Percentile rank (0–1) of each signal within its month; ≤ 0.20 = red. Absent on old imports. */
+  ranks?: SignalRanks;
   sub_scores: SubScores;
   dimensions: Dimensions;
   peer_percentile: number;

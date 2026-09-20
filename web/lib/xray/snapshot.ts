@@ -73,6 +73,14 @@ export function snapshotFromExported(row: ExportedScore): ScoreSnapshot {
       dscr_6m: row.signals.dscr_6m,
       net_cash_flow_ratio_3m: row.signals.net_cash_flow_ratio_3m,
     },
+    ranks: row.ranks
+      ? {
+          cash_buffer_days: row.ranks.cash_buffer_days ?? null,
+          overdue_flow_rate_3m: row.ranks.overdue_flow_rate_3m ?? null,
+          dscr_6m: row.ranks.dscr_6m ?? null,
+          net_cash_flow_ratio_3m: row.ranks.net_cash_flow_ratio_3m ?? null,
+        }
+      : undefined,
     sub_scores: subScoresFromDimensions(dims),
     dimensions: dims,
     peer_percentile: row.peer_percentile,

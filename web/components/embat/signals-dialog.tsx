@@ -10,6 +10,7 @@ import {
 import { DimensionRadar } from "@/components/xray/dimension-radar";
 import { formatNumber } from "@/lib/xray/format";
 import {
+  isRedRank,
   signalBlurb,
   signalLabel,
   signalPolarity,
@@ -45,7 +46,17 @@ function signalRisk(signal: string, value: number): number {
   return Math.max(0, Math.min(1, raw));
 }
 
+/**
+ * Red signals. With `ranks` (percentile within the month, from the Health
+ * Scorer export) the cut is exact: rank ≤ 0.20. Packs without ranks fall back
+ * to tinting the `n_red` riskiest signals by a fixed scale, so header and
+ * cards still agree.
+ */
 function redSignalKeys(snapshot: ScoreSnapshot): Set<string> {
+  if (snapshot.ranks) {
+    const ranks = snapshot.ranks;
+    return new Set(SIGNAL_KEYS.filter((key) => isRedRank(ranks[key])));
+  }
   const available = SIGNAL_KEYS.filter(
     (key) => snapshot.signals[key] != null
   ).sort(
@@ -120,6 +131,11 @@ export function SignalsDialog({
                     {red ? (
                       <p className="text-[11px] font-medium tracking-[-0.11px] text-[#b3123a]">
                         En rojo
+                      </p>
+                    ) : null}
+                    {snapshot.ranks?.[key] != null ? (
+                      <p className="text-[11px] tabular-nums tracking-[-0.11px] text-[#6b6b6b]">
+                        percentil {Math.round(snapshot.ranks[key]! * 100)}
                       </p>
                     ) : null}
                     <p className="text-[10px] text-[#6b6b6b]">

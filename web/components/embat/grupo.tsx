@@ -12,7 +12,12 @@ import {
   pickBannerAlert,
   TrajectoryCard,
 } from "@/components/embat/ficha";
-import { DemoChip, scoreBadgeClass, statusClass } from "@/components/embat/chrome";
+import {
+  DemoChip,
+  embatFocusRing,
+  scoreBadgeClass,
+  statusClass,
+} from "@/components/embat/chrome";
 import { ErrorState } from "@/components/xray/feedback-state";
 import { useCompanySummaries } from "@/hooks/xray/use-company-summaries";
 import { useDemoSession } from "@/hooks/xray/use-demo-session";
@@ -142,13 +147,22 @@ function EmpresasCard({
             <Link
               key={m.company_id}
               href={`/c/${m.company_id}`}
-              className={cn(fichaItemClass, "hover:bg-[rgba(220,224,230,0.45)]")}
+              className={cn(
+                fichaItemClass,
+                "transition-colors duration-150 ease-out hover:bg-[rgba(220,224,230,0.45)] motion-reduce:transition-none",
+                embatFocusRing
+              )}
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[15px] font-medium tracking-[-0.15px] text-muted-foreground">
+                <p
+                  className="truncate text-[15px] font-medium tracking-[-0.15px] text-muted-foreground"
+                  title={m.name}
+                >
                   {m.name}
                 </p>
-                <p className="text-[12px] text-table-header">{m.company_id}</p>
+                <p className="text-[12px] text-table-header" title={m.company_id}>
+                  {m.company_id}
+                </p>
               </div>
               <span
                 className={cn(

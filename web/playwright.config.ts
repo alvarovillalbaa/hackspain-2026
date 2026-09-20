@@ -28,9 +28,13 @@ function node24BinDir(): string | null {
 }
 
 const node24 = node24BinDir();
-const webServerEnv = node24
-  ? { ...process.env, PATH: `${node24}:${process.env.PATH ?? ""}` }
-  : process.env;
+const webServerEnv: Record<string, string> = Object.fromEntries(
+  Object.entries(
+    node24
+      ? { ...process.env, PATH: `${node24}:${process.env.PATH ?? ""}` }
+      : process.env
+  ).filter((entry): entry is [string, string] => entry[1] != null)
+);
 
 export default defineConfig({
   testDir: "./tests/e2e",

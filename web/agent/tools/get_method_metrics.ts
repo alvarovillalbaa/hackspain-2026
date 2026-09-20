@@ -1,7 +1,22 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import metricsJson from "../../lib/xray/dataset/metrics.json";
 import { parseMethodMetrics } from "../../lib/xray/method-metrics";
+
+// Read the optional metrics.json straight from disk: `lib/xray/dataset` pulls in
+// `server-only`, which throws when eve evaluates authored modules outside Next.
+function readMethodMetrics() {
+  try {
+    const raw = readFileSync(
+      join(process.cwd(), "lib/xray/dataset/metrics.json"),
+      "utf8"
+    );
+    return parseMethodMetrics(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+}
 
 export default defineTool({
   description:
@@ -14,7 +29,7 @@ export default defineTool({
   inputSchema: z.object({}),
   label: { start: () => "Métricas del método" },
   async execute() {
-    const metrics = parseMethodMetrics(metricsJson);
+    const metrics = readMethodMetrics();
     if (!metrics) {
       return { available: false, note: "El pack no lleva métricas del método: no se puede citar anticipación ni cobertura." };
     }

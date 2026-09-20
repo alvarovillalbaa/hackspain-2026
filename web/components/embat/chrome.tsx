@@ -9,6 +9,14 @@ import { embatUiClass } from "@/components/embat/font";
 import type { Outlook } from "@/lib/xray/types";
 import { cn } from "@/lib/utils";
 
+/** Shared keyboard focus ring: 2px Embat primary, 2px offset. */
+export const embatFocusRing =
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:ring-0";
+
+/** Inset variant for rows, where an outer offset would clip. */
+export const embatRowFocusRing =
+  "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-solid focus-visible:outline-ring focus-visible:ring-0";
+
 export function EmbatIcon({
   src,
   className,
@@ -66,7 +74,7 @@ export function DemoChip({ className }: { className?: string }) {
   return (
     <Badge
       variant="outline"
-      className={cn("border-primary/20 bg-primary/5 text-primary", className)}
+      className={cn("rounded-xl border-primary/20 bg-primary/5 text-primary", className)}
     >
       Ensayo
     </Badge>
@@ -93,7 +101,8 @@ export function FilterChip({
             variant="ghost"
             size="sm"
             className={cn(
-              "gap-1.5 rounded-xl text-muted-foreground",
+              "gap-1.5 rounded-xl text-muted-foreground transition-colors duration-150 ease-out motion-reduce:transition-none",
+              embatFocusRing,
               active && "bg-primary/10 text-primary"
             )}
           />
@@ -146,19 +155,28 @@ export function FilterField({
         onChange={(e) => setValue(e.target.value)}
         placeholder={placeholder}
         inputMode={inputMode}
-        className="h-8 rounded-xl border-0 bg-muted shadow-none"
+        className={cn(
+          "h-8 rounded-xl border-0 bg-muted shadow-none transition-colors duration-150 ease-out motion-reduce:transition-none",
+          embatFocusRing
+        )}
       />
-      <Button type="submit" size="sm" className="w-full rounded-xl">
+      <Button
+        type="submit"
+        size="sm"
+        className={cn(
+          "w-full rounded-xl transition-colors duration-150 ease-out motion-reduce:transition-none",
+          embatFocusRing
+        )}
+      >
         Aplicar
       </Button>
     </form>
   );
 }
 
-export const embatSelectTriggerClass =
-  "h-auto w-full rounded-xl border border-border bg-white px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] text-black shadow-sm ring-0 outline-none dark:hover:bg-white data-placeholder:text-table-header";
+export const embatSelectTriggerClass = `${embatFocusRing} h-auto w-full rounded-xl border border-border bg-white px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] text-black shadow-sm ring-0 outline-none transition-colors duration-150 ease-out motion-reduce:transition-none dark:hover:bg-white data-placeholder:text-table-header`;
 
 export const embatSelectContentClass = `${embatUiClass} rounded-xl border border-border bg-white text-black shadow-sm ring-0`;
 
 export const embatSelectItemClass =
-  "rounded-xl py-1.5 text-[13px] text-black focus:bg-primary focus:text-primary-foreground";
+  "rounded-xl py-1.5 text-[13px] text-black focus:bg-primary focus:text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-solid focus-visible:outline-white";

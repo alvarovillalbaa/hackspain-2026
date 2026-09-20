@@ -40,6 +40,14 @@ export const ScoreSignalsSchema = z.object({
   net_cash_flow_ratio_3m: z.number().nullable(),
 });
 
+/** Percentile rank (0–1) of each signal within its month; ≤ 0.20 is the red tail. */
+export const SignalRanksSchema = z.object({
+  cash_buffer_days: z.number().nullable(),
+  overdue_flow_rate_3m: z.number().nullable(),
+  dscr_6m: z.number().nullable(),
+  net_cash_flow_ratio_3m: z.number().nullable(),
+});
+
 export const Projection6mSchema = z.object({
   p10: z.number(),
   p50: z.number(),
@@ -106,6 +114,8 @@ export const ScoreSnapshotSchema = z.object({
   n_signals: z.number().int().nonnegative(),
   n_red: z.number().int().nonnegative(),
   signals: ScoreSignalsSchema,
+  // Optional: packs imported before 20 Sep 2026 may not carry ranks.
+  ranks: SignalRanksSchema.optional(),
   sub_scores: SubScoresSchema,
   dimensions: DimensionsSchema,
   peer_percentile: z.number(),

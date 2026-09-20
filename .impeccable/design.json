@@ -1,0 +1,508 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-19T23:50:51.790Z",
+  "title": "Design System: X Ray",
+  "extensions": {
+    "colorMeta": {
+      "primary-green": {
+        "role": "primary",
+        "displayName": "Verde Embat",
+        "canonical": "#146c43",
+        "tonalRamp": [
+          "#0c4128",
+          "#157045",
+          "#1d9f63",
+          "#26cf80",
+          "#4fde9b",
+          "#7ee7b6",
+          "#adf0d1",
+          "#ddf9ec"
+        ]
+      },
+      "surface-white": {
+        "role": "neutral",
+        "displayName": "Blanco de superficie",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#262626",
+          "#424242",
+          "#5e5e5e",
+          "#7a7a7a",
+          "#969696",
+          "#b3b3b3",
+          "#cfcfcf",
+          "#ebebeb"
+        ]
+      },
+      "surface-muted": {
+        "role": "neutral",
+        "displayName": "Gris de superficie",
+        "canonical": "#f5f6f8",
+        "tonalRamp": [
+          "#20242d",
+          "#373e4e",
+          "#4e596f",
+          "#657390",
+          "#8490a9",
+          "#a5aec0",
+          "#c6ccd7",
+          "#e7e9ee"
+        ]
+      },
+      "sidebar-cream": {
+        "role": "neutral",
+        "displayName": "Crema de sidebar",
+        "canonical": "#f6f3ee",
+        "tonalRamp": [
+          "#32291a",
+          "#57472e",
+          "#7b6641",
+          "#a08455",
+          "#b79e76",
+          "#cab89b",
+          "#ddd2c0",
+          "#f1ece4"
+        ]
+      },
+      "border-cool": {
+        "role": "neutral",
+        "displayName": "Borde frío",
+        "canonical": "#dce0e6",
+        "tonalRamp": [
+          "#20252d",
+          "#37404d",
+          "#4f5b6e",
+          "#66768f",
+          "#8593a8",
+          "#a6b0bf",
+          "#c6cdd7",
+          "#e7eaee"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Tinta primaria",
+        "canonical": "#000000",
+        "tonalRamp": [
+          "#262626",
+          "#424242",
+          "#5e5e5e",
+          "#7a7a7a",
+          "#969696",
+          "#b3b3b3",
+          "#cfcfcf",
+          "#ebebeb"
+        ]
+      },
+      "ink-secondary": {
+        "role": "neutral",
+        "displayName": "Tinta secundaria",
+        "canonical": "#666666",
+        "tonalRamp": [
+          "#262626",
+          "#424242",
+          "#5e5e5e",
+          "#7a7a7a",
+          "#969696",
+          "#b3b3b3",
+          "#cfcfcf",
+          "#ebebeb"
+        ]
+      },
+      "ink-tertiary": {
+        "role": "neutral",
+        "displayName": "Tinta terciaria",
+        "canonical": "#6b6b6b",
+        "tonalRamp": [
+          "#262626",
+          "#424242",
+          "#5e5e5e",
+          "#7a7a7a",
+          "#969696",
+          "#b3b3b3",
+          "#cfcfcf",
+          "#ebebeb"
+        ]
+      },
+      "ink-nav": {
+        "role": "neutral",
+        "displayName": "Tinta de navegación",
+        "canonical": "#333333",
+        "tonalRamp": [
+          "#262626",
+          "#424242",
+          "#5e5e5e",
+          "#7a7a7a",
+          "#969696",
+          "#b3b3b3",
+          "#cfcfcf",
+          "#ebebeb"
+        ]
+      },
+      "status-positive": {
+        "role": "tertiary",
+        "displayName": "Verde positivo",
+        "canonical": "#00a14e",
+        "tonalRamp": [
+          "#004d25",
+          "#008540",
+          "#00bd5b",
+          "#00f577",
+          "#2eff93",
+          "#66ffb0",
+          "#9effcd",
+          "#d6ffea"
+        ]
+      },
+      "status-positive-surface": {
+        "role": "tertiary",
+        "displayName": "Verde positivo · fondo",
+        "canonical": "rgba(215,247,194,0.5)",
+        "tonalRamp": [
+          "#204409",
+          "#38750f",
+          "#4fa716",
+          "#67d81c",
+          "#86e746",
+          "#a6ed78",
+          "#c7f4a9",
+          "#e7fadb"
+        ]
+      },
+      "status-positive-border": {
+        "role": "tertiary",
+        "displayName": "Verde positivo · borde",
+        "canonical": "rgba(166,235,132,0.7)",
+        "tonalRamp": [
+          "#1d420b",
+          "#327213",
+          "#47a21a",
+          "#5cd322",
+          "#7de24b",
+          "#a0ea7b",
+          "#c3f1ac",
+          "#e6f9dc"
+        ]
+      },
+      "status-negative": {
+        "role": "tertiary",
+        "displayName": "Rojo negativo",
+        "canonical": "#e61847",
+        "tonalRamp": [
+          "#450715",
+          "#780d25",
+          "#ab1235",
+          "#de1744",
+          "#eb4268",
+          "#f17491",
+          "#f6a7b9",
+          "#fbdae2"
+        ]
+      },
+      "status-negative-surface": {
+        "role": "tertiary",
+        "displayName": "Rojo negativo · fondo",
+        "canonical": "#fef4f6",
+        "tonalRamp": [
+          "#460613",
+          "#7a0b21",
+          "#ad102f",
+          "#e0143d",
+          "#ee3f62",
+          "#f2738c",
+          "#f7a6b6",
+          "#fcdae0"
+        ]
+      },
+      "status-negative-border": {
+        "role": "tertiary",
+        "displayName": "Rojo negativo · borde",
+        "canonical": "#fbd3dc",
+        "tonalRamp": [
+          "#460615",
+          "#7a0b24",
+          "#ad1033",
+          "#e01442",
+          "#ee3f67",
+          "#f2738f",
+          "#f7a6b8",
+          "#fcdae1"
+        ]
+      },
+      "status-warning": {
+        "role": "tertiary",
+        "displayName": "Ámbar de identificador",
+        "canonical": "#ef8000",
+        "tonalRamp": [
+          "#4d2900",
+          "#854700",
+          "#bd6500",
+          "#f58300",
+          "#ff9e2e",
+          "#ffb866",
+          "#ffd29e",
+          "#ffecd6"
+        ]
+      },
+      "status-alert": {
+        "role": "tertiary",
+        "displayName": "Rojo de alerta",
+        "canonical": "#eb002b",
+        "tonalRamp": [
+          "#4d000e",
+          "#850018",
+          "#bd0023",
+          "#f5002d",
+          "#ff2e54",
+          "#ff6682",
+          "#ff9eb0",
+          "#ffd6de"
+        ]
+      },
+      "fee-violet": {
+        "role": "tertiary",
+        "displayName": "Violeta de comisión",
+        "canonical": "#6d28d9",
+        "tonalRamp": [
+          "#200b41",
+          "#381471",
+          "#501ca0",
+          "#6825d0",
+          "#864de0",
+          "#a77de8",
+          "#c7adf0",
+          "#e7dcf9"
+        ]
+      },
+      "fee-violet-surface": {
+        "role": "tertiary",
+        "displayName": "Violeta de comisión · fondo",
+        "canonical": "rgba(163,75,203,0.1)",
+        "tonalRamp": [
+          "#2e113b",
+          "#501e67",
+          "#722a92",
+          "#9437be",
+          "#ac5dd0",
+          "#c288dd",
+          "#d9b4e9",
+          "#efdff6"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Títulos de página de 20px y wordmark «X Ray»; único uso de Inter Display Medium."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Valor de las KPI del dashboard (28px, tabular)."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Título de fila: drivers, acciones y listas (15px, tabular en cifras)."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Texto por defecto de la consola y celdas de tabla (14px)."
+      },
+      "body-sm": {
+        "displayName": "Body small",
+        "purpose": "Breadcrumbs, chips, popovers y copy de confianza (13px)."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Rótulos de sección y captions (12px); tiles a 11px y ejes a 10–11px."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card",
+        "value": "0px 1px 2px 0px rgba(13,19,30,0.1)",
+        "purpose": "Sombra base de tarjeta y contenedores; equivale a shadow-sm."
+      },
+      {
+        "name": "popover",
+        "value": "0px 1px 1px rgba(13,19,30,0.1)",
+        "purpose": "Popovers de racional y confianza."
+      },
+      {
+        "name": "popover-floating",
+        "value": "var(--tw-shadow-2xl, 0 25px 50px -12px rgba(0,0,0,0.25))",
+        "purpose": "PopoverContent base antes del override de producto."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state",
+        "value": "150ms ease-out",
+        "purpose": "Transiciones de color de botones, chips y filas; solo color/opacidad/transform."
+      },
+      {
+        "name": "dialog-open",
+        "value": "scale 0.3s cubic-bezier(0.34,1.56,0.64,1)",
+        "purpose": "Apertura del diálogo Contratar Préstamo (escala 0.9→1). Salida instantánea."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce",
+        "purpose": "Desactiva transiciones; las clases usan motion-reduce:transition-none."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acción principal y escasa: aplicar filtro, comparar, confirmar.",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">Comparar</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 0 12px; border: 1px solid transparent; border-radius: 22.4px; background: #146c43; color: #ffffff; font-family: 'Inter Variable', ui-sans-serif, system-ui, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: -0.14px; cursor: pointer; transition: background-color 150ms ease-out, opacity 150ms ease-out; } .ds-btn-primary:hover { background: rgba(20,108,67,0.8); } .ds-btn-primary:focus-visible { outline: 2px solid #146c43; outline-offset: 2px; } .ds-btn-primary:active { transform: translateY(1px); } @media (prefers-reduced-motion: reduce) { .ds-btn-primary { transition: none; } }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Botón por defecto de filtros e importación.",
+      "html": "<button class=\"ds-btn-outline\" type=\"button\">Importar</button>",
+      "css": ".ds-btn-outline { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 12px; border: 1px solid #dce0e6; border-radius: 22.4px; background: #ffffff; color: #666666; font-family: 'Inter Variable', ui-sans-serif, system-ui, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: -0.14px; cursor: pointer; transition: background-color 150ms ease-out, color 150ms ease-out; } .ds-btn-outline:hover { background: rgba(220,224,230,0.5); color: #000000; } .ds-btn-outline:focus-visible { outline: 2px solid #146c43; outline-offset: 2px; } @media (prefers-reduced-motion: reduce) { .ds-btn-outline { transition: none; } }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Acción terciaria en sidebar y barras: Buscar, Limpiar.",
+      "html": "<button class=\"ds-btn-ghost\" type=\"button\">Buscar</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; justify-content: flex-start; height: 36px; padding: 0 10px; border: 1px solid transparent; border-radius: 22.4px; background: transparent; color: #333333; font-family: 'Inter Variable', ui-sans-serif, system-ui, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: -0.14px; cursor: pointer; transition: background-color 150ms ease-out, color 150ms ease-out; } .ds-btn-ghost:hover { background: #f5f6f8; color: #000000; } .ds-btn-ghost:focus-visible { outline: 2px solid #146c43; outline-offset: 2px; } @media (prefers-reduced-motion: reduce) { .ds-btn-ghost { transition: none; } }"
+    },
+    {
+      "name": "Filter Chip",
+      "kind": "chip",
+      "refersTo": "chip-filter",
+      "description": "Disparador de popover de filtro; verde cuando el filtro está activo.",
+      "html": "<button class=\"ds-chip-filter\" type=\"button\"><span class=\"ds-chip-filter__icon\"></span>Estado</button>",
+      "css": ".ds-chip-filter { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 1px solid #dce0e6; border-radius: 22.4px; background: #ffffff; color: #666666; font-family: 'Inter Variable', ui-sans-serif, system-ui, sans-serif; font-size: 13px; font-weight: 500; letter-spacing: -0.13px; cursor: pointer; transition: color 150ms ease-out, border-color 150ms ease-out; } .ds-chip-filter--active { border-color: #146c43; color: #146c43; } .ds-chip-filter__icon { width: 12px; height: 12px; border-radius: 3px; background: currentColor; } .ds-chip-filter:focus-visible { outline: 2px solid #146c43; outline-offset: 2px; }"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": "chip-status-positive",
+      "description": "Estado del score; siempre con la palabra además del color.",
+      "html": "<span class=\"ds-chip-status ds-chip-status--positive\">Estado: Positivo</span>",
+      "css": ".ds-chip-status { display: inline-flex; align-items: center; justify-content: center; padding: 2px 4px; border: 1px solid; border-radius: 22.4px; font-family: 'Inter Variable', ui-sans-serif, system-ui, sans-serif; font-size: 12px; font-weight: 500; letter-spacing: -0.12px; } .ds-chip-status--positive { border-color: rgba(166,235,132,0.7); background: rgba(215,247,194,0.5); color: #00a14e; } .ds-chip-status--stable { border-color: #dce0e6; background: #f5f6f8; color: #666666; } .ds-chip-status--negative { border-color: #fbd3dc; background: #fef4f6; color: #e61847; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Contenedor de sección de la ficha y del dashboard.",
+      "html": "<section class=\"ds-card\"><h2 class=\"ds-card__title\">Trayectoria</h2><p class=\"ds-card__body\">Banda BBB · Estable</p></section>",
+      "css": ".ds-card { display: flex; flex-direction: column; overflow: hidden; border: 1px solid #dce0e6; border-radius: 28.8px; background: #ffffff; box-shadow: 0px 1px 2px 0px rgba(13,19,30,0.1); padding: 15px; font-family: 'Inter Variable', ui-sans-serif, system-ui, sans-serif; } .ds-card__title { margin: 0 0 10px; font-size: 14px; font-weight: 500; letter-spacing: -0.14px; color: #6b6b6b; } .ds-card__body { margin: 0; font-size: 14px; font-weight: 500; letter-spacing: -0.14px; color: #000000; }"
+    },
+    {
+      "name": "Peer Tile",
+      "kind": "card",
+      "refersTo": "tile",
+      "description": "Dato de comparables dentro de una tarjeta; rótulo en mayúsculas.",
+      "html": "<div class=\"ds-tile\"><div class=\"ds-tile__label\">Flujo mensual</div><div class=\"ds-tile__value\">42k €</div></div>",
+      "css": ".ds-tile { border-radius: 22.4px; background: #f5f6f8; padding: 8px 10px; font-family: 'Inter Variable', ui-sans-serif, system-ui, sans-serif; } .ds-tile__label { font-size: 11px; font-weight: 500; letter-spacing: -0.11px; text-transform: uppercase; color: #666666; } .ds-tile__value { margin-top: 4px; font-size: 14px; font-weight: 500; letter-spacing: -0.14px; color: #000000; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Nav Item",
+      "kind": "nav",
+      "refersTo": "button-ghost",
+      "description": "Ítem del sidebar; activo con tinte verde y barra de 1px (sin depender del color).",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav__item ds-nav__item--active\" href=\"#\">Empresas</a><a class=\"ds-nav__item\" href=\"#\">Dashboard</a></nav>",
+      "css": ".ds-nav { display: flex; flex-direction: column; gap: 6px; width: 100%; font-family: 'Inter Variable', ui-sans-serif, system-ui, sans-serif; } .ds-nav__item { position: relative; display: flex; align-items: center; height: 36px; padding: 0 10px; border-radius: 22.4px; color: #333333; font-size: 14px; font-weight: 500; letter-spacing: -0.14px; text-decoration: none; transition: background-color 150ms ease-out, color 150ms ease-out; } .ds-nav__item:hover { background: rgba(0,0,0,0.04); } .ds-nav__item--active { background: rgba(20,108,67,0.15); color: #146c43; } .ds-nav__item--active::before { content: ''; position: absolute; left: -30px; top: 50%; width: 1px; height: 22px; transform: translateY(-50%); background: #146c43; } .ds-nav__item:focus-visible { outline: 2px solid #146c43; outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "button-secondary",
+      "description": "Input embebido en popovers de filtro; sin borde, fondo gris de superficie.",
+      "html": "<input class=\"ds-input\" placeholder=\"Puntuación mín.\" />",
+      "css": ".ds-input { height: 32px; width: 100%; padding: 0 10px; border: 0; border-radius: 22.4px; background: #f5f6f8; color: #000000; font-family: 'Inter Variable', ui-sans-serif, system-ui, sans-serif; font-size: 13px; font-weight: 500; letter-spacing: -0.13px; box-shadow: none; outline: none; } .ds-input::placeholder { color: #6b6b6b; } .ds-input:focus-visible { outline: 2px solid #146c43; outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "La sala de control tranquila",
+    "overview": [
+      "Una sala de operaciones en calma: densa pero ordenada, con el estado de cada empresa legible de un vistazo y sin alarmas que no tengan causa. Cada pantalla se juzga por esa imagen: si algo grita sin motivo, sobra; si algo importante no se lee a dos metros, falta jerarquía.",
+      "X Ray vive hoy sobre el chrome Embat (web/components/embat/): tema claro, tipografía Inter, lienzo blanco, sidebar crema de 280 px y un único acento verde. Es un sistema de densidad media y material plano: las tarjetas se separan con un borde frío de 1 px y una sombra mínima, la jerarquía se construye con tamaño y tracking, y el color se reserva para el estado (outlook, banda, uplift) y para el acento de interacción.",
+      "El tono visual es sobrio y de lectura tranquila: nada de degradados, glassmorphism ni elevaciones dramáticas. Los números son tabulares (tabular-nums) para que las columnas no bailen; las etiquetas de sección van en 14 px, los rótulos de dato en 12 px y los encabezados de página en Inter Display 20 px. Los radios son generosos (la escala arranca en 1 rem), así que la forma dominante es la tarjeta redondeada de borde fino, no el bloque duro.",
+      "El chrome de producto es claro por defecto: el bloque .embat-ui fuerza fondo blanco, tinta negra y borde #dce0e6 incluso si la app entra en modo oscuro, de modo que las pantallas del score no tienen una variante nocturna real. docs/frontend_v0.md y el look shadcn/Geist de components/xray/* (cards muy redondeadas, fuentes de plantilla) son el anti-referente histórico, no el sistema vigente."
+    ],
+    "keyCharacteristics": [
+      "Un solo acento: verde #146c43; el color restante es semántico (positivo / estable / negativo / aviso).",
+      "Material plano: borde de 1 px #dce0e6 + sombra de tarjeta mínima; sin profundidad tonal por capas.",
+      "Radios amplios y consistentes derivados de --radius: 1rem (rounded-xl = 22,4 px, rounded-2xl = 28,8 px).",
+      "Tipografía Inter con tracking negativo proporcional al tamaño (≈ −0,01 em).",
+      "Números tabulares y formato es-ES; la palabra siempre acompaña al color del estado."
+    ],
+    "rules": [
+      {
+        "name": "The Single Accent Rule",
+        "body": "El verde #146c43 es el único color de interacción. El resto de la paleta codifica estado o estructura; ningún elemento decorativo introduce un segundo acento.",
+        "section": "colors"
+      },
+      {
+        "name": "The Word-Before-Color Rule",
+        "body": "Un color de estado nunca viaja solo: todo chip de outlook, banda o delta lleva su etiqueta textual encima.",
+        "section": "colors"
+      },
+      {
+        "name": "The Proportional Tracking Rule",
+        "body": "El tracking escala con el cuerpo del texto a razón de ≈ −0,01 em (28→−0,28; 20→−0,3; 15→−0,15; 14→−0,14; 13→−0,13; 12→−0,12; 11→−0,11).",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Figures Rule",
+        "body": "Toda cifra comparable en columna lleva tabular-nums; el texto narrativo no.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Las superficies están planas en reposo y se separan con el borde #dce0e6. La sombra existe solo para flotar o para marcar una tarjeta sobre el lienzo blanco.",
+        "section": "elevation"
+      },
+      {
+        "name": "The One-Rem Radius Rule",
+        "body": "Los radios se derivan del --radius del chrome (1 rem); cualquier valor de librería (4 px, 8 px) contradice el sistema.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "Do acompañar siempre el color de estado con su palabra: banda, outlook y delta se leen sin color (requisito de accesibilidad del producto).",
+      "Do formatear toda cifra en es-ES (coma decimal, fechas y moneda locales) y usar tabular-nums en columnas.",
+      "Do mantener el verde #146c43 como único acento de interacción y reservar el color para el estado.",
+      "Do derivar radios del --radius del chrome (1 rem) y usar rounded-xl en controles y rounded-2xl en tarjetas.",
+      "Do separar superficies con el borde #dce0e6 de 1 px y, como mucho, la sombra de tarjeta de un nivel.",
+      "Do etiquetar los dos números 0–100 (Health Score de la ficha vs. uplift what-if del marketplace) con su nombre propio y su contexto; nunca presentarlos como el mismo score.",
+      "Do buscar cada cifra en el fact pack, un tool o el ingest: el LLM redacta, no calcula."
+    ],
+    "donts": [
+      "Don't reintroducir el cian #11a8ff como primario (residuo en anticipacion.tsx; docs/frontend_v0.md está desactualizado).",
+      "Don't usar los radios \"de librería\" (4 px / 8 px) que describe docs/frontend_v0.md: son el anti-referente de la plantilla.",
+      "Don't revivir el look shadcn/Geist de components/xray/* (cards muy redondeadas, fuentes de plantilla) como identidad de producto.",
+      "Don't introducir un segundo acento decorativo, degradados, glassmorphism ni sombras apiladas.",
+      "Don't presentar empresas sintéticas como reales ni insinuar que el score es una probabilidad de impago.",
+      "Don't importar lib/xray/registry/ desde pantallas o components/xray/**; todo dato pasa por provider.",
+      "Don't hardcodear un hex donde ya existe token (#ef8000, #eb002b, #6d28d9 son deuda pendiente de tokenizar)."
+    ]
+  }
+}

@@ -144,6 +144,9 @@ def load(
 
 
 def main(argv: list[str] | None = None) -> int:
+    # consola cp1252 de Windows: UTF-8 para separadores y flechas de los resúmenes
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     """`xray-cache [--refresh]`: convierte los 9 CSV a parquet."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     refresh = "--refresh" in (argv or sys.argv[1:])

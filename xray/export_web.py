@@ -19,6 +19,7 @@ companies against the reference population instead of their own batch.
 from __future__ import annotations
 
 import argparse
+import sys
 import json
 import math
 from pathlib import Path
@@ -175,17 +176,20 @@ def method_metrics(evals_metrics: dict, name: str = "rules", source: str = "arti
 
 
 def write_method_metrics(src: Path, dst: Path, name: str = "rules") -> bool:
-    """Escribe el fichero de métricas del pack desde `metrics.json`; False y aviso si no existe."""
+    """Escribe el fichero de métricas del pack desde `metrics.json`; si la fuente no existe o no
+    es usable, borra un `dst` viejo (no se sirven cifras de una corrida anterior) y devuelve False."""
     if not src.exists():
+        dst.unlink(missing_ok=True)
         print(f"aviso: no encuentro {src}; el pack se queda sin métricas del método (uv run xray-evals)")
         return False
     try:
-        source = str(src.relative_to(repo_root()))
+        source = src.relative_to(repo_root()).as_posix()
     except ValueError:
         source = str(src)
     try:
         data = method_metrics(json.loads(src.read_text(encoding="utf-8")), name, source=source)
     except (json.JSONDecodeError, KeyError, ValidationError) as exc:
+        dst.unlink(missing_ok=True)
         print(f"aviso: {src} no es un metrics.json usable ({exc}); el pack se queda sin métricas")
         return False
     dst.parent.mkdir(parents=True, exist_ok=True)
@@ -457,6 +461,9 @@ def build_scores(data_dir_arg: str | Path | None = None) -> list[dict]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # consola cp1252 de Windows: UTF-8 para separadores y flechas de los resúmenes
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(prog="xray-export-web", description="Export Health Scorer → web fact pack")
     ap.add_argument("--data-dir", default=None, help="CSV root (default: data/raw or XRAY_DATA_DIR)")
     ap.add_argument("--out", default=str(DEFAULT_OUT), help="scores.json path")
@@ -479,7 +486,7 @@ def main(argv: list[str] | None = None) -> int:
     size_kb = out.stat().st_size / 1024
     scores = [r["score"] for r in records]
     print(
-        f"Wrote {len(records)} companies → {out} ({size_kb:.0f} KB) · "
+        f"Wrote {len(records)} companies -> {out} ({size_kb:.0f} KB) · "
         f"score p50={float(np.median(scores)):.1f} · origin=ml"
     )
     write_method_metrics(Path(args.metrics), Path(args.metrics_out), args.metrics_name)

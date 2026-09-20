@@ -60,20 +60,13 @@ export function IssuerMark({
 export function FeeBadge({
   amount,
   prefix,
-  angle = 103,
 }: {
   amount: number;
   prefix?: string;
-  angle?: number;
 }) {
   return (
     <span className="inline-flex items-center justify-center rounded-xl bg-[rgba(163,75,203,0.1)] px-1 py-0.5">
-      <span
-        className="bg-clip-text text-[14px] font-semibold tracking-[-0.14px] text-transparent"
-        style={{
-          backgroundImage: `linear-gradient(${angle}deg, rgb(103, 140, 253) 5%, rgb(163, 75, 203) 111%)`,
-        }}
-      >
+      <span className="text-[14px] font-semibold tracking-[-0.14px] tabular-nums text-[#6d28d9]">
         {prefix}
         {formatCompactEuro(amount)}
       </span>
@@ -91,7 +84,7 @@ export function SignedMetricBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center rounded-xl border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
+        "inline-flex items-center justify-center rounded-xl border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px] tabular-nums",
         signedBadgeClass(value)
       )}
     >

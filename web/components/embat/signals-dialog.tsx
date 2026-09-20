@@ -26,6 +26,49 @@ const SIGNAL_KEYS = [
   "net_cash_flow_ratio_3m",
 ] as const;
 
+const SIGNAL_RISK_SCALE: Record<string, number> = {
+  cash_buffer_days: 90,
+  overdue_flow_rate_3m: 0.05,
+  dscr_6m: 1.5,
+  net_cash_flow_ratio_3m: 1,
+};
+
+const SIGNAL_LOW_IS_WORSE = new Set([
+  "cash_buffer_days",
+  "dscr_6m",
+  "net_cash_flow_ratio_3m",
+]);
+
+function signalRisk(signal: string, value: number): number {
+  const scale = SIGNAL_RISK_SCALE[signal] ?? 1;
+  const raw = SIGNAL_LOW_IS_WORSE.has(signal)
+    ? (scale - value) / scale
+    : value / scale;
+  return Math.max(0, Math.min(1, raw));
+}
+
+/**
+ * Red signals. With `ranks` (percentile within the month, from the Health
+ * Scorer export) the cut is exact: rank ≤ 0.20. Packs without ranks fall back
+ * to tinting the `n_red` riskiest signals by a fixed scale, so header and
+ * cards still agree.
+ */
+function redSignalKeys(snapshot: ScoreSnapshot): Set<string> {
+  if (snapshot.ranks) {
+    const ranks = snapshot.ranks;
+    return new Set(SIGNAL_KEYS.filter((key) => isRedRank(ranks[key])));
+  }
+  const available = SIGNAL_KEYS.filter(
+    (key) => snapshot.signals[key] != null
+  ).sort(
+    (a, b) =>
+      signalRisk(b, snapshot.signals[b] as number) -
+      signalRisk(a, snapshot.signals[a] as number)
+  );
+  const count = Math.min(snapshot.n_red, available.length);
+  return new Set(available.slice(0, count));
+}
+
 function formatSignalValue(key: string, value: number | null): string {
   if (value == null) return "—";
   if (key === "overdue_flow_rate_3m" || key === "net_cash_flow_ratio_3m") {
@@ -39,28 +82,22 @@ export function SignalsDialog({
   open,
   onOpenChange,
   snapshot,
-  ranks,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   snapshot: ScoreSnapshot;
-  ranks?: ScoreSnapshot extends never
-    ? never
-    : {
-        cash_buffer_days?: number;
-        overdue_flow_rate_3m?: number;
-        dscr_6m?: number;
-        net_cash_flow_ratio_3m?: number;
-      };
 }) {
+  const redKeys = redSignalKeys(snapshot);
+  const nRed = redKeys.size;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[85vh] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-xl">
         <DialogHeader className="shrink-0 px-6 pt-6 pb-3">
           <DialogTitle>Señales del índice</DialogTitle>
           <DialogDescription>
-            {snapshot.n_signals} señales · {snapshot.n_red} en rojo
-            {snapshot.n_red >= 2 ? " (mes rojo)" : ""}
+            {snapshot.n_signals} señales · {nRed} en rojo
+            {nRed >= 2 ? " (mes rojo)" : ""}
           </DialogDescription>
         </DialogHeader>
 
@@ -71,8 +108,8 @@ export function SignalsDialog({
           <div className="flex flex-col gap-2 px-6 pb-6">
             {SIGNAL_KEYS.map((key) => {
               const value = snapshot.signals[key];
-              const rank = ranks?.[key];
-              const red = isRedRank(rank);
+              const rank = snapshot.ranks?.[key];
+              const red = redKeys.has(key);
               const polarity = signalPolarity(key);
               return (
                 <div
@@ -100,12 +137,16 @@ export function SignalsDialog({
                       {rank != null ? (
                         <p
                           className={cn(
-                            "text-[11px] font-medium",
+                            "text-[11px] font-medium tabular-nums",
                             red ? "text-destructive" : "text-table-header"
                           )}
                         >
                           p{Math.round(rank * 100)}
                           {red ? " · cola roja" : ""}
+                        </p>
+                      ) : red ? (
+                        <p className="text-[11px] font-medium text-destructive">
+                          En rojo
                         </p>
                       ) : null}
                       <p className="text-[10px] text-table-header">

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
+  embatFocusRing,
   outlookColor,
   scoreBadgeClass,
   signedBadgeClass,
@@ -23,9 +24,14 @@ import { ScoreGauge } from "@/components/xray/score-gauge";
 import { ScoreTrajectory } from "@/components/xray/score-trajectory";
 import { DimensionRadar } from "@/components/xray/dimension-radar";
 import { ScoreUplift } from "@/components/xray/score-uplift";
-import { outlookMeta, trendMeta, confidenceMeta } from "@/lib/xray/bands";
 import {
-  formatCompactEuro,
+  bandMeta,
+  confidenceMeta,
+  outlookMeta,
+  trendMeta,
+  watchMeta,
+} from "@/lib/xray/bands";
+import {
   formatCurrency,
   formatDelta,
   formatMonth,
@@ -84,11 +90,17 @@ export function sliceHistory(
   return history.slice(-months);
 }
 
+export function plainExplanation(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
+
 export function FichaFrame({
   banner,
+  actionsHref,
   children,
 }: {
   banner: Alert | null;
+  actionsHref?: string;
   children: ReactNode;
 }) {
   return (
@@ -96,11 +108,22 @@ export function FichaFrame({
       {banner ? (
         <div
           role="alert"
-          className="absolute inset-x-0 top-0 z-10 flex items-center justify-center overflow-clip bg-[#eb002b] px-4 py-[3px] text-center"
+          className="absolute inset-x-0 top-0 z-10 flex items-center justify-center gap-1.5 overflow-clip bg-[#eb002b] px-4 py-[3px] text-center"
         >
           <p className="text-[12px] font-medium tracking-[-0.12px] text-white">
             Aviso: {banner.message}
           </p>
+          {actionsHref ? (
+            <Link
+              href={actionsHref}
+              className={cn(
+                "rounded-[2px] text-[12px] font-medium tracking-[-0.12px] text-white underline underline-offset-2",
+                embatFocusRing
+              )}
+            >
+              Ver acciones
+            </Link>
+          ) : null}
         </div>
       ) : null}
       <div
@@ -187,18 +210,26 @@ export function SubScoreRow({ label, value }: { label: string; value: number }) 
 
 export function FichaGauge({
   score,
+  band,
   outlook,
 }: {
   score: number;
+  band: ScoreSnapshot["band"];
   outlook: Outlook;
 }) {
   return (
-    <div className="flex h-[200px] w-full max-w-[280px] shrink-0 items-center justify-center overflow-clip">
+    <div className="flex h-[224px] w-full max-w-[280px] shrink-0 flex-col items-center justify-center gap-1 overflow-clip">
       <ScoreGauge
         score={score}
+        band={band}
         color={outlookColor(outlook)}
         variant="embat"
       />
+      <p className="max-w-full px-4 text-center text-[13px] font-medium tracking-[-0.13px] text-muted-foreground">
+        Banda <span className="text-foreground">{bandMeta(band).label}</span>
+        {" · "}
+        {outlookMeta(outlook).label}
+      </p>
     </div>
   );
 }
@@ -227,7 +258,10 @@ export function ConfidenceMeter({
           render={
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-white px-2 py-0.5 text-[12px] font-medium tracking-[-0.12px] text-muted-foreground outline-none"
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-xl border border-border bg-white px-2 py-0.5 text-[12px] font-medium tracking-[-0.12px] text-muted-foreground outline-none transition-colors duration-150 ease-out motion-reduce:transition-none",
+                embatFocusRing
+              )}
               aria-label={`Confianza ${meta.label}`}
             >
               <span className="flex gap-0.5" aria-hidden>
@@ -265,19 +299,23 @@ export function ConfidenceMeter({
 export function HealthScoreCard({
   snapshot,
   onOpenSignals,
+  actionsHref,
 }: {
   snapshot: ScoreSnapshot;
   onOpenSignals: () => void;
+  actionsHref?: string;
 }) {
+  const band = bandMeta(snapshot.band);
   const outlook = outlookMeta(snapshot.outlook);
   const trend = trendMeta(snapshot.trend);
+  const watch = watchMeta(snapshot.watch);
 
   return (
     <section
       className={cn(fichaCardClass, "min-h-[300px] min-w-[280px] flex-1")}
       aria-labelledby="health-score"
     >
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b-0 px-5 py-[15px]">
+      <header className="flex flex-wrap items-center justify-between gap-2 px-5 py-[15px]">
         <h2
           id="health-score"
           className="text-[14px] font-medium tracking-[-0.14px] text-table-header"
@@ -285,14 +323,6 @@ export function HealthScoreCard({
           Score de salud
         </h2>
         <div className="flex flex-wrap items-center gap-1.5">
-          <span
-            className={cn(
-              "inline-flex items-center justify-center rounded-xl border px-1 py-0.5 text-[12px] font-medium",
-              statusClass(snapshot.outlook)
-            )}
-          >
-            {outlook.label}
-          </span>
           <span className="inline-flex items-center justify-center rounded-xl border border-border bg-card px-1 py-0.5 text-[12px] font-medium text-muted-foreground">
             {trend.label}
           </span>
@@ -302,10 +332,61 @@ export function HealthScoreCard({
           />
         </div>
       </header>
-      <div className="flex flex-col items-center gap-2 px-3 pt-2">
-        <FichaGauge score={snapshot.score} outlook={snapshot.outlook} />
+      <div className="flex flex-col items-center gap-2 px-5 pt-3">
+        <div className="flex w-full flex-col items-center gap-1 text-center">
+          <p className="text-[11px] font-medium uppercase tracking-[-0.11px] text-table-header">
+            Banda
+          </p>
+          <p className="text-[28px] font-medium tracking-[-0.28px] text-foreground">
+            {band.label}
+            <span className="text-muted-foreground">
+              {" · "}
+              {outlook.label}
+            </span>
+          </p>
+          <p className="text-[12px] font-medium tracking-[-0.12px] text-table-header">
+            Datos a {formatMonth(snapshot.month)}
+          </p>
+        </div>
+        <FichaGauge
+          score={snapshot.score}
+          band={snapshot.band}
+          outlook={snapshot.outlook}
+        />
+        {snapshot.explanation ? (
+          <p className="text-center text-[13px] font-medium tracking-[-0.13px] text-muted-foreground">
+            {plainExplanation(snapshot.explanation)}
+          </p>
+        ) : null}
+        {watch.active ? (
+          <div className="w-full rounded-xl bg-muted/40 px-3 py-2 text-left">
+            <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+              <span className="text-[13px] font-medium tracking-[-0.13px] text-foreground">
+                {watch.label}
+              </span>
+              {actionsHref ? (
+                <Link
+                  href={actionsHref}
+                  className={cn(
+                    "rounded-[2px] text-[12px] font-medium tracking-[-0.12px] text-primary transition-colors duration-150 ease-out hover:underline motion-reduce:transition-none",
+                    embatFocusRing
+                  )}
+                >
+                  Ver acciones
+                </Link>
+              ) : (
+                <span className="text-[12px] font-medium tracking-[-0.12px] text-table-header">
+                  Revisa las acciones de financiación
+                </span>
+              )}
+            </div>
+            <p className="mt-0.5 text-[12px] font-medium tracking-[-0.12px] text-muted-foreground">
+              {watch.description}
+            </p>
+          </div>
+        ) : null}
       </div>
-      <div className="flex flex-col border-t border-border/60">
+      <div className="mt-3 border-t border-border/60">
         {SUB_SCORE_KEYS.map((key) => (
           <SubScoreRow
             key={key}
@@ -318,7 +399,10 @@ export function HealthScoreCard({
         <button
           type="button"
           onClick={onOpenSignals}
-          className="text-[13px] font-medium tracking-[-0.13px] text-primary hover:underline"
+          className={cn(
+            "rounded-[2px] text-[13px] font-medium tracking-[-0.13px] text-primary transition-colors duration-150 ease-out hover:underline motion-reduce:transition-none",
+            embatFocusRing
+          )}
         >
           Ver señales
         </button>
@@ -385,11 +469,13 @@ export function ActionRow({
   snapshot,
   href,
   subtitle,
+  currency = "EUR",
 }: {
   action: ActionRecommendation;
   snapshot: ScoreSnapshot;
   href: string;
   subtitle?: string;
+  currency?: string;
 }) {
   const projection = publishedProjection(snapshot, action);
   const description = action.description ?? action.title;
@@ -397,12 +483,20 @@ export function ActionRow({
   const confidence = action.confidence ?? snapshot.confidence;
 
   return (
-    <div className={cn(fichaItemClass, "hover:bg-[rgba(220,224,230,0.45)]")}>
+    <div
+      className={cn(
+        fichaItemClass,
+        "transition-colors duration-150 ease-out hover:bg-[rgba(220,224,230,0.45)] motion-reduce:transition-none"
+      )}
+    >
       <div className="flex min-w-0 flex-1 items-center gap-1 pr-1">
         <div className="min-w-0 flex-1">
           <Link
             href={href}
-            className="block min-w-0 truncate text-[15px] font-medium tracking-[-0.15px] text-muted-foreground hover:underline"
+            className={cn(
+              "block min-w-0 truncate text-[15px] font-medium tracking-[-0.15px] text-muted-foreground hover:underline",
+              embatFocusRing
+            )}
           >
             {description}
           </Link>
@@ -420,10 +514,10 @@ export function ActionRow({
       <Link
         href={href}
         tabIndex={-1}
-        className="w-[100px] shrink-0 text-right text-[14px] font-medium tracking-[-0.14px] text-table-header"
+        className="w-[110px] shrink-0 truncate text-right text-[14px] font-medium tracking-[-0.14px] tabular-nums text-table-header"
       >
         {action.recommended_amount > 0
-          ? formatCompactEuro(action.recommended_amount)
+          ? formatCurrency(action.recommended_amount, currency)
           : "—"}
       </Link>
       <Link
@@ -456,6 +550,7 @@ export function AccionesCard<T extends ActionRecommendation>({
   subtitleFor,
   empty,
   error,
+  currency = "EUR",
 }: {
   actions: T[];
   loading: boolean;
@@ -464,10 +559,12 @@ export function AccionesCard<T extends ActionRecommendation>({
   subtitleFor?: (action: T) => string | undefined;
   empty: string;
   error?: Error | null;
+  currency?: string;
 }) {
   return (
     <section
-      className={cn(fichaCardClass, "min-h-[220px] w-full")}
+      id="acciones"
+      className={cn(fichaCardClass, "min-h-[220px] w-full scroll-mt-4")}
       aria-labelledby="acciones-recomendadas"
     >
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-[15px]">
@@ -480,9 +577,13 @@ export function AccionesCard<T extends ActionRecommendation>({
         <div className="flex items-center px-2.5 text-[14px] font-medium tracking-[-0.14px] text-table-header">
           <span className="min-w-0 flex-1">Acción</span>
           <span className="w-[72px] text-center">Conf.</span>
-          <span className="w-[100px] text-right">Importe</span>
+          <span className="w-[110px] text-right">Importe</span>
           <span className="w-[80px] text-right">Δ</span>
         </div>
+        <p className="px-2.5 text-[11px] font-medium tracking-[-0.11px] text-table-header">
+          Uplift: impacto what-if sobre las dimensiones, no recalcula el índice
+          de salud oficial.
+        </p>
         {loading ? (
           <>
             <Skeleton className="h-9 rounded-xl bg-[#dce0e6]/50" />
@@ -511,6 +612,7 @@ export function AccionesCard<T extends ActionRecommendation>({
               snapshot={snapshot}
               href={hrefFor(action)}
               subtitle={subtitleFor?.(action)}
+              currency={currency}
             />
           ))
         )}
@@ -528,7 +630,7 @@ export function TrajectoryCard({
   projection: ScoreSnapshot["projection_6m"];
   signalDots?: SignalDotMonth[];
 }) {
-  const [range, setRange] = useState<TrajectoryRange>(3);
+  const [range, setRange] = useState<TrajectoryRange>(6);
   const sliced = sliceHistory(history, range);
   const slicedDots = (signalDots ?? []).filter((d) =>
     sliced.some((h) => h.month === d.month)

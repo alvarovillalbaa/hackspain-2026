@@ -1,0 +1,712 @@
+diff --git a/web/components/embat/anticipacion.tsx b/web/components/embat/anticipacion.tsx
+index 3b91f74..39b1bc5 100644
+--- a/web/components/embat/anticipacion.tsx
++++ b/web/components/embat/anticipacion.tsx
+@@ -15,8 +15,8 @@ const num = (v: number | null | undefined, digits = 1) =>
+ function Tile({ label, value, detail }: { label: string; value: string; detail: string }) {
+   return (
+     <div className="flex min-w-0 flex-col gap-1 rounded-[6px] border border-[#dce0e6] bg-white px-4 py-3">
+-      <span className="text-[12px] font-medium tracking-[-0.12px] text-[#999]">{label}</span>
+-      <span className="text-[22px] font-medium tracking-[-0.4px] text-black">{value}</span>
++      <span className="text-[12px] font-medium tracking-[-0.12px] text-[#6b6b6b]">{label}</span>
++      <span className="text-[22px] font-medium tracking-[-0.4px] tabular-nums text-black">{value}</span>
+       <span className="text-[12px] tracking-[-0.12px] text-[#666]">{detail}</span>
+     </div>
+   );
+@@ -99,7 +99,7 @@ export function AnticipacionPanel({
+                   : "sin medir en este pack"}
+               />
+             </div>
+-            <p className="mt-3 text-[12px] tracking-[-0.12px] text-[#999]">
++            <p className="mt-3 text-[12px] tracking-[-0.12px] text-[#6b6b6b]">
+               Cifras de <code>xray-evals</code> sobre {new Intl.NumberFormat("es-ES").format(metrics.n_companies)} empresas y{" "}
+               {new Intl.NumberFormat("es-ES").format(metrics.n_rows)} meses-empresa, entrenamiento hasta {formatMonth(metrics.train_until)}.
+               El score es un pronóstico de persistencia; no son probabilidades de impago.
+diff --git a/web/components/embat/chrome.tsx b/web/components/embat/chrome.tsx
+index bbf4e4f..40087e8 100644
+--- a/web/components/embat/chrome.tsx
++++ b/web/components/embat/chrome.tsx
+@@ -6,6 +6,14 @@ import { embatUiClass } from "@/components/embat/font";
+ import type { Outlook } from "@/lib/xray/types";
+ import { cn } from "@/lib/utils";
+ 
++/** Shared keyboard focus ring: 2px Embat blue, 2px offset. */
++export const embatFocusRing =
++  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[#11a8ff]";
++
++/** Inset variant for rows, where an outer offset would clip. */
++export const embatRowFocusRing =
++  "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-solid focus-visible:outline-[#11a8ff]";
++
+ export function EmbatIcon({ src }: { src: string }) {
+   return (
+     <span className="relative size-3 shrink-0">
+@@ -71,7 +79,8 @@ export function FilterChip({
+     <Popover open={open} onOpenChange={setOpen}>
+       <PopoverTrigger
+         className={cn(
+-          "inline-flex items-center gap-[5px] rounded-[4px] border bg-white px-[5px] py-[2px] text-[13px] font-medium tracking-[-0.13px] text-[#666] outline-none",
++          "inline-flex items-center gap-[5px] rounded-[4px] border bg-white px-[5px] py-[2px] text-[13px] font-medium tracking-[-0.13px] text-[#666] outline-none transition-colors duration-150 ease-out motion-reduce:transition-none",
++          embatFocusRing,
+           active ? "border-[#11a8ff] text-[#11a8ff]" : "border-[#dce0e6]"
+         )}
+       >
+@@ -117,11 +126,17 @@ export function FilterField({
+         onChange={(e) => setValue(e.target.value)}
+         placeholder={placeholder}
+         inputMode={inputMode}
+-        className="w-full rounded-[4px] border border-[#dce0e6] bg-white px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] text-black shadow-[0px_1px_1px_rgba(13,19,30,0.1)] outline-none placeholder:text-[#999]"
++        className={cn(
++          "w-full rounded-[4px] border border-[#dce0e6] bg-white px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] text-black shadow-[0px_1px_1px_rgba(13,19,30,0.1)] outline-none transition-colors duration-150 ease-out motion-reduce:transition-none placeholder:text-[#6b6b6b]",
++          embatFocusRing
++        )}
+       />
+       <button
+         type="submit"
+-        className="w-full rounded-[4px] bg-[#11a8ff] px-2.5 py-1 text-[13px] font-semibold tracking-[-0.13px] text-white"
++        className={cn(
++          "w-full rounded-[4px] bg-[#11a8ff] px-2.5 py-1 text-[13px] font-semibold tracking-[-0.13px] text-white transition-colors duration-150 ease-out motion-reduce:transition-none",
++          embatFocusRing
++        )}
+       >
+         Buscar
+       </button>
+@@ -129,13 +144,12 @@ export function FilterField({
+   );
+ }
+ 
+-export const embatSelectTriggerClass =
+-  "h-auto w-full rounded-[4px] border border-[#dce0e6] bg-white px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] text-black shadow-[0px_1px_1px_rgba(13,19,30,0.1)] ring-0 outline-none dark:hover:bg-white data-placeholder:text-[#999]";
++export const embatSelectTriggerClass = `${embatFocusRing} h-auto w-full rounded-[4px] border border-[#dce0e6] bg-white px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] text-black shadow-[0px_1px_1px_rgba(13,19,30,0.1)] ring-0 outline-none transition-colors duration-150 ease-out motion-reduce:transition-none dark:hover:bg-white data-placeholder:text-[#6b6b6b]`;
+ 
+ export const embatSelectContentClass = `${embatUiClass} rounded-[6px] border border-[#dce0e6] bg-white text-black shadow-[0px_1px_1px_rgba(13,19,30,0.1)] ring-0`;
+ 
+ export const embatSelectItemClass =
+-  "rounded-[4px] py-1.5 text-[13px] text-black focus:bg-[#11a8ff] focus:text-white";
++  "rounded-[4px] py-1.5 text-[13px] text-black focus:bg-[#11a8ff] focus:text-white focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-solid focus-visible:outline-white";
+ 
+ export function EmbatButton({
+   variant = "primary",
+@@ -149,7 +163,8 @@ export function EmbatButton({
+     <button
+       type={type}
+       className={cn(
+-        "inline-flex items-center justify-center gap-[5px] rounded-[4px] px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] outline-none disabled:cursor-not-allowed disabled:opacity-40",
++        "inline-flex items-center justify-center gap-[5px] rounded-[4px] px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] outline-none transition-colors duration-150 ease-out motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-40",
++        embatFocusRing,
+         variant === "primary" && "bg-[#11a8ff] font-semibold text-white",
+         variant === "secondary" &&
+           "border border-[#dce0e6] bg-white text-[#666]",
+diff --git a/web/components/embat/companias.tsx b/web/components/embat/companias.tsx
+index 3945798..9237600 100644
+--- a/web/components/embat/companias.tsx
++++ b/web/components/embat/companias.tsx
+@@ -8,6 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
+ import {
+   EmbatButton,
+   EmbatIcon,
++  embatFocusRing,
++  embatRowFocusRing,
+   FilterChip,
+   FilterField,
+   statusClass,
+@@ -186,8 +188,8 @@ export function Companias({ className }: { className?: string }) {
+               </p>
+             ) : null}
+           </div>
+-          <div className="flex shrink-0 items-center gap-2.5">
+-            <label className="flex w-[180px] items-center gap-[5px] rounded-[4px] border border-[#dce0e6] bg-white px-[5px] py-[2px]">
++          <div className="flex min-w-0 shrink-0 flex-wrap items-center gap-2.5">
++            <label className="flex w-[180px] max-w-full items-center gap-[5px] rounded-[4px] border border-[#dce0e6] bg-white px-[5px] py-[2px] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-solid focus-within:outline-[#11a8ff]">
+               <span className="sr-only">Buscar compañía</span>
+               <EmbatIcon src="/embat/icon-search.svg" />
+               <input
+@@ -200,7 +202,10 @@ export function Companias({ className }: { className?: string }) {
+             <button
+               type="button"
+               onClick={() => setImportOpen(true)}
+-              className="inline-flex items-center gap-[5px] rounded-[4px] border border-[#dce0e6] bg-white px-[5px] py-[2px] text-[13px] font-medium tracking-[-0.13px] text-[#666]"
++              className={cn(
++                "inline-flex items-center gap-[5px] rounded-[4px] border border-[#dce0e6] bg-white px-[5px] py-[2px] text-[13px] font-medium tracking-[-0.13px] text-[#666] transition-colors duration-150 ease-out motion-reduce:transition-none",
++                embatFocusRing
++              )}
+             >
+               <EmbatIcon src="/embat/icon-import.svg" />
+               Importar Compañía
+@@ -269,7 +274,8 @@ export function Companias({ className }: { className?: string }) {
+                       close();
+                     }}
+                     className={cn(
+-                      "w-full rounded-[4px] px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px]",
++                      "w-full rounded-[4px] px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] transition-colors duration-150 ease-out motion-reduce:transition-none",
++                      embatFocusRing,
+                       filters.outlook === value
+                         ? "bg-[#11a8ff] font-semibold text-white"
+                         : "border border-[#dce0e6] bg-white text-[#666]"
+@@ -344,7 +350,8 @@ export function Companias({ className }: { className?: string }) {
+                       close();
+                     }}
+                     className={cn(
+-                      "w-full rounded-[4px] px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px]",
++                      "w-full rounded-[4px] px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] transition-colors duration-150 ease-out motion-reduce:transition-none",
++                      embatFocusRing,
+                       filters.band === value
+                         ? "bg-[#11a8ff] font-semibold text-white"
+                         : "border border-[#dce0e6] bg-white text-[#666]"
+@@ -372,7 +379,8 @@ export function Companias({ className }: { className?: string }) {
+                       close();
+                     }}
+                     className={cn(
+-                      "w-full rounded-[4px] px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px]",
++                      "w-full rounded-[4px] px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] transition-colors duration-150 ease-out motion-reduce:transition-none",
++                      embatFocusRing,
+                       filters.currency === value
+                         ? "bg-[#11a8ff] font-semibold text-white"
+                         : "border border-[#dce0e6] bg-white text-[#666]"
+@@ -406,7 +414,8 @@ export function Companias({ className }: { className?: string }) {
+                       close();
+                     }}
+                     className={cn(
+-                      "w-full rounded-[4px] px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px]",
++                      "w-full rounded-[4px] px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] transition-colors duration-150 ease-out motion-reduce:transition-none",
++                      embatFocusRing,
+                       filters.origin === value
+                         ? "bg-[#11a8ff] font-semibold text-white"
+                         : "border border-[#dce0e6] bg-white text-[#666]"
+@@ -450,7 +459,7 @@ export function Companias({ className }: { className?: string }) {
+                   <th
+                     key={label}
+                     scope="col"
+-                    className="px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] whitespace-nowrap text-[#999] last:pr-5"
++                    className="px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] whitespace-nowrap text-[#6b6b6b] last:pr-5"
+                   >
+                     {label}
+                   </th>
+@@ -501,7 +510,10 @@ export function Companias({ className }: { className?: string }) {
+                           router.push(`/c/${row.company_id}`);
+                         }
+                       }}
+-                      className="cursor-pointer border-b border-[#dce0e6] even:bg-[rgba(220,224,230,0.2)] hover:bg-[rgba(220,224,230,0.45)]"
++                      className={cn(
++                        "cursor-pointer border-b border-[#dce0e6] transition-colors duration-150 ease-out even:bg-[rgba(220,224,230,0.2)] hover:bg-[rgba(220,224,230,0.45)] motion-reduce:transition-none",
++                        embatRowFocusRing
++                      )}
+                     >
+                       <td className="px-3 py-[15px] pl-5">
+                         <input
+@@ -509,7 +521,10 @@ export function Companias({ className }: { className?: string }) {
+                           checked={checked}
+                           disabled={selectDisabled}
+                           aria-label={`Seleccionar ${row.name}`}
+-                          className="size-3.5 accent-[#11a8ff]"
++                          className={cn(
++                            "size-3.5 rounded-[3px] accent-[#11a8ff]",
++                            embatFocusRing
++                          )}
+                           onClick={(e) => e.stopPropagation()}
+                           onChange={() => selection.toggle(row.company_id)}
+                         />
+@@ -518,7 +533,10 @@ export function Companias({ className }: { className?: string }) {
+                         <Link
+                           href={`/c/${row.company_id}`}
+                           title={row.name}
+-                          className="block truncate text-black hover:underline"
++                          className={cn(
++                            "block truncate text-black hover:underline",
++                            embatFocusRing
++                          )}
+                           onClick={(e) => e.stopPropagation()}
+                         >
+                           {row.name}
+@@ -532,7 +550,7 @@ export function Companias({ className }: { className?: string }) {
+                       <td className="px-3 py-[15px]">
+                         <span
+                           className={cn(
+-                            "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
++                            "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px] tabular-nums",
+                             statusClass(row.outlook)
+                           )}
+                         >
+@@ -542,7 +560,7 @@ export function Companias({ className }: { className?: string }) {
+                       <td className="px-3 py-[15px]">
+                         <span
+                           className={cn(
+-                            "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
++                            "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px] tabular-nums",
+                             statusClass(row.outlook)
+                           )}
+                         >
+@@ -555,10 +573,10 @@ export function Companias({ className }: { className?: string }) {
+                       >
+                         {row.situation}
+                       </td>
+-                      <td className="px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] text-[#666]">
++                      <td className="px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] tabular-nums text-[#666]">
+                         {formatRatePct(row.implied_rate)}
+                       </td>
+-                      <td className="px-3 py-[15px] pr-5 text-[14px] tracking-[-0.14px] text-black">
++                      <td className="px-3 py-[15px] pr-5 text-[14px] tracking-[-0.14px] tabular-nums text-black">
+                         {formatCompactEuro(row.cash_close)}
+                       </td>
+                     </tr>
+@@ -571,7 +589,7 @@ export function Companias({ className }: { className?: string }) {
+       </section>
+ 
+       {selection.count > 0 ? (
+-        <div className="sticky bottom-4 z-30 mt-4 flex items-center justify-between gap-3 rounded-[8px] border border-[#dce0e6] bg-white/95 px-4 py-3 shadow-[0px_1px_2px_0px_rgba(13,19,30,0.1)] backdrop-blur-md">
++        <div className="sticky bottom-4 z-30 mt-4 flex items-center justify-between gap-3 rounded-[8px] border border-[#dce0e6] bg-white px-4 py-3 shadow-[0px_1px_2px_0px_rgba(13,19,30,0.1)]">
+           <p className="text-[13px] font-medium tracking-[-0.13px] text-[#666]">
+             {selection.count}/{MAX_COMPARE} seleccionadas
+             {selection.count < 2 ? " · elige al menos 2" : ""}
+@@ -584,7 +602,8 @@ export function Companias({ className }: { className?: string }) {
+               href={compareHref(selection.values)}
+               aria-disabled={selection.count < 2}
+               className={cn(
+-                "inline-flex items-center justify-center rounded-[4px] bg-[#11a8ff] px-2.5 py-1 text-[13px] font-semibold tracking-[-0.13px] text-white",
++                "inline-flex items-center justify-center rounded-[4px] bg-[#11a8ff] px-2.5 py-1 text-[13px] font-semibold tracking-[-0.13px] text-white transition-colors duration-150 ease-out motion-reduce:transition-none",
++                embatFocusRing,
+                 selection.count < 2 && "pointer-events-none opacity-50"
+               )}
+             >
+diff --git a/web/components/embat/ficha.tsx b/web/components/embat/ficha.tsx
+index 1517304..700022b 100644
+--- a/web/components/embat/ficha.tsx
++++ b/web/components/embat/ficha.tsx
+@@ -5,6 +5,7 @@ import Link from "next/link";
+ import { Skeleton } from "@/components/ui/skeleton";
+ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+ import {
++  embatFocusRing,
+   FilterChip,
+   outlookColor,
+   scoreBadgeClass,
+@@ -16,7 +17,7 @@ import { ScoreGauge } from "@/components/xray/score-gauge";
+ import { ScoreTrajectory } from "@/components/xray/score-trajectory";
+ import { DimensionRadar } from "@/components/xray/dimension-radar";
+ import { ScoreUplift } from "@/components/xray/score-uplift";
+-import { outlookMeta } from "@/lib/xray/bands";
++import { bandMeta, outlookMeta } from "@/lib/xray/bands";
+ import {
+   formatCompactEuro,
+   formatCurrency,
+@@ -117,7 +118,7 @@ export function FichaTitle({
+   return (
+     <div className="flex flex-wrap items-center gap-2.5 px-5 pb-[5px]">
+       <h1
+-        className={`${embatDisplayClass} text-[20px] font-medium tracking-[-0.3px] text-black`}
++        className={`${embatDisplayClass} min-w-0 break-words text-[20px] font-medium tracking-[-0.3px] text-black`}
+       >
+         {name}
+       </h1>
+@@ -146,7 +147,7 @@ export function FichaChips({
+       </span>
+       <span
+         className={cn(
+-          "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
++          "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px] tabular-nums",
+           statusClass(outlook)
+         )}
+       >
+@@ -166,14 +167,20 @@ export function FichaGauge({
+   band: ScoreSnapshot["band"];
+   outlook: Outlook;
+ }) {
++  const meta = outlookMeta(outlook);
+   return (
+-    <div className="flex h-[266px] w-[428px] max-w-full shrink-0 items-center justify-center overflow-clip rounded-[8px] bg-white">
++    <div className="flex h-[266px] w-[428px] max-w-full shrink-0 flex-col items-center justify-center gap-1 overflow-clip rounded-[8px] bg-white">
+       <ScoreGauge
+         score={score}
+         band={band}
+         color={outlookColor(outlook)}
+         variant="embat"
+       />
++      <p className="max-w-full px-4 text-center text-[14px] font-medium tracking-[-0.14px] text-[#666]">
++        Banda <span className="text-black">{bandMeta(band).label}</span>
++        {" · "}
++        {meta.label}
++      </p>
+     </div>
+   );
+ }
+@@ -186,7 +193,7 @@ export function SubScoreRow({ label, value }: { label: string; value: number })
+       </p>
+       <span
+         className={cn(
+-          "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
++          "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px] tabular-nums",
+           scoreBadgeClass(value)
+         )}
+       >
+@@ -211,7 +218,7 @@ export function DesgloseCard({
+       <header className="border-b border-[#dce0e6] px-5 py-[15px]">
+         <h2
+           id="desglose-score"
+-          className="text-[14px] font-medium tracking-[-0.14px] text-[#999]"
++          className="text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]"
+         >
+           Desglose Score
+         </h2>
+@@ -229,7 +236,7 @@ export function DriverRow({ driver }: { driver: Driver }) {
+         <p className="truncate text-[15px] font-medium tracking-[-0.15px] text-[#666]">
+           {driver.signal}
+         </p>
+-        <p className="text-[12px] font-medium tracking-[-0.12px] text-[#999]">
++        <p className="text-[12px] font-medium tracking-[-0.12px] text-[#6b6b6b]">
+           {formatDriverMonth(driver.since)}
+         </p>
+       </div>
+@@ -254,7 +261,7 @@ export function ActualizacionesCard({ drivers }: { drivers: Driver[] }) {
+       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-5 py-[15px]">
+         <h2
+           id="actualizaciones-score"
+-          className="text-[14px] font-medium tracking-[-0.14px] text-[#999]"
++          className="text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]"
+         >
+           Actualizaciones de Score
+         </h2>
+@@ -289,17 +296,25 @@ export function ActionRow({
+   const projection = publishedProjection(snapshot, action);
+ 
+   return (
+-    <div className={cn(fichaItemClass, "hover:bg-[rgba(220,224,230,0.45)]")}>
++    <div
++      className={cn(
++        fichaItemClass,
++        "transition-colors duration-150 ease-out motion-reduce:transition-none hover:bg-[rgba(220,224,230,0.45)]"
++      )}
++    >
+       <div className="flex min-w-0 flex-1 items-center gap-1 pr-1">
+         <div className="min-w-0 flex-1">
+           <Link
+             href={href}
+-            className="block min-w-0 truncate text-[15px] font-medium tracking-[-0.15px] text-[#666] hover:underline"
++            className={cn(
++              "block min-w-0 truncate text-[15px] font-medium tracking-[-0.15px] text-[#666] hover:underline",
++              embatFocusRing
++            )}
+           >
+             {action.title}
+           </Link>
+           {subtitle ? (
+-            <p className="truncate text-[12px] font-medium tracking-[-0.12px] text-[#999]">
++            <p className="truncate text-[12px] font-medium tracking-[-0.12px] text-[#6b6b6b]">
+               {subtitle}
+             </p>
+           ) : null}
+@@ -309,7 +324,7 @@ export function ActionRow({
+       <Link
+         href={href}
+         tabIndex={-1}
+-        className="w-[100px] shrink-0 text-right text-[14px] font-medium tracking-[-0.14px] text-[#999]"
++        className="w-[100px] shrink-0 truncate text-right text-[14px] font-medium tracking-[-0.14px] tabular-nums text-[#6b6b6b]"
+       >
+         {formatCompactEuro(action.recommended_amount)}
+       </Link>
+@@ -320,7 +335,7 @@ export function ActionRow({
+       >
+         <span
+           className={cn(
+-            "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
++            "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px] tabular-nums",
+             signedBadgeClass(projection.uplift)
+           )}
+         >
+@@ -337,7 +352,10 @@ export function RationaleTip({ text }: { text: string }) {
+       <PopoverTrigger
+         type="button"
+         aria-label="Por qué se recomienda"
+-        className="inline-flex size-[10px] shrink-0 items-center justify-center outline-none"
++        className={cn(
++          "inline-flex size-[10px] shrink-0 items-center justify-center rounded-[4px] outline-none",
++          embatFocusRing
++        )}
+       >
+         <span className="relative size-[10px]">
+           <img
+@@ -385,11 +403,11 @@ export function AccionesCard<T extends ActionRecommendation>({
+       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-[15px]">
+         <h2
+           id="acciones-recomendadas"
+-          className="px-2.5 text-[14px] font-medium tracking-[-0.14px] text-[#999]"
++          className="px-2.5 text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]"
+         >
+           Acciones recomendadas
+         </h2>
+-        <div className="flex items-center px-2.5 text-[14px] font-medium tracking-[-0.14px] text-[#999]">
++        <div className="flex items-center px-2.5 text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]">
+           <span className="min-w-0 flex-1">Tipo</span>
+           <span className="w-[100px] text-right">Importe</span>
+           <span className="w-[100px] text-right">Puntuación</span>
+@@ -437,7 +455,7 @@ export function TrajectoryCard({
+         <div className="flex items-center gap-2.5">
+           <h2
+             id="trayectoria-score"
+-            className="text-[14px] font-medium tracking-[-0.14px] text-[#999]"
++            className="text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]"
+           >
+             Trayectoria
+           </h2>
+@@ -457,7 +475,8 @@ export function TrajectoryCard({
+                       close();
+                     }}
+                     className={cn(
+-                      "w-full rounded-[4px] px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px]",
++                      "w-full rounded-[4px] px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] transition-colors duration-150 ease-out motion-reduce:transition-none",
++                      embatFocusRing,
+                       range === value
+                         ? "bg-[#11a8ff] font-semibold text-white"
+                         : "border border-[#dce0e6] bg-white text-[#666]"
+@@ -522,7 +541,7 @@ export function DimensionsFichaCard({
+       <header className="border-b border-[#dce0e6] px-5 py-[15px]">
+         <h2
+           id="dimensiones-score"
+-          className="text-[14px] font-medium tracking-[-0.14px] text-[#999]"
++          className="text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]"
+         >
+           Dimensiones
+         </h2>
+@@ -556,11 +575,11 @@ export function PeersFichaCard({
+       <header className="border-b border-[#dce0e6] px-5 py-[15px]">
+         <h2
+           id="comparables-score"
+-          className="text-[14px] font-medium tracking-[-0.14px] text-[#999]"
++          className="text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]"
+         >
+           Comparables
+         </h2>
+-        <p className="mt-1 text-[12px] font-medium tracking-[-0.12px] text-[#999]">
++        <p className="mt-1 text-[12px] font-medium tracking-[-0.12px] text-[#6b6b6b]">
+           {SIZE_BAND_LABEL[cohort.size.band]} · {AGE_BAND_LABEL[cohort.age.band]}{" "}
+           · {poolLabel}
+         </p>
+@@ -568,13 +587,13 @@ export function PeersFichaCard({
+       <div className="grid grid-cols-2 gap-2.5 p-[15px] sm:grid-cols-4">
+         <PeerTile label="Flujo mensual">
+           {formatCurrency(cohort.size.monthly_flow, currency)}
+-          <span className="mt-0.5 block text-[11px] font-medium text-[#999]">
++          <span className="mt-0.5 block text-[11px] font-medium text-[#6b6b6b]">
+             p{cohort.size.percentile} en {cohort.currency}
+           </span>
+         </PeerTile>
+         <PeerTile label="Antigüedad">
+           {cohort.age.months} meses
+-          <span className="mt-0.5 block text-[11px] font-medium text-[#999]">
++          <span className="mt-0.5 block text-[11px] font-medium text-[#6b6b6b]">
+             {ageHint}
+           </span>
+         </PeerTile>
+@@ -583,7 +602,7 @@ export function PeersFichaCard({
+         </PeerTile>
+         <PeerTile label="Vs. media">
+           {formatDelta(cohort.delta)}
+-          <span className="mt-0.5 block text-[11px] font-medium text-[#999]">
++          <span className="mt-0.5 block text-[11px] font-medium text-[#6b6b6b]">
+             mejor que {cohort.better_than}/{cohort.k}
+           </span>
+         </PeerTile>
+@@ -601,7 +620,7 @@ function PeerTile({
+ }) {
+   return (
+     <div className="rounded-[4px] border border-[#dce0e6] bg-white px-2.5 py-2 shadow-[0px_1px_1px_rgba(13,19,30,0.1)]">
+-      <div className="text-[11px] font-medium tracking-[-0.11px] text-[#999] uppercase">
++      <div className="text-[11px] font-medium tracking-[-0.11px] text-[#6b6b6b] uppercase">
+         {label}
+       </div>
+       <div className="mt-1 text-[14px] font-medium tracking-[-0.14px] tabular-nums text-black">
+@@ -626,7 +645,7 @@ export function DealFichaCard({
+       <header className="border-b border-[#dce0e6] px-5 py-[15px]">
+         <h2
+           id="oferta-aceptada"
+-          className="text-[14px] font-medium tracking-[-0.14px] text-[#999]"
++          className="text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]"
+         >
+           Oferta aceptada
+         </h2>
+@@ -636,7 +655,7 @@ export function DealFichaCard({
+           {deal.label} · {deal.issuer_name} ·{" "}
+           {formatCurrency(deal.amount, currency)}
+         </p>
+-        <p className="text-[12px] text-[#999]">
++        <p className="text-[12px] text-[#6b6b6b]">
+           Impacto what-if (no recalcula el Health Score oficial)
+         </p>
+         <ScoreUplift uplift={deal.uplift} toBand={deal.projected_band} />
+diff --git a/web/components/embat/grupo-empresarial.tsx b/web/components/embat/grupo-empresarial.tsx
+index 7fe5179..ca9535c 100644
+--- a/web/components/embat/grupo-empresarial.tsx
++++ b/web/components/embat/grupo-empresarial.tsx
+@@ -7,6 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton";
+ import {
+   DemoChip,
+   EmbatIcon,
++  embatFocusRing,
++  embatRowFocusRing,
+   FilterChip,
+   FilterField,
+   statusClass,
+@@ -97,7 +99,7 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
+         className
+       )}
+     >
+-      <header className="flex items-center justify-between gap-3 border-b border-[#dce0e6] px-5 py-[15px]">
++      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#dce0e6] px-5 py-[15px]">
+         <div className="flex min-w-0 items-center gap-2.5">
+           <h1
+             className={`${embatDisplayClass} shrink-0 text-[20px] font-medium tracking-[-0.3px] text-nowrap text-black`}
+@@ -110,7 +112,7 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
+             </p>
+           ) : null}
+         </div>
+-        <label className="flex w-[200px] shrink-0 items-center gap-[5px] rounded-[4px] border border-[#dce0e6] bg-white px-[5px] py-[2px]">
++        <label className="flex w-[200px] shrink-0 items-center gap-[5px] rounded-[4px] border border-[#dce0e6] bg-white px-[5px] py-[2px] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-solid focus-within:outline-[#11a8ff]">
+           <span className="sr-only">Buscar grupo</span>
+           <EmbatIcon src="/embat/icon-search.svg" />
+           <input
+@@ -183,7 +185,8 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
+                     close();
+                   }}
+                   className={cn(
+-                    "w-full rounded-[4px] px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px]",
++                    "w-full rounded-[4px] px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] transition-colors duration-150 ease-out motion-reduce:transition-none",
++                    embatFocusRing,
+                     filters.outlook === value
+                       ? "bg-[#11a8ff] font-semibold text-white"
+                       : "border border-[#dce0e6] bg-white text-[#666]"
+@@ -266,7 +269,7 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
+                 <th
+                   key={label}
+                   scope="col"
+-                  className="overflow-hidden px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] text-ellipsis whitespace-nowrap text-[#999] first:pl-5 last:pr-5"
++                  className="overflow-hidden px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] text-ellipsis whitespace-nowrap text-[#6b6b6b] first:pl-5 last:pr-5"
+                 >
+                   {label}
+                 </th>
+@@ -314,14 +317,20 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
+                         router.push(`/g/${group.group_id}`);
+                       }
+                     }}
+-                    className="cursor-pointer border-b border-[#dce0e6] even:bg-[rgba(220,224,230,0.2)] hover:bg-[rgba(220,224,230,0.45)]"
++                    className={cn(
++                      "cursor-pointer border-b border-[#dce0e6] transition-colors duration-150 ease-out even:bg-[rgba(220,224,230,0.2)] hover:bg-[rgba(220,224,230,0.45)] motion-reduce:transition-none",
++                      embatRowFocusRing
++                    )}
+                   >
+                     <td className="px-3 py-[15px] text-[14px] tracking-[-0.14px] text-black first:pl-5">
+                       <div className="flex min-w-0 items-center gap-2">
+                         <Link
+                           href={`/g/${group.group_id}`}
+                           title={group.name}
+-                          className="min-w-0 truncate text-black hover:underline"
++                          className={cn(
++                            "min-w-0 truncate text-black hover:underline",
++                            embatFocusRing
++                          )}
+                           onClick={(e) => e.stopPropagation()}
+                         >
+                           {group.name}
+@@ -332,7 +341,7 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
+                     <td className="px-3 py-[15px]">
+                       <span
+                         className={cn(
+-                          "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
++                          "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px] tabular-nums",
+                           statusClass(group.outlook)
+                         )}
+                       >
+@@ -342,14 +351,14 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
+                     <td className="px-3 py-[15px]">
+                       <span
+                         className={cn(
+-                          "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
++                          "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px] tabular-nums",
+                           statusClass(group.outlook)
+                         )}
+                       >
+                         {outlook.label}
+                       </span>
+                     </td>
+-                    <td className="px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] text-[#666]">
++                    <td className="px-3 py-[15px] text-[14px] font-medium tracking-[-0.14px] tabular-nums text-[#666]">
+                       {group.n_companies}
+                     </td>
+                     <td
+@@ -358,7 +367,7 @@ export function GrupoEmpresarial({ className }: { className?: string }) {
+                     >
+                       {group.best_company_name}
+                     </td>
+-                    <td className="px-3 py-[15px] pr-5 text-[14px] tracking-[-0.14px] text-black">
++                    <td className="px-3 py-[15px] pr-5 text-[14px] tracking-[-0.14px] tabular-nums text-black">
+                       {formatCompactEuro(group.cash_close)}
+                     </td>
+                   </tr>
+diff --git a/web/components/embat/grupo.tsx b/web/components/embat/grupo.tsx
+index 0a79a0f..071e8e3 100644
+--- a/web/components/embat/grupo.tsx
++++ b/web/components/embat/grupo.tsx
+@@ -16,7 +16,12 @@ import {
+   pickBannerAlert,
+   TrajectoryCard,
+ } from "@/components/embat/ficha";
+-import { DemoChip, scoreBadgeClass, statusClass } from "@/components/embat/chrome";
++import {
++  DemoChip,
++  embatFocusRing,
++  scoreBadgeClass,
++  statusClass,
++} from "@/components/embat/chrome";
+ import { useCompanySummaries } from "@/hooks/xray/use-company-summaries";
+ import { useDemoSession } from "@/hooks/xray/use-demo-session";
+ import { useGroupActions, type GroupAction } from "@/hooks/xray/use-group-actions";
+@@ -138,7 +143,7 @@ function EmpresasCard({
+       <header className="border-b border-[#dce0e6] px-5 py-[15px]">
+         <h2
+           id="empresas-grupo"
+-          className="text-[14px] font-medium tracking-[-0.14px] text-[#999]"
++          className="text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]"
+         >
+           Empresas del grupo
+         </h2>
+@@ -158,14 +163,21 @@ function EmpresasCard({
+                 href={`/c/${member.company_id}`}
+                 className={cn(
+                   fichaItemClass,
+-                  "hover:bg-[rgba(220,224,230,0.45)]"
++                  "transition-colors duration-150 ease-out hover:bg-[rgba(220,224,230,0.45)] motion-reduce:transition-none",
++                  embatFocusRing
+                 )}
+               >
+                 <div className="min-w-0 flex-1">
+-                  <p className="truncate text-[15px] font-medium tracking-[-0.15px] text-[#666]">
++                  <p
++                    className="truncate text-[15px] font-medium tracking-[-0.15px] text-[#666]"
++                    title={member.name}
++                  >
+                     {member.name}
+                   </p>
+-                  <p className="truncate text-[12px] font-medium tracking-[-0.12px] text-[#999]">
++                  <p
++                    className="truncate text-[12px] font-medium tracking-[-0.12px] text-[#6b6b6b]"
++                    title={member.company_id}
++                  >
+                     {member.company_id}
+                   </p>
+                 </div>
+@@ -173,7 +185,7 @@ function EmpresasCard({
+                   {outlook ? (
+                     <span
+                       className={cn(
+-                        "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
++                        "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px] tabular-nums",
+                         statusClass(outlook)
+                       )}
+                     >
+@@ -182,7 +194,7 @@ function EmpresasCard({
+                   ) : null}
+                   <span
+                     className={cn(
+-                      "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
++                      "inline-flex items-center justify-center rounded-[4px] border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px] tabular-nums",
+                       scoreBadgeClass(member.score)
+                     )}
+                   >

@@ -12,6 +12,7 @@ import type {
   Dimensions,
   HistoryPoint,
   Outlook,
+  Projection6m,
   ScoreSnapshot,
   Trend,
 } from "./types";
@@ -87,19 +88,32 @@ function worstConfidence(rows: Confidence[]): Confidence {
   return worst;
 }
 
-function projection6m(history: HistoryPoint[], scoreNow: number) {
-  const delta =
-    history.length >= 2
-      ? history[history.length - 1]!.score -
-        history[Math.max(0, history.length - 3)]!.score
-      : 0;
-  const spread = Math.max(4, Math.abs(delta) * 1.5 + 4);
-  const clip = (v: number) => round1(Math.max(0, Math.min(100, v)));
-  return {
-    p10: clip(scoreNow + delta * 0.5 - spread),
-    p50: clip(scoreNow + delta),
-    p90: clip(scoreNow + delta * 1.2 + spread * 0.6),
-  };
+/**
+ * Group fan = inflow-weighted mean of the members' calibrated fans, per quantile.
+ * Members without a fan (or zero weight) are skipped; if none has one, the
+ * contract still requires a Projection6m, so emit a flat fan at the group score.
+ */
+function aggregateFan(
+  members: { score: ExportedScore; weight: number }[],
+  scoreNow: number
+): Projection6m {
+  const rows = members.flatMap((m) => {
+    const fan = m.score.projection_6m;
+    if (
+      !fan ||
+      m.weight <= 0 ||
+      ![fan.p10, fan.p50, fan.p90].every(Number.isFinite)
+    ) {
+      return [];
+    }
+    return [{ fan, weight: m.weight }];
+  });
+  if (rows.length === 0) {
+    return { p10: scoreNow, p50: scoreNow, p90: scoreNow };
+  }
+  const q = (k: keyof Projection6m) =>
+    round1(weightedMean(rows.map((r) => ({ value: r.fan[k], weight: r.weight }))));
+  return { p10: q("p10"), p50: q("p50"), p90: q("p90") };
 }
 
 function aggregateHistory(
@@ -219,7 +233,7 @@ export function rollupGroup(
         }))
       )
     ),
-    projection_6m: projection6m(history, score),
+    projection_6m: aggregateFan(weighted, score),
     history,
     drivers: weakest.score.drivers,
     alerts,

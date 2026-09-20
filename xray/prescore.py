@@ -21,6 +21,7 @@ pre-puntuados, la ruta sirve cifras reales del scorer y lo etiqueta como
 from __future__ import annotations
 
 import argparse
+import sys
 import hashlib
 import json
 from datetime import UTC, datetime
@@ -120,7 +121,8 @@ def score_pack(
     if "cash_buffer_days" not in feats.columns:
         feats = features.derive(feats)
 
-    events_ext = events.build(tables, feats)
+    events_cfg = events.EventsConfig(expensive_rate_threshold=model.expensive_rate_p75)
+    events_ext = events.build(tables, feats, events_cfg)
     scored = rules.run(feats, model=model, rank_against=model.profile(), events_ext=events_ext)
     records = records_from_scored(scored, peer_ref=peer_ref or None, tables=tables)
     if not records:
@@ -220,6 +222,9 @@ def build(
 
 
 def main(argv: list[str] | None = None) -> int:
+    # consola cp1252 de Windows: UTF-8 para separadores y flechas de los resúmenes
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--packs", type=Path, default=None, help="raíz de packs demo")
     ap.add_argument("--out", type=Path, default=None, help="JSON de salida")
@@ -235,7 +240,7 @@ def main(argv: list[str] | None = None) -> int:
     for pack in doc["packs"]:
         ids = ", ".join(pack["company_ids"])
         print(f"  {pack['case']}: {len(pack['scores'])} score(s) — {ids}")
-    print(f"Wrote {len(doc['packs'])} pre-scored pack(s) → {out}")
+    print(f"Wrote {len(doc['packs'])} pre-scored pack(s) -> {out}")
     return 0
 
 

@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { embatUiClass } from "@/components/embat/font";
+import { embatFocusRing } from "@/components/embat/chrome";
 import {
   FeeBadge,
   formatSavingPerYear,
@@ -118,7 +119,7 @@ export function ContratarPrestamoDialog({
     >
       <DialogContent
         showCloseButton={!busy}
-        overlayClassName="embat-contratar-overlay bg-[rgba(0,0,0,0.3)] backdrop-blur-[4px] supports-backdrop-filter:backdrop-blur-[4px] duration-200 data-closed:animate-none"
+        overlayClassName="embat-contratar-overlay bg-[rgba(0,0,0,0.3)] duration-200 data-closed:animate-none"
         className={cn(
           embatUiClass,
           "embat-contratar-dialog flex w-[700px] max-w-[calc(100%-2rem)] origin-top gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 text-black shadow-[0px_1px_2px_0px_rgba(13,19,30,0.1)] ring-0 sm:max-w-[700px] data-open:animate-none data-closed:animate-none"
@@ -137,7 +138,7 @@ export function ContratarPrestamoDialog({
           <p className="text-[18px] font-medium tracking-[-0.18px] text-black">
             X Ray
           </p>
-          <FeeBadge amount={fee} prefix="Comisión de operación: " angle={134} />
+          <FeeBadge amount={fee} prefix="Comisión de operación: " />
           {isPending ? (
             <div className="w-full max-w-[200px] space-y-2 px-4">
               <p className="text-center text-[12px] font-medium text-muted-foreground">
@@ -151,7 +152,7 @@ export function ContratarPrestamoDialog({
                 aria-valuemax={100}
               >
                 <div
-                  className="h-full rounded-full bg-primary transition-[width] duration-100"
+                  className="h-full rounded-full bg-primary transition-[width] duration-100 motion-reduce:transition-none"
                   style={{ width: `${Math.round(progress * 100)}%` }}
                 />
               </div>
@@ -196,7 +197,10 @@ export function ContratarPrestamoDialog({
             <button
               type="button"
               onClick={start}
-              className="flex h-8 w-full shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary px-2.5 text-[15px] leading-none font-semibold tracking-[-0.15px] text-white outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              className={cn(
+                "flex h-8 w-full shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary px-2.5 text-[15px] leading-none font-semibold tracking-[-0.15px] text-white outline-none transition-colors duration-150 ease-out motion-reduce:transition-none",
+                embatFocusRing
+              )}
             >
               Solicitar
             </button>
@@ -206,7 +210,10 @@ export function ContratarPrestamoDialog({
             <button
               type="button"
               onClick={cancel}
-              className="flex h-8 w-full shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-white px-2.5 text-[15px] leading-none font-semibold tracking-[-0.15px] text-muted-foreground"
+              className={cn(
+                "flex h-8 w-full shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-white px-2.5 text-[15px] leading-none font-semibold tracking-[-0.15px] text-muted-foreground transition-colors duration-150 ease-out motion-reduce:transition-none",
+                embatFocusRing
+              )}
             >
               Cancelar
             </button>
@@ -218,13 +225,16 @@ export function ContratarPrestamoDialog({
               disabled={approving}
               aria-busy={approving}
               onClick={() => setApproving(true)}
-              className="flex h-8 w-full shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary px-2.5 text-[15px] leading-none font-semibold tracking-[-0.15px] text-white outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait"
+              className={cn(
+                "flex h-8 w-full shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary px-2.5 text-[15px] leading-none font-semibold tracking-[-0.15px] text-white outline-none transition-colors duration-150 ease-out motion-reduce:transition-none disabled:cursor-wait",
+                embatFocusRing
+              )}
             >
               {approving ? (
                 <>
                   <Loader2Icon
                     aria-hidden
-                    className="size-4 animate-spin text-white"
+                    className="size-4 animate-spin text-white motion-reduce:animate-none"
                   />
                   <span className="sr-only">Aprobando</span>
                 </>

@@ -21,6 +21,7 @@ Casos:
 from __future__ import annotations
 
 import argparse
+import sys
 import json
 import shutil
 from pathlib import Path
@@ -278,6 +279,9 @@ ALL_CASES = [
 
 
 def main(argv: list[str] | None = None) -> int:
+    # consola cp1252 de Windows: UTF-8 para separadores y flechas de los resúmenes
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(prog="xray-testsets", description="Genera datasets de QA para import")
     ap.add_argument("--out", default=None, help="carpeta destino (default: data/qa)")
     ap.add_argument("--case", default=None, help="un caso; por defecto todos")
@@ -294,7 +298,7 @@ def main(argv: list[str] | None = None) -> int:
         meta = json.loads((dest / "expected.json").read_text(encoding="utf-8"))
         n = len(meta.get("company_ids", []))
         size = sum(p.stat().st_size for p in dest.glob("*.csv"))
-        print(f"  {case:16s} → {dest} · {n} empresa(s) · {size / 1024:.0f} KB")
+        print(f"  {case:16s} -> {dest} · {n} empresa(s) · {size / 1024:.0f} KB")
     print(f"Listo: {root}")
     return 0
 

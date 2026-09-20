@@ -76,32 +76,72 @@ export function DimensionRadar({
     ])
   ) satisfies ChartConfig;
 
+  const dimensionKeys = Object.keys(LABELS) as (keyof Dimensions)[];
+  const summary = resolved
+    .map(
+      (s) =>
+        `${s.name}: ${dimensionKeys
+          .map((key) => `${LABELS[key]} ${Math.round(s.dimensions[key] * 100)}`)
+          .join(", ")}`
+    )
+    .join("; ");
+  const ariaLabel = resolved.length
+    ? `Radar de dimensiones 0–100. ${summary}.`
+    : "Radar de dimensiones 0–100.";
+
   return (
-    <ChartContainer
-      config={config}
-      className="aspect-auto h-64 w-full"
-      initialDimension={{ width: 320, height: 256 }}
-    >
-      <RadarChart data={data} cx="50%" cy="50%" outerRadius="70%">
-        <PolarGrid stroke="var(--border)" />
-        <PolarAngleAxis
-          dataKey="dim"
-          tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-        />
-        <ChartTooltip content={<ChartTooltipContent />} />
-        {resolved.map((s, i) => (
-          <Radar
-            key={s.name}
-            name={s.name}
-            dataKey={`v${i}`}
-            stroke={s.color ?? "var(--chart-1)"}
-            fill={s.color ?? "var(--chart-1)"}
-            fillOpacity={many ? 0.08 : 0.12}
-            strokeWidth={many && i === 0 ? 1.5 : 2}
-          />
-        ))}
-        {many ? <ChartLegend content={<ChartLegendContent />} /> : null}
-      </RadarChart>
-    </ChartContainer>
+    <div className="h-64 w-full">
+      <div role="img" aria-label={ariaLabel} className="h-full w-full">
+        <ChartContainer
+          config={config}
+          className="aspect-auto h-full w-full"
+          initialDimension={{ width: 320, height: 256 }}
+        >
+          <RadarChart data={data} cx="50%" cy="50%" outerRadius="70%">
+            <PolarGrid stroke="var(--border)" />
+            <PolarAngleAxis
+              dataKey="dim"
+              tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+            />
+            <ChartTooltip content={<ChartTooltipContent />} />
+            {resolved.map((s, i) => (
+              <Radar
+                key={s.name}
+                name={s.name}
+                dataKey={`v${i}`}
+                stroke={s.color ?? "var(--chart-1)"}
+                fill={s.color ?? "var(--chart-1)"}
+                fillOpacity={many ? 0.08 : 0.12}
+                strokeWidth={many && i === 0 ? 1.5 : 2}
+              />
+            ))}
+            {many ? <ChartLegend content={<ChartLegendContent />} /> : null}
+          </RadarChart>
+        </ChartContainer>
+      </div>
+      <table className="sr-only">
+        <caption>Dimensiones del score (0–100)</caption>
+        <thead>
+          <tr>
+            <th scope="col">Dimensión</th>
+            {resolved.map((s) => (
+              <th key={s.name} scope="col">
+                {s.name}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {dimensionKeys.map((key) => (
+            <tr key={key}>
+              <th scope="row">{LABELS[key]}</th>
+              {resolved.map((s) => (
+                <td key={s.name}>{Math.round(s.dimensions[key] * 100)}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

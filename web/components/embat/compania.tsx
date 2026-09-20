@@ -106,7 +106,7 @@ export function Compania({ companyId }: { companyId: string }) {
   }, [score]);
 
   return (
-    <FichaFrame banner={banner}>
+    <FichaFrame banner={banner} actionsHref="#acciones">
       {loading ? (
         <FichaSkeleton />
       ) : error || !score ? (
@@ -124,6 +124,7 @@ export function Compania({ companyId }: { companyId: string }) {
             <HealthScoreCard
               snapshot={score}
               onOpenSignals={() => setSignalsOpen(true)}
+              actionsHref="#acciones"
             />
             <ActualizacionesCard drivers={score.drivers} />
             {peersError ? (
@@ -149,19 +150,6 @@ export function Compania({ companyId }: { companyId: string }) {
             )}
           </div>
 
-          <AccionesCard
-            actions={closed ? [] : actions}
-            loading={actionsLoading}
-            error={closed ? null : actionsError}
-            snapshot={score}
-            hrefFor={(action) => `/c/${companyId}/a/${action.id}`}
-            empty={
-              closed
-                ? "Oferta cerrada. No hay más acciones recomendadas en esta ficha."
-                : "Ninguna acción recomendada para esta empresa."
-            }
-          />
-
           <div className="flex flex-wrap items-stretch gap-[30px]">
             <TrajectoryCard
               history={score.history}
@@ -183,6 +171,20 @@ export function Compania({ companyId }: { companyId: string }) {
               />
             )}
           </div>
+
+          <AccionesCard
+            actions={closed ? [] : actions}
+            loading={actionsLoading}
+            error={closed ? null : actionsError}
+            snapshot={score}
+            currency={currency}
+            hrefFor={(action) => `/c/${companyId}/a/${action.id}`}
+            empty={
+              closed
+                ? "Oferta cerrada. No hay más acciones recomendadas en esta ficha."
+                : "Ninguna acción recomendada para esta empresa."
+            }
+          />
 
           {deal ? (
             <DealFichaCard deal={deal} currency={currency} />

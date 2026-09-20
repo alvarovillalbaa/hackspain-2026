@@ -9,7 +9,7 @@ import { embatUiClass } from "@/components/embat/font";
 import type { Outlook } from "@/lib/xray/types";
 import { cn } from "@/lib/utils";
 
-/** Shared keyboard focus ring: 2px Embat blue, 2px offset. */
+/** Shared keyboard focus ring: 2px Embat primary, 2px offset. */
 export const embatFocusRing =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-ring focus-visible:ring-0";
 
@@ -44,10 +44,10 @@ export function EmbatIcon({
 
 export function statusClass(outlook: Outlook): string {
   if (outlook === "positive") {
-    return "border-[rgba(166,235,132,0.7)] bg-[rgba(215,247,194,0.5)] text-[#00a14e]";
+    return "border-[rgba(166,235,132,0.7)] bg-[rgba(215,247,194,0.5)] text-[#00702f]";
   }
   if (outlook === "negative") {
-    return "border-[#fbd3dc] bg-[#fef4f6] text-[#e61847]";
+    return "border-[#fbd3dc] bg-[#fef4f6] text-[#b3123a]";
   }
   return "border-border bg-muted text-muted-foreground";
 }
@@ -65,8 +65,8 @@ export function scoreBadgeClass(value: number): string {
 }
 
 export function outlookColor(outlook: Outlook): string {
-  if (outlook === "positive") return "#00a14e";
-  if (outlook === "negative") return "#e61847";
+  if (outlook === "positive") return "#00702f";
+  if (outlook === "negative") return "#b3123a";
   return "#666666";
 }
 

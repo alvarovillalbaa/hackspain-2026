@@ -8,33 +8,27 @@ import {
   embatFocusRing,
   FilterChip,
   outlookColor,
-  scoreBadgeClass,
   signedBadgeClass,
-  statusClass,
 } from "@/components/embat/chrome";
-import { embatDisplayClass, embatUiClass } from "@/components/embat/font";
+import { embatUiClass } from "@/components/embat/font";
 import { ScoreGauge } from "@/components/xray/score-gauge";
 import { ScoreTrajectory } from "@/components/xray/score-trajectory";
-import { DimensionRadar } from "@/components/xray/dimension-radar";
 import { ScoreUplift } from "@/components/xray/score-uplift";
-import { bandMeta, outlookMeta, trendMeta, confidenceMeta } from "@/lib/xray/bands";
 import {
-  formatCompactEuro,
+  bandMeta,
+  confidenceMeta,
+  outlookMeta,
+  trendMeta,
+  watchMeta,
+} from "@/lib/xray/bands";
+import {
   formatCurrency,
-  formatDelta,
   formatMonth,
-  formatNumber,
   formatSignedNumber,
-  formatSlashDateFromMonth,
 } from "@/lib/xray/format";
 import { publishedProjection } from "@/lib/xray/scoring";
 import { signalLabel } from "@/lib/xray/signal-labels";
 import { SUB_SCORE_KEYS, SUB_SCORE_LABELS } from "@/lib/xray/sub-scores";
-import {
-  AGE_BAND_LABEL,
-  SIZE_BAND_LABEL,
-  type PeerCohort,
-} from "@/lib/xray/peers";
 import type {
   AcceptedDeal,
   ActionRecommendation,
@@ -70,6 +64,20 @@ export function formatDriverMonth(month: string): string {
   return `${match[1].replace(/\.$/, "")}. ${match[2]}`;
 }
 
+export function plainExplanation(text: string): string {
+  return text
+    .replace(/\boutlook positive\b/g, "outlook positivo")
+    .replace(/\boutlook negative\b/g, "outlook negativo")
+    .replace(/\boutlook stable\b/g, "outlook estable")
+    .replace(/\btendencia improving\b/g, "tendencia en mejora")
+    .replace(/\btendencia worsening\b/g, "tendencia a la baja")
+    .replace(/\btendencia flat\b/g, "tendencia plana")
+    .replace(/\bcash_buffer_days\b/g, "días de colchón de caja")
+    .replace(/\boverdue_flow_rate_3m\b/g, "tasa de impago a 3 meses")
+    .replace(/\bdscr_6m\b/g, "DSCR a 6 meses")
+    .replace(/\bnet_cash_flow_ratio_3m\b/g, "flujo de caja neto a 3 meses");
+}
+
 export function sliceHistory(
   history: ScoreSnapshot["history"],
   months: TrajectoryRange
@@ -80,9 +88,11 @@ export function sliceHistory(
 
 export function FichaFrame({
   banner,
+  actionsHref,
   children,
 }: {
   banner: Alert | null;
+  actionsHref?: string;
   children: ReactNode;
 }) {
   return (
@@ -90,11 +100,22 @@ export function FichaFrame({
       {banner ? (
         <div
           role="alert"
-          className="absolute inset-x-0 top-0 z-10 flex items-center justify-center overflow-clip bg-[#eb002b] px-4 py-[3px] text-center"
+          className="absolute inset-x-0 top-0 z-10 flex items-center justify-center gap-1.5 overflow-clip bg-[#eb002b] px-4 py-[3px] text-center"
         >
           <p className="text-[12px] font-medium tracking-[-0.12px] text-white">
             Aviso: {banner.message}
           </p>
+          {actionsHref ? (
+            <Link
+              href={actionsHref}
+              className={cn(
+                "rounded-[2px] text-[12px] font-medium tracking-[-0.12px] text-white underline underline-offset-2",
+                embatFocusRing
+              )}
+            >
+              Ver acciones
+            </Link>
+          ) : null}
         </div>
       ) : null}
       <div
@@ -105,76 +126,6 @@ export function FichaFrame({
       >
         {children}
       </div>
-    </div>
-  );
-}
-
-export function FichaTitle({
-  name,
-  month,
-  children,
-}: {
-  name: string;
-  month: string;
-  children?: ReactNode;
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-2.5 px-5 pb-[5px]">
-      <h1
-        className={`${embatDisplayClass} min-w-0 break-words text-[20px] font-medium tracking-[-0.3px] text-black`}
-      >
-        {name}
-      </h1>
-      <p className="rounded-xl border border-primary/20 bg-primary/5 px-[3px] py-0.5 text-[12px] font-medium tracking-[-0.18px] text-primary">
-        Última actualización: {formatSlashDateFromMonth(month)}
-      </p>
-      {children}
-    </div>
-  );
-}
-
-export function FichaChips({
-  id,
-  outlook,
-  children,
-}: {
-  id: string;
-  outlook: Outlook;
-  children?: ReactNode;
-}) {
-  const meta = outlookMeta(outlook);
-  return (
-    <div className="flex flex-wrap items-center gap-2.5 px-5 pt-[5px] pb-[15px]">
-      <span className="inline-flex items-center justify-center rounded-xl border border-[rgba(239,128,0,0.2)] bg-[rgba(239,128,0,0.05)] px-[3px] py-0.5 text-[14px] font-medium tracking-[-0.21px] text-[#ef8000]">
-        {id}
-      </span>
-      <span
-        className={cn(
-          "inline-flex items-center justify-center rounded-xl border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px]",
-          statusClass(outlook)
-        )}
-      >
-        Estado: {meta.label}
-      </span>
-      {children}
-    </div>
-  );
-}
-
-export function SubScoreRow({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="flex items-center justify-between border-b border-[#dce0e6] px-5 py-2.5 last:border-b-0">
-      <p className="text-[14px] font-medium tracking-[-0.14px] text-[#666]">
-        {label}
-      </p>
-      <span
-        className={cn(
-          "inline-flex items-center justify-center rounded-xl border px-1 py-0.5 text-[14px] font-medium tracking-[-0.14px] tabular-nums",
-          scoreBadgeClass(value)
-        )}
-      >
-        {value}
-      </span>
     </div>
   );
 }
@@ -192,6 +143,7 @@ export function FichaGauge({
     <div className="flex h-[224px] w-full max-w-[280px] shrink-0 flex-col items-center justify-center gap-1 overflow-clip">
       <ScoreGauge
         score={score}
+        band={band}
         color={outlookColor(outlook)}
         variant="embat"
       />
@@ -265,12 +217,16 @@ export function ConfidenceMeter({
 export function HealthScoreCard({
   snapshot,
   onOpenSignals,
+  actionsHref,
 }: {
   snapshot: ScoreSnapshot;
   onOpenSignals: () => void;
+  actionsHref?: string;
 }) {
+  const band = bandMeta(snapshot.band);
   const outlook = outlookMeta(snapshot.outlook);
   const trend = trendMeta(snapshot.trend);
+  const watch = watchMeta(snapshot.watch);
 
   return (
     <section
@@ -282,17 +238,9 @@ export function HealthScoreCard({
           id="health-score"
           className="text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]"
         >
-          Health Score
+          Score de salud
         </h2>
         <div className="flex flex-wrap items-center gap-1.5">
-          <span
-            className={cn(
-              "inline-flex items-center justify-center rounded-xl border px-1 py-0.5 text-[12px] font-medium",
-              statusClass(snapshot.outlook)
-            )}
-          >
-            {outlook.label}
-          </span>
           <span className="inline-flex items-center justify-center rounded-xl border border-[#dce0e6] bg-white px-1 py-0.5 text-[12px] font-medium text-[#666]">
             {trend.label}
           </span>
@@ -302,21 +250,79 @@ export function HealthScoreCard({
           />
         </div>
       </header>
-      <div className="flex flex-col items-center gap-2 px-3 pt-2">
+      <div className="flex flex-col items-center gap-2 px-5 pt-3">
+        <div className="flex w-full flex-col items-center gap-1 text-center">
+          <p className="text-[11px] font-medium uppercase tracking-[-0.11px] text-[#6b6b6b]">
+            Banda
+          </p>
+          <p className="text-[28px] font-medium tracking-[-0.28px] text-black">
+            {band.label}
+            <span className="text-[#666]">
+              {" · "}
+              {outlook.label}
+            </span>
+          </p>
+          <p className="text-[12px] font-medium tracking-[-0.12px] text-[#6b6b6b]">
+            Datos a {formatMonth(snapshot.month)}
+          </p>
+        </div>
         <FichaGauge
           score={snapshot.score}
           band={snapshot.band}
           outlook={snapshot.outlook}
         />
+        {snapshot.explanation ? (
+          <p className="text-center text-[13px] font-medium tracking-[-0.13px] text-[#666]">
+            {plainExplanation(snapshot.explanation)}
+          </p>
+        ) : null}
+        {watch.active ? (
+          <div className="w-full rounded-xl border border-[#dce0e6] bg-muted/40 px-3 py-2 text-left">
+            <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+              <span className="text-[13px] font-medium tracking-[-0.13px] text-black">
+                {watch.label}
+              </span>
+              {actionsHref ? (
+                <Link
+                  href={actionsHref}
+                  className={cn(
+                    "rounded-[2px] text-[12px] font-medium tracking-[-0.12px] text-primary transition-colors duration-150 ease-out hover:underline motion-reduce:transition-none",
+                    embatFocusRing
+                  )}
+                >
+                  Ver acciones
+                </Link>
+              ) : (
+                <span className="text-[12px] font-medium tracking-[-0.12px] text-[#6b6b6b]">
+                  Revisa las acciones de financiación
+                </span>
+              )}
+            </div>
+            <p className="mt-0.5 text-[12px] font-medium tracking-[-0.12px] text-[#666]">
+              {watch.description}
+            </p>
+          </div>
+        ) : null}
       </div>
-      <div className="flex flex-col border-t border-[#dce0e6]">
-        {SUB_SCORE_KEYS.map((key) => (
-          <SubScoreRow
-            key={key}
-            label={SUB_SCORE_LABELS[key]}
-            value={snapshot.sub_scores[key]}
-          />
-        ))}
+      <div className="mt-3 border-t border-[#dce0e6] px-5 py-3">
+        <p className="text-[11px] font-medium uppercase tracking-[-0.11px] text-[#6b6b6b]">
+          Sub-scores · escala 0–100
+        </p>
+        <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 sm:grid-cols-3">
+          {SUB_SCORE_KEYS.map((key) => (
+            <div
+              key={key}
+              className="flex items-baseline justify-between gap-2"
+            >
+              <span className="text-[12px] font-medium tracking-[-0.12px] text-[#666]">
+                {SUB_SCORE_LABELS[key]}
+              </span>
+              <span className="text-[12px] font-medium tabular-nums tracking-[-0.12px] text-[#666]">
+                {snapshot.sub_scores[key]}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
       <div className="border-t border-[#dce0e6] px-5 py-3">
         <button
@@ -392,11 +398,13 @@ export function ActionRow({
   snapshot,
   href,
   subtitle,
+  currency = "EUR",
 }: {
   action: ActionRecommendation;
   snapshot: ScoreSnapshot;
   href: string;
   subtitle?: string;
+  currency?: string;
 }) {
   const projection = publishedProjection(snapshot, action);
   const description = action.description ?? action.title;
@@ -435,10 +443,10 @@ export function ActionRow({
       <Link
         href={href}
         tabIndex={-1}
-        className="w-[100px] shrink-0 truncate text-right text-[14px] font-medium tracking-[-0.14px] tabular-nums text-[#6b6b6b]"
+        className="w-[110px] shrink-0 truncate text-right text-[14px] font-medium tracking-[-0.14px] tabular-nums text-[#6b6b6b]"
       >
         {action.recommended_amount > 0
-          ? formatCompactEuro(action.recommended_amount)
+          ? formatCurrency(action.recommended_amount, currency)
           : "—"}
       </Link>
       <Link
@@ -464,19 +472,19 @@ export function RationaleTip({ text }: { text: string }) {
     <Popover>
       <PopoverTrigger
         type="button"
-        aria-label="Por qué se recomienda"
+        aria-label="Por qué se recomienda esta acción"
         className={cn(
-          "inline-flex size-[10px] shrink-0 items-center justify-center rounded-[4px] outline-none",
+          "inline-flex h-6 min-w-6 shrink-0 items-center justify-center gap-1 rounded-xl border border-[#dce0e6] bg-white px-1.5 text-[12px] font-medium tracking-[-0.12px] text-[#666] transition-colors duration-150 ease-out motion-reduce:transition-none",
           embatFocusRing
         )}
       >
-        <span className="relative size-[10px]">
-          <img
-            alt=""
-            src="/embat/icon-info.svg"
-            className="absolute inset-0 max-w-none size-full"
-          />
-        </span>
+        <img
+          alt=""
+          aria-hidden
+          src="/embat/icon-info.svg"
+          className="size-3.5 max-w-none"
+        />
+        Por qué
       </PopoverTrigger>
       <PopoverContent
         align="start"
@@ -500,6 +508,7 @@ export function AccionesCard<T extends ActionRecommendation>({
   hrefFor,
   subtitleFor,
   empty,
+  currency = "EUR",
 }: {
   actions: T[];
   loading: boolean;
@@ -507,10 +516,12 @@ export function AccionesCard<T extends ActionRecommendation>({
   hrefFor: (action: T) => string;
   subtitleFor?: (action: T) => string | undefined;
   empty: string;
+  currency?: string;
 }) {
   return (
     <section
-      className={cn(fichaCardClass, "min-h-[220px] w-full")}
+      id="acciones"
+      className={cn(fichaCardClass, "min-h-[220px] w-full scroll-mt-4")}
       aria-labelledby="acciones-recomendadas"
     >
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-[15px]">
@@ -522,10 +533,14 @@ export function AccionesCard<T extends ActionRecommendation>({
         </h2>
         <div className="flex items-center px-2.5 text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]">
           <span className="min-w-0 flex-1">Acción</span>
-          <span className="w-[72px] text-center">Conf.</span>
-          <span className="w-[100px] text-right">Importe</span>
-          <span className="w-[80px] text-right">Δ</span>
+          <span className="w-[72px] text-center">Confianza</span>
+          <span className="w-[110px] text-right">Importe</span>
+          <span className="w-[80px] text-right">Uplift (pts)</span>
         </div>
+        <p className="px-2.5 text-[11px] font-medium tracking-[-0.11px] text-[#6b6b6b]">
+          Uplift: impacto what-if sobre las dimensiones, no recalcula el índice
+          de salud oficial.
+        </p>
         {loading ? (
           <>
             <Skeleton className="h-9 rounded-xl bg-[#dce0e6]/50" />
@@ -542,6 +557,7 @@ export function AccionesCard<T extends ActionRecommendation>({
               snapshot={snapshot}
               href={hrefFor(action)}
               subtitle={subtitleFor?.(action)}
+              currency={currency}
             />
           ))
         )}
@@ -559,7 +575,7 @@ export function TrajectoryCard({
   projection: ScoreSnapshot["projection_6m"];
   signalDots?: SignalDotMonth[];
 }) {
-  const [range, setRange] = useState<TrajectoryRange>(3);
+  const [range, setRange] = useState<TrajectoryRange>(6);
   const sliced = sliceHistory(history, range);
   const slicedDots = (signalDots ?? []).filter((d) =>
     sliced.some((h) => h.month === d.month)
@@ -581,7 +597,7 @@ export function TrajectoryCard({
           <FilterChip
             icon="/embat/icon-calendar.svg"
             label={`${range} meses`}
-            active={range !== 3}
+            active
           >
             {(close) => (
               <div className="flex w-full flex-col gap-[5px]">
@@ -624,127 +640,15 @@ export function TrajectoryCard({
 
 export function FichaSkeleton() {
   return (
-    <>
-      <div className="flex items-center gap-2.5 px-5 pb-[5px]">
-        <Skeleton className="h-6 w-48 rounded bg-[#dce0e6]/50" />
-        <Skeleton className="h-5 w-40 rounded bg-[#dce0e6]/50" />
+    <div className="flex flex-col gap-[30px]">
+      <div className="flex flex-wrap gap-[30px]">
+        <Skeleton className="min-h-[300px] min-w-[280px] flex-1 rounded-2xl bg-[#dce0e6]/50" />
+        <Skeleton className="min-h-[300px] min-w-[260px] flex-1 rounded-2xl bg-[#dce0e6]/50" />
+        <Skeleton className="min-h-[300px] min-w-[260px] flex-1 rounded-2xl bg-[#dce0e6]/50" />
       </div>
-      <div className="flex items-center gap-2.5 px-5 pt-[5px] pb-[15px]">
-        <Skeleton className="h-6 w-24 rounded bg-[#dce0e6]/50" />
-        <Skeleton className="h-6 w-32 rounded bg-[#dce0e6]/50" />
-      </div>
-      <div className="flex flex-col gap-[30px]">
-        <div className="flex flex-wrap gap-[30px]">
-          <Skeleton className="h-[266px] w-[428px] max-w-full rounded-2xl bg-[#dce0e6]/50" />
-          <Skeleton className="h-[266px] min-w-[260px] flex-1 rounded-2xl bg-[#dce0e6]/50" />
-          <Skeleton className="h-[300px] min-w-[260px] flex-1 rounded-2xl bg-[#dce0e6]/50" />
-        </div>
-        <div className="flex flex-wrap gap-[30px]">
-          <Skeleton className="h-[300px] w-[425px] max-w-full rounded-2xl bg-[#dce0e6]/50" />
-          <Skeleton className="h-[300px] min-w-[260px] flex-1 rounded-2xl bg-[#dce0e6]/50" />
-        </div>
-      </div>
-    </>
-  );
-}
-
-export function DimensionsFichaCard({
-  dimensions,
-}: {
-  dimensions: ScoreSnapshot["dimensions"];
-}) {
-  return (
-    <section
-      className={cn(fichaCardClass, "min-h-[300px] min-w-[260px] flex-1")}
-      aria-labelledby="dimensiones-score"
-    >
-      <header className="border-b border-[#dce0e6] px-5 py-[15px]">
-        <h2
-          id="dimensiones-score"
-          className="text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]"
-        >
-          Dimensiones
-        </h2>
-      </header>
-      <div className="p-[15px]">
-        <DimensionRadar dimensions={dimensions} />
-      </div>
-    </section>
-  );
-}
-
-export function PeersFichaCard({
-  cohort,
-  currency,
-}: {
-  cohort: PeerCohort;
-  currency: string;
-}) {
-  const poolLabel =
-    cohort.pool === "currency"
-      ? `${cohort.k} empresas ${cohort.currency}`
-      : `${cohort.k} empresas de tamaño relativo similar`;
-  const ageHint =
-    cohort.age.source === "created_at" ? "desde el alta" : "en el dataset";
-
-  return (
-    <section
-      className={cn(fichaCardClass, "min-h-0 min-w-[260px] flex-1")}
-      aria-labelledby="comparables-score"
-    >
-      <header className="border-b border-[#dce0e6] px-5 py-[15px]">
-        <h2
-          id="comparables-score"
-          className="text-[14px] font-medium tracking-[-0.14px] text-[#6b6b6b]"
-        >
-          Comparables
-        </h2>
-        <p className="mt-1 text-[12px] font-medium tracking-[-0.12px] text-[#6b6b6b]">
-          {SIZE_BAND_LABEL[cohort.size.band]} · {AGE_BAND_LABEL[cohort.age.band]}{" "}
-          · {poolLabel}
-        </p>
-      </header>
-      <div className="grid grid-cols-2 gap-2.5 p-[15px] sm:grid-cols-4">
-        <PeerTile label="Flujo mensual">
-          {formatCurrency(cohort.size.monthly_flow, currency)}
-          <span className="mt-0.5 block text-[11px] font-medium text-[#6b6b6b]">
-            p{cohort.size.percentile} en {cohort.currency}
-          </span>
-        </PeerTile>
-        <PeerTile label="Antigüedad">
-          {cohort.age.months} meses
-          <span className="mt-0.5 block text-[11px] font-medium text-[#6b6b6b]">
-            {ageHint}
-          </span>
-        </PeerTile>
-        <PeerTile label="Media vecinos">
-          {formatNumber(cohort.peer_score_mean)}
-        </PeerTile>
-        <PeerTile label="Vs. media">
-          {formatDelta(cohort.delta)}
-          <span className="mt-0.5 block text-[11px] font-medium text-[#6b6b6b]">
-            mejor que {cohort.better_than}/{cohort.k}
-          </span>
-        </PeerTile>
-      </div>
-    </section>
-  );
-}
-
-function PeerTile({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="rounded-xl bg-muted/40 px-2.5 py-2">
-      <div className="text-[11px] font-medium tracking-[-0.11px] text-muted-foreground uppercase">
-        {label}
-      </div>
-      <div className="mt-1 text-[14px] font-medium tracking-[-0.14px] tabular-nums text-black">
-        {children}
+      <div className="flex flex-wrap gap-[30px]">
+        <Skeleton className="min-h-[300px] min-w-[260px] flex-1 rounded-2xl bg-[#dce0e6]/50" />
+        <Skeleton className="min-h-[300px] min-w-[260px] flex-1 rounded-2xl bg-[#dce0e6]/50" />
       </div>
     </div>
   );

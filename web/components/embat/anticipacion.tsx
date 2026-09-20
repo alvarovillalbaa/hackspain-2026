@@ -49,7 +49,7 @@ export function AnticipacionPanel({
           Cómo anticipa el score
         </h2>
         {window ? (
-          <p className="rounded-[4px] border border-[rgba(17,168,255,0.2)] bg-[rgba(17,168,255,0.05)] px-[3px] py-0.5 text-[12px] font-medium text-[#11a8ff]">
+          <p className="rounded-[4px] border border-primary/20 bg-primary/5 px-[3px] py-0.5 text-[12px] font-medium text-primary">
             Prueba: {window}
           </p>
         ) : null}

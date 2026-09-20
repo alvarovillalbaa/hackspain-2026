@@ -18,7 +18,7 @@ export function ScoreUplift({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 font-mono text-sm tabular-nums",
+        "inline-flex items-center gap-1.5 text-sm tabular-nums",
         positive ? "text-foreground" : "text-destructive",
         className
       )}

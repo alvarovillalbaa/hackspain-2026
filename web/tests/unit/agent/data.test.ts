@@ -9,7 +9,7 @@ import {
   percentileRank,
   requireCompany,
   workingCapital,
-} from "./data";
+} from "#lib/data";
 
 describe("analyst fact-pack data layer", () => {
   it("loads companies from the committed pack", () => {

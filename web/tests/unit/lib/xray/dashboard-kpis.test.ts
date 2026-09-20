@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { buildDashboardKpis } from "./dashboard-kpis";
-import type { CompanySummary } from "./company-summary";
-import type { WatchQueueItem } from "./types";
+import { buildDashboardKpis } from "@/lib/xray/dashboard-kpis";
+import type { CompanySummary } from "@/lib/xray/company-summary";
+import type { WatchQueueItem } from "@/lib/xray/types";
 
 function summary(over: Partial<CompanySummary> & Pick<CompanySummary, "company_id" | "score">): CompanySummary {
   return {

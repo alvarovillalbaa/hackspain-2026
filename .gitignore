@@ -1,17 +1,17 @@
 # Datos del reto (645 MB) — nunca en git
 /input_data/
 /dataset/
-# Ignorar todo docs/data salvo packs de demo bajo raw/new/
-/docs/data/**
-!/docs/data/raw/
-!/docs/data/raw/new/
-!/docs/data/raw/new/**
+
+# data/: dump y QA ignorados; packs de demo sí en git
+/data/raw/
+/data/qa/
 *.csv
 !tests/**/*.csv
-!/docs/data/raw/new/**/*.csv
+!/data/packs/**/*.csv
 
 # Salidas: caches parquet, modelos, figuras
-/artifacts/
+/artifacts/**
+!/artifacts/README.md
 
 # Python
 .venv/
@@ -20,6 +20,8 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 .ipynb_checkpoints/
+.coverage
+htmlcov/
 
 # Node (la app Next vive en web/ con su propio .gitignore)
 node_modules/
@@ -31,7 +33,6 @@ node_modules/
 
 # Local
 .atl/
-/data/
 .codegraph/
 
 # Salidas generadas del pipeline de screening (regenerar con pipeline.py)

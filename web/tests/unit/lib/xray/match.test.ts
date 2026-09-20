@@ -8,9 +8,9 @@ import {
   fitContext,
   fitContextFromFacts,
   DSCR_FLOOR,
-} from "./match";
-import type { ProductOffer, ScoreSnapshot } from "./types";
-import type { CompanyFacts } from "./dataset/types";
+} from "@/lib/xray/match";
+import type { ProductOffer, ScoreSnapshot } from "@/lib/xray/types";
+import type { CompanyFacts } from "@/lib/xray/dataset/types";
 
 const snapshot: ScoreSnapshot = {
   company_id: "COMP_TEST",

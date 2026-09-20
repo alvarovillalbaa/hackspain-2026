@@ -1,5 +1,7 @@
 # Ficha del modelo: supuestos, cálculo y calibración del score
 
+Last updated: 2026-09-20
+
 > Escrita el sábado 19 sep 2026 (noche) por ML-2. Describe el score por reglas calibradas **tal y como está en `main`**, medido sobre la tabla real (`artifacts/features.parquet`: 21.423 filas, 1.265 empresas, 2024-09 → 2026-08) y el modelo `artifacts/scores/rules_model.json` (mapa ajustado hasta 2025-08 sobre 7.777 filas, 135 nudos, corte de lead time 39,8). Todo se regenera con `uv run xray-features && uv run xray-score && uv run xray-evals`; si esas cifras cambian, cambia esta ficha en el mismo PR.
 >
 > No repite la especificación: [rules_spec.md](rules_spec.md) tiene cada parámetro y [MODEL_toni.md](MODEL_toni.md) la versión sin tecnicismos. Esta ficha reúne lo que no estaba escrito en ningún sitio: **qué asumimos, por qué, cómo lo comprobamos y qué lo rompería**, y la calibración con sus números.

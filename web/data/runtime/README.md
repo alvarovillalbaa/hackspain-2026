@@ -4,7 +4,7 @@ Aquí aterriza todo lo que produce el producto en marcha: la sesión de demo, la
 empresas importadas por CSV, las decisiones del marketplace agéntico, la copia
 de acciones que redacta Eve y las ofertas aceptadas.
 
-No es el dataset. El dataset crudo vive en `docs/data/raw/` y el fact pack
+No es el dataset. El dataset crudo vive en `data/raw/` y el fact pack
 derivado (determinista, generado por `uv run xray-export-web` y
 `npm run build:facts`) en `web/lib/xray/dataset/`. Esta carpeta es la otra
 mitad: los datos que nacen del uso, no de la carga inicial.

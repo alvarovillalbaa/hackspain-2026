@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appendCashProjection, rebuildCashHistory } from "./cash-history";
+import { appendCashProjection, rebuildCashHistory } from "@/lib/xray/cash-history";
 
 describe("rebuildCashHistory", () => {
   it("reconstructs backwards from the as-of balance", () => {
@@ -20,7 +20,7 @@ describe("rebuildCashHistory", () => {
     expect(hist[0]!.cash).toBe(490);
   });
 
-  it("appends a 6m fan on the last point", () => {
+  it("appends a 6m fan anchored at last cash, not p50", () => {
     const hist = rebuildCashHistory(100, [
       { month: "2026-08", inflow: 10, outflow: 5, net: 5, tx_count: 1 },
     ]);
@@ -30,8 +30,11 @@ describe("rebuildCashHistory", () => {
       p90: 120,
     });
     expect(withFan).toHaveLength(2);
-    expect(withFan[0]!.p50).toBe(80);
+    expect(withFan[0]!.cash).toBe(100);
+    expect(withFan[0]!.p50).toBe(100);
+    expect(withFan[0]!.p10).toBe(100);
     expect(withFan[1]!.month).toBe("2027-02");
     expect(withFan[1]!.p10).toBe(50);
+    expect(withFan[1]!.p50).toBe(80);
   });
 });

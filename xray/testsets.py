@@ -1,13 +1,13 @@
 """Genera datasets de QA para el wizard de importación.
 
-Carva empresas reales de `docs/data/raw` (o XRAY_DATA_DIR) a
-`docs/data/raw/qa/<case>/` con un `expected.json` del score de referencia.
+Carga empresas reales de `data/raw` (o XRAY_DATA_DIR) a
+`data/qa/<case>/` con un `expected.json` del score de referencia.
 
-Los packs de **demo** (grupo + update) viven en `docs/data/raw/new/` —
+Los packs de **demo** (grupo + update) viven en `data/packs/` —
 ver `xray.demopacks` / `uv run xray-demopacks`.
 
     uv run xray-testsets
-    uv run xray-testsets --out docs/data/raw/qa --case single_company
+    uv run xray-testsets --out data/qa --case single_company
 
 Casos:
   single_company  — una empresa con score de referencia
@@ -41,10 +41,7 @@ PREFERRED = [
 def _out_root(out: str | Path | None) -> Path:
     if out:
         return Path(out)
-    raw = repo_root() / "docs" / "data" / "raw"
-    if (raw / "companies.csv").exists():
-        return raw / "qa"
-    return Path(data_dir()) / "qa"
+    return repo_root() / "data" / "qa"
 
 
 def _load_expected_scores(company_ids: list[str]) -> dict[str, dict]:
@@ -282,7 +279,7 @@ ALL_CASES = [
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="xray-testsets", description="Genera datasets de QA para import")
-    ap.add_argument("--out", default=None, help="carpeta destino (default: docs/data/raw/qa)")
+    ap.add_argument("--out", default=None, help="carpeta destino (default: data/qa)")
     ap.add_argument("--case", default=None, help="un caso; por defecto todos")
     ap.add_argument("--data-dir", default=None, help="CSV root")
     args = ap.parse_args(argv)

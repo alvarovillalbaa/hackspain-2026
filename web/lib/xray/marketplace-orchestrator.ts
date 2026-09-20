@@ -1,12 +1,12 @@
 /**
- * Sequential Eve pipeline: quantity → offering → match.
+ * Sequential Eve pipeline: financing_finale → quantity → offering → match.
  *
  * Declared subagents run as background tasks: the parent's tool call returns
  * `{status:"working"}` and the parent turn ends with prose, so a parent-turn
  * `outputSchema` can never be fulfilled (OUTPUT_SCHEMA_NOT_FULFILLED). The
- * decision is read from the CHILD session stream (`result.completed` /
- * `submit_*`), found via `subagent.called` on the parent follow stream.
- * Each stage gets a fresh parent session; prompts are self-contained.
+ * decision is read from the stage CHILD session stream (`result.completed` /
+ * `submit_*`), found via `subagent.called` on the parent / financing_finale
+ * follow streams. Each stage gets a fresh parent session; prompts are self-contained.
  */
 import type { Client, MessageStreamEvent } from "eve/client";
 import {
@@ -26,6 +26,7 @@ import {
   childSessionFor,
   delegatedTo,
   extractCandidates,
+  financingFinaleSessionFor,
   matchPrompt,
   offeringPrompt,
   parseStageOutput,
@@ -33,6 +34,7 @@ import {
   type MarketplaceStage,
   type PipelineEvent,
 } from "./marketplace-pipeline";
+import { TimeoutError } from "@/lib/ai/errors";
 
 const STAGE_MS = 90_000;
 
@@ -99,18 +101,20 @@ async function runStage<T>(input: {
   const { stage, signal } = input;
   let parsed: T | null = null;
   let delegated = false;
-  let childId: string | null = null;
+  let finaleId: string | null = null;
+  let stageChildId: string | null = null;
 
   const handle = (event: MessageStreamEvent) => {
     signal.throwIfAborted();
     input.onEvent?.(event);
     const pe = asPipelineEvent(event);
     delegated ||= delegatedTo(pe, stage);
-    childId ??= childSessionFor(pe, stage);
+    finaleId ??= financingFinaleSessionFor(pe);
+    stageChildId ??= childSessionFor(pe, stage);
     parsed ??= input.parse(extractCandidates(pe, stage));
   };
 
-  // 1. Parent turn: the orchestrator dispatches the stage subagent.
+  // 1. Parent turn: root dispatches financing_finale (which nests the stage).
   const { session, response } = await input.client.sessions.create({
     message: input.message,
     signal,
@@ -122,23 +126,46 @@ async function runStage<T>(input: {
     if (failed && !delegated) throw new Error(failed);
   }
   if (!delegated) {
-    throw new Error(`Marketplace stage '${stage}': orchestrator did not call ${stage}`);
+    throw new Error(
+      `Marketplace stage '${stage}': orchestrator did not call financing_finale`
+    );
   }
 
-  // 2. `subagent.called` (with childSessionId) lands after the turn boundary.
-  if (!childId) {
+  // 2. Resolve financing_finale child if stage child not yet known.
+  if (!finaleId && !stageChildId) {
     for await (const event of session.stream({ signal })) {
       handle(event);
       if (parsed) return parsed;
-      if (childId) break;
+      if (finaleId || stageChildId) break;
     }
   }
-  if (!childId) {
-    throw new Error(`Marketplace stage '${stage}': no child session for ${stage}`);
+
+  // 3. Stream financing_finale until the nested stage child appears.
+  if (finaleId && !stageChildId) {
+    for await (const event of input.client.sessions
+      .attach(finaleId)
+      .stream({ signal })) {
+      handle(event);
+      if (parsed) return parsed;
+      if (stageChildId) break;
+      const failed = failMessage(event);
+      if (failed) {
+        throw new Error(`Marketplace stage '${stage}': ${failed}`);
+      }
+      if (event.type === "session.waiting" && !stageChildId) break;
+    }
   }
 
-  // 3. The decision is on the child stream.
-  for await (const event of input.client.sessions.attach(childId).stream({ signal })) {
+  if (!stageChildId) {
+    throw new Error(
+      `Marketplace stage '${stage}': no child session for ${stage}`
+    );
+  }
+
+  // 4. The decision is on the stage child stream.
+  for await (const event of input.client.sessions
+    .attach(stageChildId)
+    .stream({ signal })) {
     handle(event);
     if (parsed) return parsed;
     const failed = failMessage(event);
@@ -162,7 +189,10 @@ async function withStageTimeout<T>(
     return await run(stageSignal);
   } catch (err) {
     if (timeout.aborted) {
-      throw new Error(`Marketplace stage '${stage}' timed out after ${STAGE_MS / 1000}s`);
+      throw new TimeoutError(
+        `Marketplace stage '${stage}' timed out after ${STAGE_MS / 1000}s`,
+        err
+      );
     }
     throw err;
   }

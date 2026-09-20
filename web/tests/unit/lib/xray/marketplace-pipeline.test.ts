@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   TermQuoteSchema,
   QuantityDecisionSchema,
-} from "../../agent/lib/schemas";
+} from "@/agent/lib/schemas";
 import {
   assembleRecommendation,
   decisionWithAmount,
@@ -12,12 +12,12 @@ import {
   delegatedTo,
   phaseFromEvent,
   quantityPrompt,
-} from "./marketplace-pipeline";
-import { rootRuntime } from "../../agent/lib/model";
-import { reassembleMatches } from "./reassemble";
-import type { ScoreSnapshot } from "./types";
-import { scoreFromDimensions } from "./scoring";
-import { scoreToBand } from "./bands";
+} from "@/lib/xray/marketplace-pipeline";
+import { rootRuntime } from "@/agent/lib/model";
+import { reassembleMatches } from "@/lib/xray/reassemble";
+import type { ScoreSnapshot } from "@/lib/xray/types";
+import { scoreFromDimensions } from "@/lib/xray/scoring";
+import { scoreToBand } from "@/lib/xray/bands";
 
 const quantity = QuantityDecisionSchema.parse({
   company_id: "COMP_0001",
@@ -148,6 +148,7 @@ describe("marketplace pipeline", () => {
   });
 
   it("routes orchestrator stage turns to the fast model and chat to the ficha model", () => {
+    const env = { OPENAI_API_KEY: "sk-test" };
     const stage = quantityPrompt({
       company_id: "COMP_0001",
       action_id: "COMP_0001-refinance-0",
@@ -157,17 +158,24 @@ describe("marketplace pipeline", () => {
       band: "B",
       score: 50,
     });
+    expect(stage).toContain("financing_finale");
+    expect(stage).toContain("quantity");
     const modelId = (m: { model: { modelId: string } }) => m.model.modelId;
-    expect(modelId(rootRuntime([{ role: "user", content: stage }]))).toBe(
+    expect(modelId(rootRuntime([{ role: "user", content: stage }], env))).toBe(
       "deepseek-v4-flash"
     );
     expect(
-      modelId(rootRuntime([{ role: "user", content: [{ type: "text", text: stage }] }]))
+      modelId(
+        rootRuntime(
+          [{ role: "user", content: [{ type: "text", text: stage }] }],
+          env
+        )
+      )
     ).toBe("deepseek-v4-flash");
-    expect(modelId(rootRuntime([{ role: "user", content: "Resume la ficha" }]))).toBe(
-      "glm5.3"
-    );
-    expect(modelId(rootRuntime([]))).toBe("glm5.3");
+    expect(
+      modelId(rootRuntime([{ role: "user", content: "Resume la ficha" }], env))
+    ).toBe("glm5.3");
+    expect(modelId(rootRuntime([], env))).toBe("glm5.3");
   });
 
   it("assembles an eve decision and keeps origin through amount override", () => {

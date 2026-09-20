@@ -6,9 +6,9 @@ import {
   listPrescoredPacks,
   matchPrescoredPack,
   sha256,
-} from "./import-packs";
+} from "@/lib/xray/import-packs";
 
-const PACKS_ROOT = join(process.cwd(), "..", "docs", "data", "raw", "new");
+const PACKS_ROOT = join(process.cwd(), "..", "data", "packs");
 
 /** Digests of the real pack on disk — what the browser would upload. */
 function digestsFor(caseName: string) {

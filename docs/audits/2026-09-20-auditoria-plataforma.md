@@ -442,7 +442,7 @@ La calibración Eve **no** pasa por esta ruta: el warm cache haría pasar el gat
 | Pieza | Path |
 |---|---|
 | Entry | `web/agent/agent.ts` → `defineAgent({ ...agentRuntime() })` |
-| Modelo | `web/agent/lib/model.ts`: Helmcode `glm5.3` @ `https://api.helmcode.com/v1`, solo `OPENAI_API_KEY`, contexto 128 k |
+| Modelo | `web/lib/ai/provider.ts`: Eve = Helmcode `glm5.3` / `deepseek-v4-flash` (sin failover). AI SDK simple = Gateway → Helmcode. Contexto 128 k |
 | Identidad | `web/agent/instructions.md` — modos Analista / Orquestador / Watcher; **“You never calculate”** |
 | Tools analista | `get_company_overview`, `get_working_capital_series`, `get_opportunities`, `get_peer_percentiles`, `get_recommended_actions`, `get_refinancing_rate_benchmark`, `get_group_netting` |
 | Subagentes marketplace | `quantity` → `offering` → `match` |
@@ -488,7 +488,7 @@ Sin interpolar `projection_6m` (el stub no merece alerta).
 | Store | Qué | Condición |
 |---|---|---|
 | Git | `companies.json`, `facts.json`, `scores.json`, `recommendations.json` | build Vercel |
-| Vercel Blob | `xray/imports/{id}.json`, `xray/recommendations/{company:action}.json` | `BLOB_READ_WRITE_TOKEN` |
+| Vercel Blob | `xray/imports/{id}.json`, `xray/import-csvs/{id}.json`, `xray/recommendations/{company:action}.json` | `BLOB_READ_WRITE_TOKEN` |
 | Memoria de proceso | fallback imports + caches recommend/actions | local / preview sin token |
 | `localStorage` | lista de companies importadas | cliente |
 | Alert log | in-memory + Blob opcional | watcher |
@@ -753,7 +753,8 @@ npm run calibrate              # fidelidad Eve (caro)
 | `XRAY_REF_SCORES` | API | parquet de referencia para peers |
 | `PORT` | API | default 8000 |
 | `XRAY_API_URL` | web | ingest; default `http://127.0.0.1:8000` |
-| `OPENAI_API_KEY` | web/Eve | Helmcode |
+| `OPENAI_API_KEY` | web | Helmcode: Eve (no failover) + AI SDK fallback |
+| `AI_GATEWAY_API_KEY` | web | Vercel AI Gateway: AI SDK primary. OIDC on Vercel also counts |
 | `BLOB_READ_WRITE_TOKEN` | web | persistencia durable |
 | `WATCH_DISPATCH_SECRET` | web | cron → `/internal/watch` |
 | `SLACK_*` / `RESEND_*` / `ALERT_EMAIL_*` | watcher | canales |

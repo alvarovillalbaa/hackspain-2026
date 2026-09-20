@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { rollupGroup, type GroupMemberInput } from "./group-score";
-import type { ExportedScore } from "./dataset/types";
+import { rollupGroup, type GroupMemberInput } from "@/lib/xray/group-score";
+import type { ExportedScore } from "@/lib/xray/dataset/types";
 
 function exported(
   id: string,

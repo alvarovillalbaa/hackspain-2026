@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { deterministicMarketplace } from "./deterministic-marketplace";
-import { leversFromMatch } from "./negotiation";
-import type { ActionRecommendation, ScoreSnapshot } from "./types";
+import { deterministicMarketplace } from "@/lib/xray/deterministic-marketplace";
+import { leversFromMatch } from "@/lib/xray/negotiation";
+import type { ActionRecommendation, ScoreSnapshot } from "@/lib/xray/types";
 
 const snapshot: ScoreSnapshot = {
   company_id: "COMP_0001",

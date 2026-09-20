@@ -29,7 +29,7 @@ export function ScoreDeltaBar({
       <div
         className="relative h-2.5 w-full overflow-hidden rounded-full bg-muted"
         role="img"
-        aria-label={`Score ${current.toFixed(1)}, uplift ${formatDelta(uplift)}`}
+        aria-label={`Score ${current.toFixed(1)}, mejora ${formatDelta(uplift)}`}
       >
         <div
           className="absolute inset-y-0 left-0 bg-primary/70"

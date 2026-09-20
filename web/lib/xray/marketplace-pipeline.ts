@@ -2,6 +2,8 @@
  * Quantity → offering → match: parse subagent events, assemble the decision,
  * never invent numbers. The LLM only chooses ids/text; reassembleMatches
  * recomputes match/uplift.
+ *
+ * Nested topology: root → financing_finale → {quantity,offering,match}.
  */
 import type { z } from "zod";
 import {
@@ -28,15 +30,20 @@ export type PipelineEvent = {
 const STAGE_NAMES = ["quantity", "offering", "match"] as const;
 export type MarketplaceStage = (typeof STAGE_NAMES)[number];
 
+/** Parent of quantity/offering/match under the nested Eve tree. */
+export const FINANCING_FINALE = "financing_finale";
+
 function tryJson(value: unknown): unknown {
-  if (typeof value !== "string") return value;
-  const trimmed = value.trim();
-  if (!trimmed) return value;
-  try {
-    return JSON.parse(trimmed) as unknown;
-  } catch {
-    return value;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return value;
+    try {
+      return JSON.parse(trimmed) as unknown;
+    } catch {
+      return value;
+    }
   }
+  return value;
 }
 
 function walkCandidates(value: unknown, into: unknown[]): void {
@@ -84,13 +91,25 @@ export function extractCandidates(
   if (event.type === "subagent.event") {
     const name = String(data.subagentName ?? data.name ?? "");
     const inner = data.event;
-    if ((!stage || name === stage) && inner && typeof inner === "object") {
-      out.push(
-        ...extractCandidates(inner as PipelineEvent, stage)
-      );
+    if (
+      (!stage || name === stage || name === FINANCING_FINALE) &&
+      inner &&
+      typeof inner === "object"
+    ) {
+      out.push(...extractCandidates(inner as PipelineEvent, stage));
     }
   }
   return out;
+}
+
+export function financingFinaleSessionFor(
+  event: PipelineEvent
+): string | null {
+  if (event.type !== "subagent.called") return null;
+  const data = event.data ?? {};
+  const name = String(data.name ?? data.toolName ?? "");
+  const id = data.childSessionId;
+  return name === FINANCING_FINALE && typeof id === "string" ? id : null;
 }
 
 /**
@@ -109,15 +128,19 @@ export function childSessionFor(
   return name === stage && typeof id === "string" ? id : null;
 }
 
-/** True when the parent turn actually dispatched the stage subagent. */
+/** True when financing_finale (or a legacy direct stage) was dispatched. */
 export function delegatedTo(
   event: PipelineEvent,
   stage: MarketplaceStage
 ): boolean {
   if (event.type === "subagent.completed") {
-    return String(event.data?.subagentName ?? event.data?.name ?? "") === stage;
+    const name = String(event.data?.subagentName ?? event.data?.name ?? "");
+    return name === stage || name === FINANCING_FINALE;
   }
-  return childSessionFor(event, stage) != null;
+  return (
+    financingFinaleSessionFor(event) != null ||
+    childSessionFor(event, stage) != null
+  );
 }
 
 export function parseStageOutput<T>(
@@ -147,6 +170,7 @@ export function phaseFromEvent(event: PipelineEvent): MarketplacePhase | null {
     if (name === "quantity" || name === "offering" || name === "match") {
       return name;
     }
+    if (name === FINANCING_FINALE) return "queued";
   }
   if (event.type === "actions.requested") {
     const actions = event.data?.actions;
@@ -211,6 +235,18 @@ export function assembleRecommendation(input: {
   });
 }
 
+function stageBrief(body: string[]): string {
+  return [
+    `${MARKETPLACE_STAGE_PREFIX} — call \`financing_finale\` exactly once.`,
+    "Do not call quantity, offering or match yourself — they nest under financing_finale.",
+    "Pass financing_finale this brief unchanged:",
+    "---",
+    ...body,
+    "---",
+    "Reply with one short line after dispatching.",
+  ].join("\n");
+}
+
 export function quantityPrompt(input: {
   company_id: string;
   action_id: string;
@@ -221,24 +257,24 @@ export function quantityPrompt(input: {
   score: number;
   amount?: number;
 }): string {
-  return [
-    `${MARKETPLACE_STAGE_PREFIX} 1/3 — QUANTITY ONLY.`,
-    "Call the `quantity` subagent exactly once. Do not call offering or match.",
-    "Its QuantityDecision is read from the subagent session; reply with one short line after dispatching.",
-    `company_id: ${input.company_id}`,
-    `action_id: ${input.action_id}`,
-    `action_kind: ${input.action_kind}`,
-    `recommended_amount: ${input.amount ?? input.recommended_amount}`,
-    `dimension_deltas: ${JSON.stringify(input.dimension_deltas)}`,
-    `band: ${input.band}`,
-    `score: ${input.score}`,
-    input.amount != null
-      ? `The advisor locked the ticket at ${input.amount}. Use that as ideal_amount unless DSCR forbids it.`
-      : "",
-    "Subagent message must include company_id, action_kind, recommended_amount and dimension_deltas.",
-  ]
-    .filter(Boolean)
-    .join("\n");
+  return stageBrief(
+    [
+      `${MARKETPLACE_STAGE_PREFIX} 1/3 — QUANTITY ONLY.`,
+      "Call the `quantity` subagent exactly once. Do not call offering or match.",
+      "Its QuantityDecision is read from the subagent session; reply with one short line after dispatching.",
+      `company_id: ${input.company_id}`,
+      `action_id: ${input.action_id}`,
+      `action_kind: ${input.action_kind}`,
+      `recommended_amount: ${input.amount ?? input.recommended_amount}`,
+      `dimension_deltas: ${JSON.stringify(input.dimension_deltas)}`,
+      `band: ${input.band}`,
+      `score: ${input.score}`,
+      input.amount != null
+        ? `The advisor locked the ticket at ${input.amount}. Use that as ideal_amount unless DSCR forbids it.`
+        : "",
+      "Subagent message must include company_id, action_kind, recommended_amount and dimension_deltas.",
+    ].filter(Boolean)
+  );
 }
 
 export function offeringPrompt(input: {
@@ -247,7 +283,7 @@ export function offeringPrompt(input: {
   band: string;
   quantity: QuantityDecision;
 }): string {
-  return [
+  return stageBrief([
     `${MARKETPLACE_STAGE_PREFIX} 2/3 — TERMS ONLY.`,
     "Call the `offering` subagent exactly once. Do not call quantity or match.",
     "Its TermsDecision is read from the subagent session; reply with one short line after dispatching.",
@@ -257,7 +293,7 @@ export function offeringPrompt(input: {
     `band: ${input.band}`,
     `quantity_decision: ${JSON.stringify(input.quantity)}`,
     "Quote point terms (amount, interest_rate, start_date, end_date) inside catalog ranges. Optimize for the issuer. No reasoning field.",
-  ].join("\n");
+  ]);
 }
 
 export function matchPrompt(input: {
@@ -266,7 +302,7 @@ export function matchPrompt(input: {
   quantity: QuantityDecision;
   terms: TermQuote[];
 }): string {
-  return [
+  return stageBrief([
     `${MARKETPLACE_STAGE_PREFIX} 3/3 — MATCH ONLY.`,
     "Call the `match` subagent exactly once. Do not call quantity or offering.",
     "Its RankingDecision is read from the subagent session; reply with one short line after dispatching.",
@@ -276,7 +312,7 @@ export function matchPrompt(input: {
     "Structured terms (no marketing prose):",
     JSON.stringify(input.terms),
     "Write reasoning only. Do NOT invent match%. Server sorts by match%.",
-  ].join("\n");
+  ]);
 }
 
 export const STAGE_SCHEMAS = {

@@ -4,7 +4,7 @@ import {
   alignHistories,
   compareHref,
   parseCompareIds,
-} from "./compare";
+} from "@/lib/xray/compare";
 
 describe("parseCompareIds", () => {
   it("trims, dedupes and caps at MAX_COMPARE", () => {

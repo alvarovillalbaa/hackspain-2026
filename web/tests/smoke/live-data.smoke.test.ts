@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
-import factsJson from "./dataset/facts.json";
-import scoresJson from "./dataset/scores.json";
-import { deterministicMarketplace } from "./deterministic-marketplace";
-import { recommendActions } from "./recommend-actions";
-import { snapshotFromExported } from "./snapshot";
-import { DEFAULT_GROUP_COMPANIES } from "./demo";
-import { ScoreSnapshotSchema } from "./schemas";
-import importPacksJson from "./dataset/import_packs.json";
-import metricsJson from "./dataset/metrics.json";
-import { parseMethodMetrics } from "./method-metrics";
-import type { CompanyFacts, ExportedScore } from "./dataset/types";
+import factsJson from "@/lib/xray/dataset/facts.json";
+import scoresJson from "@/lib/xray/dataset/scores.json";
+import { deterministicMarketplace } from "@/lib/xray/deterministic-marketplace";
+import { recommendActions } from "@/lib/xray/recommend-actions";
+import { snapshotFromExported } from "@/lib/xray/snapshot";
+import { DEFAULT_GROUP_COMPANIES } from "@/lib/xray/demo";
+import { ScoreSnapshotSchema } from "@/lib/xray/schemas";
+import importPacksJson from "@/lib/xray/dataset/import_packs.json";
+import metricsJson from "@/lib/xray/dataset/metrics.json";
+import { parseMethodMetrics } from "@/lib/xray/method-metrics";
+import type { CompanyFacts, ExportedScore } from "@/lib/xray/dataset/types";
 
 const factsById = new Map(
   (factsJson as CompanyFacts[]).map((f) => [f.company_id, f] as const)
@@ -39,7 +39,7 @@ describe("live fact pack (Health Scorer + facts, no mocks)", () => {
     }
   });
 
-  it("has the demo group scored from docs/data/raw", () => {
+  it("has the demo group scored from data/raw", () => {
     for (const id of DEFAULT_GROUP_COMPANIES) {
       expect(scoresById.get(id), `missing Health Score for ${id}`).toBeTruthy();
       expect(factsById.get(id), `missing facts for ${id}`).toBeTruthy();

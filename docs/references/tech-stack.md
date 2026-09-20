@@ -1,5 +1,7 @@
 # Tech stack — PRD técnico de X Ray
 
+Last updated: 2026-09-20
+
 > Versión 1 · 18 sep 2026 · Complementa a [`plan.md`](plan.md) (qué construimos) con **con qué y por qué**. Cambios de stack se anotan aquí con fecha.
 
 ## 1. Problema que resuelve este documento
@@ -84,11 +86,14 @@ Plantilla `ai-app-jumpstart` movida intacta a `web/`. Versiones instaladas:
 | **@xyflow/react** | 12 | Disponible para un grafo de contrapartes si sobra tiempo; no es P0 |
 | **zod** | 4.6 | Validar en el cliente lo que llega de FastAPI (espejo de pydantic) |
 | **TypeScript** | 5 | `npm run typecheck` |
+| **react-grid-layout** | 2.x | Tablero de widgets del Dashboard (`/`); drag/resize, `noCompactor` + preventCollision, `GridBackground`. Añadido 20 sep |
 | Despliegue | **Vercel**, *Root Directory* = `web` | Un `git push` = demo actualizada |
 
-**Papel del agente Eve.** Recibe la pregunta del asesor, llama a tools sobre el fact pack / Blob y redacta **solo** sobre el JSON devuelto. Guardia: ninguna cifra en la respuesta que no exista en el input. **Modelos (19 sep noche):** ficha/chat = Helmcode `glm5.3`; marketplace quantity→offering→match = Helmcode `deepseek-v4-flash`. Misma clave `OPENAI_API_KEY`.
+**Papel del agente Eve.** Recibe la pregunta del asesor, llama a tools sobre el fact pack / Blob y redacta **solo** sobre el JSON devuelto. Guardia: ninguna cifra en la respuesta que no exista en el input. **Modelos (20 sep):** resolver fail-closed en `web/lib/ai/provider.ts` — Eve usa un solo backend (Helmcode si `OPENAI_API_KEY`, si no Gateway) **sin** failover. AI SDK simple (`generateStructured`) prueba Gateway y si pete Helmcode. Abort y falta de clave no. Sin clave → error visible, sin mock. Topología Eve: un mount `/eve/v1` con `financing_finale` (quantity→offering→match anidados), `actions_recommender` y `watcher`. Detalle: [`ai_runtime.md`](ai_runtime.md).
 
 **Papel de Blob (19 sep).** Sustituye Postgres/Supabase para la demo live. `xray/session.json` es el grupo foco de `/start` (reset deals/acciones, chip Demo); no filtra `/` ni `/companies` (19 sep, IA grupos). Imports, deals, títulos Eve y recomendaciones sobreviven reload. El fact pack scored sigue en git.
+
+**20 sep 2026 — Dashboard widget board.** `react-grid-layout` v2 en `/` (`WidgetBoard` + `WidgetFrame`); layout en `localStorage` (`xray-dashboard-layout`). No se usa en fichas. Tokens de color semánticos en `globals.css` (positive / warning / ink / table-header); nav activo ink, no green.
 
 ### 5.4 Experimentación — `notebooks/` y repos personales
 

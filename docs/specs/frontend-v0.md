@@ -1,8 +1,8 @@
 # Frontend v0 — X Ray demo
 
-Last updated: 2026-09-19 (chrome cream sidebar: Dashboard / Empresas / Acciones / Productos)
+Last updated: 2026-09-20 (widget board en `/`, tokens semánticos, TimeoutState, search plain)
 
-Demo de pantallas dentro de `web/`. Chrome advisor: sidebar cream (`#f6f3ee`) + Inter Variable / Inter Display, active cyan `#11a8ff`, wordmark “X Ray” (sin logo Embat). Footer: Ajustes + identidad demo “Alvaro Villalba”. Hay backend propio: rutas `app/api/xray/*` (Next) y, para importar CSV, FastAPI de ingest (`POST /ingest`), no `GET /score`.
+Demo de pantallas dentro de `web/`. Chrome advisor: sidebar cream (`#f6f3ee`) + Inter Variable / Inter Display, nav activo en ink `#333333` (no verde), wordmark “X Ray” (sin logo Embat). Footer: Ajustes + identidad demo “Alvaro Villalba”. Hay backend propio: rutas `app/api/xray/*` (Next) y, para importar CSV, FastAPI de ingest (`POST /ingest`), no `GET /score`.
 
 Todo el dato de UI pasa por un único seam: `provider` en [`web/lib/xray/provider.ts`](../web/lib/xray/provider.ts). Cómo está cableado el resto (fact pack, Eve, dos scores): [`auditoria_plataforma.md`](auditoria_plataforma.md). Persistencia mutable en Vercel Blob (JSON), no Postgres ni Supabase.
 
@@ -10,7 +10,7 @@ Todo el dato de UI pasa por un único seam: `provider` en [`web/lib/xray/provide
 
 | Ruta | Qué hace |
 |---|---|
-| `/` | Dashboard: KPIs de cartera (n empresas, score medio, caja, watch, top/bottom) |
+| `/` | Dashboard: tablero de widgets (6 cols, drag/resize, `localStorage`); KPIs + hist + outlook + top/bottom + watch |
 | `/companies` | Empresas (tabla: score, estado, situación, tipo, cierre + filtros + comparar + import; link a grupo) |
 | `/acciones` | Acciones recomendadas portfolio-wide (deterministas; overlay títulos Blob) |
 | `/productos` | Libro de deuda viva (`facts.contracts`) + deals contratados |
@@ -25,7 +25,7 @@ Todo el dato de UI pasa por un único seam: `provider` en [`web/lib/xray/provide
 | `/chat` | Chat del agente (mismo shell advisor) |
 | `/s`, `/s/[sessionId]` | Chat sin sesión / reanudar sesión |
 
-Chrome advisor: tema claro, Inter, radio 4px, `#11a8ff`, breadcrumbs en nested routes. Reasoning = icono (i) + tooltip.
+Chrome advisor: tema claro almost-white `#fafafa`, Inter, radio amplio, primary dark green `#146c43` solo en CTAs/focus. Semántica: positive `#00a14e`, warning `#ef8000`, destructive `#e61847`, descriptions `#666`, table headers `#999`, ink `#333`. Reasoning = icono (i) + tooltip. Fallos Eve: `ErrorState` / `TimeoutState` (`AiFailureState`).
 
 ## Persistencia Blob (demo DB)
 
@@ -33,6 +33,7 @@ Chrome advisor: tema claro, Inter, radio 4px, `#11a8ff`, breadcrumbs en nested r
 |---|---|
 | `xray/session.json` | Grupo foco de ensayo (`/start`); no filtra tablas |
 | `xray/imports/{id}.json` | Packs CSV importados |
+| `xray/import-csvs/{id}.json` | Tablas canónicas del import (re-ingest Python al aprobar deal) |
 | `xray/recommendations/{company:action}.json` | Decisiones Eve marketplace |
 | `xray/actions/{id}.json` | Títulos/rationale de ficha Eve |
 | `xray/deals/{id}.json` | Ofertas aprobadas |
@@ -84,7 +85,7 @@ El detalle de producto cierra el flujo con el modal Contratar Préstamo: Solicit
 
 `readCsvPreview(file)` lee solo los primeros 64 KB. `suggestMapping` alinea cabeceras a los 9 datasets del diccionario. Trampas documentadas en UI: invoices sin `direction`, balances = foto final, `payment_date` falso en overdue.
 
-`POST /api/xray/import` proxea a `XRAY_API_URL/ingest` (tope 4,5 MB en Vercel), persiste en Blob y dispara el watcher. Invalida recommendations, actions y deals de las empresas re-scored.
+`POST /api/xray/import` proxea a `XRAY_API_URL/ingest` (tope 4,5 MB en Vercel), persiste pack + CSVs canónicos en Blob y dispara el watcher. Invalida recommendations, actions y deals de las empresas re-scored. Aprobar un deal re-llama a `/ingest` sobre esas tablas mutadas; si no hay CSVs o la API cae, overlay TypeScript.
 
 ## Qué ya está cableado vs qué no
 

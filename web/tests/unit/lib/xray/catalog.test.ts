@@ -5,8 +5,8 @@ import {
   listProducts,
   priceWithinCatalog,
   toProductOffer,
-} from "./catalog";
-import type { ProductTerms } from "./types";
+} from "@/lib/xray/catalog";
+import type { ProductTerms } from "@/lib/xray/types";
 
 describe("catalog", () => {
   it("lists products by kind and amount", () => {

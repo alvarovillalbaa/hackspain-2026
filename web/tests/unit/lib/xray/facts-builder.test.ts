@@ -8,7 +8,7 @@ import {
   parseCsvText,
   rewriteCompanyIds,
   rowsToCsv,
-} from "./facts-builder";
+} from "@/lib/xray/facts-builder";
 
 describe("facts-builder", () => {
   it("parses CSV and builds cash series", () => {

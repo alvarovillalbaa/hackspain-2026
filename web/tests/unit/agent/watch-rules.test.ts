@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { scoreToBand } from "../../lib/xray/bands";
-import { scoreFromDimensions } from "../../lib/xray/scoring";
-import type { ScoreSnapshot } from "../../lib/xray/types";
+import { scoreToBand } from "@/lib/xray/bands";
+import { scoreFromDimensions } from "@/lib/xray/scoring";
+import type { ScoreSnapshot } from "@/lib/xray/types";
 import {
   dedupeKey,
   evaluateWatch,
   filterUnsent,
   selectSweepHits,
-} from "./watch-rules";
+} from "#lib/watch-rules";
 
 function snap(partial: Partial<ScoreSnapshot> = {}): ScoreSnapshot {
   const dimensions = partial.dimensions ?? {

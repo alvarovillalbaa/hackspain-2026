@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useOfferRequest } from "./use-offer-request";
+import { useOfferRequest } from "@/hooks/xray/use-offer-request";
 
 describe("useOfferRequest", () => {
   beforeEach(() => {

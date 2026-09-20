@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { termImprovements } from "./term-improvements";
+import { termImprovements } from "@/lib/xray/term-improvements";
 import type {
   ProductMatch,
   ScoreSnapshot,
   TermContext,
-} from "./types";
+} from "@/lib/xray/types";
 
 function snapshot(over: Partial<ScoreSnapshot> = {}): ScoreSnapshot {
   return {

@@ -41,7 +41,7 @@ export function TermsTable({
 }) {
   return (
     <Table>
-      <TableHeader>
+      <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
         <TableRow>
           <TableHead>Término</TableHead>
           <TableHead>Emisor (oferta)</TableHead>

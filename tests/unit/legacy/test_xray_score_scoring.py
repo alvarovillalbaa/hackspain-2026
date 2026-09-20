@@ -9,7 +9,7 @@ from pathlib import Path
 
 import polars as pl
 
-sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
+sys.path.insert(0, str(Path(__file__).parents[3] / "src"))
 
 from xray_score.config import FEATURES
 from xray_score.profile import ScoreProfile

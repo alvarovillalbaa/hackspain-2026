@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildBookProducts } from "./book-products";
-import type { AcceptedDeal } from "./types";
+import { buildBookProducts } from "@/lib/xray/book-products";
+import type { AcceptedDeal } from "@/lib/xray/types";
 
 describe("buildBookProducts", () => {
   it("includes outstanding contracts and tags deals as Contratado", () => {

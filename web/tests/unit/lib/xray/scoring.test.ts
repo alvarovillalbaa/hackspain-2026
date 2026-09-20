@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { applyAction, scoreFromDimensions, upliftPoints, radarUplift, radarProjection, publishedProjection } from "./scoring";
-import { scoreToBand } from "./bands";
-import type { ScoreSnapshot } from "./types";
+import { applyAction, scoreFromDimensions, upliftPoints, radarUplift, radarProjection, publishedProjection } from "@/lib/xray/scoring";
+import { scoreToBand } from "@/lib/xray/bands";
+import type { ScoreSnapshot } from "@/lib/xray/types";
 
 const base: ScoreSnapshot = {
   company_id: "COMP_TEST",

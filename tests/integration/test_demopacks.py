@@ -17,9 +17,9 @@ from xray.demopacks import (
 )
 from xray import features
 
-RAW = Path(__file__).resolve().parents[1] / "docs" / "data" / "raw"
+RAW = Path(__file__).resolve().parents[2] / "data" / "raw"
 HAS_RAW = (RAW / "companies.csv").exists()
-NEW = RAW / "new"
+NEW = Path(__file__).resolve().parents[2] / "data" / "packs"
 
 
 def _tiny_tables() -> dict[str, pd.DataFrame]:

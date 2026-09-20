@@ -7,7 +7,7 @@ import {
   percentileOf,
   peerRowsFromPack,
   type PeerCompany,
-} from "./peers";
+} from "@/lib/xray/peers";
 
 function row(
   id: string,

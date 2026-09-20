@@ -9,15 +9,17 @@ import {
   readActions,
   readDeal,
   readImportedPack,
+  readImportSource,
   readSession,
   writeActions,
   writeDeal,
   writeImportedPack,
+  writeImportSource,
   writeSession,
-} from "./store";
-import { DEFAULT_GROUP_ID } from "./demo";
-import type { AcceptedDeal, ActionRecommendation } from "./types";
-import type { ExportedScore } from "./dataset/types";
+} from "@/lib/xray/store";
+import { DEFAULT_GROUP_ID } from "@/lib/xray/demo";
+import type { AcceptedDeal, ActionRecommendation } from "@/lib/xray/types";
+import type { ExportedScore } from "@/lib/xray/dataset/types";
 
 // Never let the in-repo tier write into web/data/runtime/ from a test.
 const runtimeDir = mkdtempSync(join(tmpdir(), "xray-store-"));
@@ -147,6 +149,15 @@ describe("store (in-repo JSON tier)", () => {
     const pack = await readImportedPack("COMP_8888");
     expect(pack?.company.name).toBe("Importada");
     expect(pack?.company.imported).toBe(true);
+  });
+
+  it("keeps canonical import CSVs across a restart", async () => {
+    await writeImportSource("COMP_8888", {
+      transactions: [{ company_id: "COMP_8888", amount: "10" }],
+    });
+    clearStoreMemoryForTests();
+    const src = await readImportSource("COMP_8888");
+    expect(src?.tables.transactions?.[0]?.amount).toBe("10");
   });
 
   it("deleting a deal removes it from disk too", async () => {

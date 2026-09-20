@@ -1,5 +1,7 @@
 # Especificación del score por reglas calibradas (slice #15)
 
+Last updated: 2026-09-20
+
 > Acordada el sábado 19 sep 2026 (ML-2) en tres rondas de preguntas. Refina `docs/plan.md` §2 y §4; donde difiere, manda esto. Vive en `xray/labels.py` (parte compartida con el slice #4) y `xray/rules.py` (solo ML-2), con evals en `xray/evals.py`. Construida contra el contrato de `xray/features.py` (`docs/features_seam.md`).
 >
 > **Actualización 19 sep 2026 (mañana):** revisión del score sobre la tabla provisional real. Los cambios van marcados «(19 sep, mañana)» y se resumen en §11: señales v2, una señal basta, outlook positivo tras un rojo, columna `trend`, AUC externa, lead time en tres cifras, direccionalidad por persistencia y `xray-score`.

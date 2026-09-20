@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MethodMetricsSchema } from "./schemas";
-import { parseMethodMetrics } from "./method-metrics";
-import { watchMeta } from "./bands";
+import { MethodMetricsSchema } from "@/lib/xray/schemas";
+import { parseMethodMetrics } from "@/lib/xray/method-metrics";
+import { watchMeta } from "@/lib/xray/bands";
 import { AnticipacionPanel } from "@/components/embat/anticipacion";
-import type { MethodMetrics } from "./types";
+import type { MethodMetrics } from "@/lib/xray/types";
 
 // `next/font/local` is a Next compile-time macro; under vitest the default export is not callable.
 vi.mock("next/font/local", () => ({ default: () => ({ variable: "" }) }));
@@ -65,9 +65,9 @@ describe("method metrics", () => {
   });
 
   it("labels the three watch codes", () => {
-    expect(watchMeta("large_maturity").label).toBe("Watch · vencimiento");
-    expect(watchMeta("main_customer_lost").label).toBe("Watch · cliente principal");
-    expect(watchMeta("expensive_new_debt").label).toBe("Watch · deuda cara");
+    expect(watchMeta("large_maturity").label).toBe("Vigilancia · vencimiento");
+    expect(watchMeta("main_customer_lost").label).toBe("Vigilancia · cliente principal");
+    expect(watchMeta("expensive_new_debt").label).toBe("Vigilancia · deuda cara");
     expect(watchMeta("large_maturity").description).toContain("90 días");
     expect(watchMeta(null).active).toBe(false);
     expect(watchMeta("something_else").active).toBe(true);

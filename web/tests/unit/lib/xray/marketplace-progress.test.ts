@@ -3,7 +3,7 @@ import {
   beginMarketplaceProgress,
   emitMarketplaceProgress,
   subscribeMarketplaceProgress,
-} from "./marketplace-progress";
+} from "@/lib/xray/marketplace-progress";
 
 describe("marketplace progress bus", () => {
   it("replays buffered events to late subscribers", () => {

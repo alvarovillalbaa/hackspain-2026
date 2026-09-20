@@ -4,8 +4,8 @@ import {
   amortizeAmountBounds,
   sortContractsForAmortize,
   withCashWarning,
-} from "./amortize";
-import type { AmortizeContract, AmortizeContext } from "./types";
+} from "@/lib/xray/amortize";
+import type { AmortizeContract, AmortizeContext } from "@/lib/xray/types";
 
 const contracts: AmortizeContract[] = [
   {

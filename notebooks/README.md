@@ -1,6 +1,8 @@
 # Notebooks
 
-Experimentos que el equipo tiene que poder ver (chequeos de literatura del slice #3, curvas de evaluación del #4, calibración del #5). Lo que sea scratch personal puede vivir en vuestro propio repo: basta con tener `xray` instalado.
+Last updated: 2026-09-20
+
+Experimentos que el equipo tiene que poder ver (chequeos de literatura del slice #3, curvas de evaluación del #4, calibración del #5). Lo que sea scratch personal puede vivir en vuestro propio repo: basta con tener `xray` instalado. Pipeline y cifras: [`../xray/README.md`](../xray/README.md), [`../docs/runbooks/reproduccion.md`](../docs/runbooks/reproduccion.md).
 
 ## Reglas
 
@@ -23,7 +25,7 @@ uv run jupyter lab
 
 ```bash
 uv add "xray @ git+https://github.com/alvarovillalbaa/hackspain-2026"
-export XRAY_DATA_DIR=/ruta/a/input_data
+export XRAY_DATA_DIR=/ruta/a/data/raw   # o input_data/
 ```
 
 ```python

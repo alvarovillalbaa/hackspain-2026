@@ -3,8 +3,8 @@ import {
   buildPortfolioActions,
   mergePortfolioAction,
   portfolioActionHref,
-} from "./portfolio-actions";
-import type { ActionRecommendation } from "./types";
+} from "@/lib/xray/portfolio-actions";
+import type { ActionRecommendation } from "@/lib/xray/types";
 
 function action(
   over: Partial<ActionRecommendation> & Pick<ActionRecommendation, "id" | "kind">

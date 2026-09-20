@@ -372,6 +372,7 @@ Tres tiers de `store.ts` (mutable de demo):
 | `recommendations.json` | **git** | deploy | `warm:recommendations` — **no** lo lee el recommend live |
 | `xray/session.json` | Blob / runtime | demo | `/start` (grupo foco; **no filtra** `/` ni empresas) |
 | `xray/imports/{id}.json` | Blob / runtime | demo | POST import. Gana sobre el pack en snapshot/facts/acciones |
+| `xray/import-csvs/{id}.json` | Blob / runtime | demo | POST import. Tablas canónicas; deal approve las muta y re-llama `POST /ingest` |
 | `xray/recommendations/{company:action}.json` | Blob / runtime | demo | POST recommend (solo si no hay `amount`) |
 | `xray/actions/{id}.json` | Blob / runtime | demo | GET ficha actions (Eve o grounded) |
 | `xray/deals/{id}.json` | Blob / runtime | demo | PUT deal (1 por empresa) |

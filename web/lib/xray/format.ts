@@ -106,7 +106,7 @@ export function actionKindLabel(kind: ActionKind): string {
     new_debt: "Nueva deuda",
     amortize: "Amortización",
     extend_line: "Línea de crédito",
-    factoring: "Factoring",
+    factoring: "Anticipo de facturas",
     confirming: "Confirming",
   };
   return map[kind];

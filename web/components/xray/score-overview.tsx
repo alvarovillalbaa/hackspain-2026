@@ -25,6 +25,7 @@ import {
   ProgressValue,
 } from "@/components/ui/progress";
 import { formatCurrency, formatDelta, formatMonth, formatNumber, formatPercent } from "@/lib/xray/format";
+import { outlookMeta } from "@/lib/xray/bands";
 import type { PeerCohort } from "@/lib/xray/peers";
 import type {
   DimensionKey,
@@ -84,9 +85,9 @@ function trajectoryReasoning(
       : snapshot.trend === "worsening"
         ? "empeora"
         : "se mantiene";
-  const base = `Tendencia ${trend}. Outlook ${snapshot.outlook}.`;
+  const base = `Tendencia ${trend}. Perspectiva ${outlookMeta(snapshot.outlook).label.toLowerCase()}.`;
   if (!projection) return base;
-  return `${base} Forecast 6m: p10 ${projection.p10.toFixed(1)}, p50 ${projection.p50.toFixed(1)}, p90 ${projection.p90.toFixed(1)}.`;
+  return `${base} Previsión 6m: p10 ${projection.p10.toFixed(1)}, p50 ${projection.p50.toFixed(1)}, p90 ${projection.p90.toFixed(1)}.`;
 }
 
 export function SubScoresCard({ subScores }: { subScores: SubScores }) {

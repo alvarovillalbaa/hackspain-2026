@@ -229,7 +229,7 @@ export function ImportDialog({
     try {
       if (overLimit) {
         throw new Error(
-          `Los ficheros suman ${formatKb(totalBytes)} (límite 4,5 MB). Usa un pack más pequeño (p. ej. docs/data/raw/new/update).`
+          `Los ficheros suman ${formatKb(totalBytes)} (límite 4,5 MB). Usa un pack más pequeño (p. ej. data/packs/update).`
         );
       }
       const req: ImportRequest = {
@@ -269,7 +269,7 @@ export function ImportDialog({
           >
             {lockedTarget ? "Actualizar datos" : "Importar Compañía"}
           </DialogTitle>
-          <DialogDescription className="text-[13px] tracking-[-0.13px] text-[#666]">
+          <DialogDescription className="text-[13px] tracking-[-0.13px] text-muted-foreground">
             {lockedTarget
               ? `Los CSV se asignan a ${targetCompanyId}. Se recalcula el score, las acciones y el marketplace, y se avisa al watcher.`
               : "Sube uno o varios CSV del dataset Embat. Empresas nuevas, o datos nuevos de una empresa que ya está en el portfolio."}
@@ -277,7 +277,7 @@ export function ImportDialog({
         </DialogHeader>
 
         {error ? (
-          <p className="rounded-xl border border-[#fbd3dc] bg-[#fef4f6] px-3 py-2 text-[13px] text-[#e61847]">
+          <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-[13px] text-destructive">
             {error}
           </p>
         ) : null}
@@ -290,7 +290,7 @@ export function ImportDialog({
               className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[#dce0e6] px-6 py-12 text-center"
             >
               <EmbatIcon src="/embat/icon-import.svg" className="size-6 bg-[#666]" />
-              <p className="text-[13px] tracking-[-0.13px] text-[#666]">
+              <p className="text-[13px] tracking-[-0.13px] text-muted-foreground">
                 Suelta uno o varios CSV · se sube el fichero entero (máx. 4,5 MB)
               </p>
               <label

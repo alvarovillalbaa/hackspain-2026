@@ -19,6 +19,7 @@ import {
 } from "@/lib/xray/store";
 import type { ActionRecommendation, ScoreSnapshot } from "@/lib/xray/types";
 import type { CompanyFacts, ExportedScore } from "@/lib/xray/dataset/types";
+import { isTimeoutError, llmErrorStatus } from "@/lib/ai/errors";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -72,20 +73,20 @@ async function groundActions(companyId: string, snapshot: ScoreSnapshot) {
   return listCompanyActions(snapshot, facts, exported, currency);
 }
 
+type FichaActionPick = {
+  action: ActionRecommendation["kind"];
+  description: string;
+  reasoning: string;
+  confidence?: "high" | "medium" | "low";
+  amount?: number;
+};
+
 async function runEveFicha(
   companyId: string,
   snapshot: ScoreSnapshot,
   facts: CompanyFacts | null,
   currency?: string
-): Promise<
-  {
-    action: ActionRecommendation["kind"];
-    description: string;
-    reasoning: string;
-    confidence?: "high" | "medium" | "low";
-    amount?: number;
-  }[]
-> {
+): Promise<FichaActionPick[]> {
   const aging = facts?.invoice_aging;
   const invoices = aging
     ? aging.issued_pending +
@@ -100,7 +101,7 @@ async function runEveFicha(
       )
     : 0;
   const client = await createEveClient();
-  const message = [
+  const brief = [
     `Ficha de ${companyId}. Elige las acciones y ESCRIBE description + reasoning de cada una.`,
     JSON.stringify({
       company_id: snapshot.company_id,
@@ -122,30 +123,99 @@ async function runEveFicha(
     "action (=kind) debe existir en el tool. Tú redactas description (frase corta) y reasoning (tooltip: por qué esta acción para ESTA empresa).",
     "No inventes importes ni el score. Cita señales/hechos del JSON o del tool.",
     "Si has_invoices es false, no digas circulante. Si has_debt es false, no digas refinanciar.",
-    "No copies un título genérico. Máximo 4. Si el tool está vacío, actions: []. No invoques quantity, offering ni match.",
+    "No copies un título genérico. Máximo 4. Si el tool está vacío, actions: []. No invoques financing_finale ni quantity/offering/match.",
+  ].join("\n");
+
+  const message = [
+    "Call `actions_recommender` exactly once. Pass it this brief unchanged.",
+    "Do not call get_recommended_actions yourself — actions_recommender owns that tool.",
+    "---",
+    brief,
+    "---",
+    "Reply with one short line after dispatching.",
   ].join("\n");
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 45_000);
+  const signal = controller.signal;
+
   try {
-    const { response } = await client.sessions.create({
+    let childId: string | null = null;
+    let actions: FichaActionPick[] | null = null;
+
+    const absorb = (event: {
+      type: string;
+      data?: Record<string, unknown>;
+    }) => {
+      if (event.type === "subagent.called") {
+        const name = String(event.data?.name ?? event.data?.toolName ?? "");
+        const id = event.data?.childSessionId;
+        if (name === "actions_recommender" && typeof id === "string") {
+          childId = id;
+        }
+      }
+      const tryParse = (raw: unknown) => {
+        const candidate =
+          raw && typeof raw === "object" && !Array.isArray(raw)
+            ? raw
+            : typeof raw === "string"
+              ? (() => {
+                  try {
+                    return JSON.parse(raw) as object;
+                  } catch {
+                    return null;
+                  }
+                })()
+              : null;
+        if (!candidate) return;
+        const ok = FichaActionsDecisionSchema.safeParse({
+          company_id: companyId,
+          actions: [],
+          ...candidate,
+        });
+        if (ok.success) actions = ok.data.actions;
+      };
+      if (event.type === "result.completed") {
+        tryParse(event.data?.result);
+      }
+      if (event.type === "subagent.completed") {
+        const name = String(
+          event.data?.subagentName ?? event.data?.name ?? ""
+        );
+        if (name === "actions_recommender") {
+          tryParse(event.data?.output);
+        }
+      }
+    };
+
+    const { session, response } = await client.sessions.create({
       message,
-      outputSchema: FichaActionsDecisionSchema,
-      signal: controller.signal,
+      signal,
     });
-    const result = await response.result();
-    const raw =
-      result.data &&
-      typeof result.data === "object" &&
-      !Array.isArray(result.data)
-        ? result.data
-        : {};
-    const parsed = FichaActionsDecisionSchema.parse({
-      company_id: companyId,
-      actions: [],
-      ...raw,
-    });
-    return parsed.actions;
+    for await (const event of response) {
+      absorb(event as { type: string; data?: Record<string, unknown> });
+      if (actions) return actions;
+    }
+
+    if (!childId) {
+      for await (const event of session.stream({ signal })) {
+        absorb(event as { type: string; data?: Record<string, unknown> });
+        if (actions) return actions;
+        if (childId) break;
+      }
+    }
+    if (!childId) {
+      throw new Error("actions_recommender was not dispatched");
+    }
+
+    for await (const event of client.sessions.attach(childId).stream({ signal })) {
+      absorb(event as { type: string; data?: Record<string, unknown> });
+      if (actions) return actions;
+      if (event.type === "session.waiting") break;
+    }
+
+    if (actions) return actions;
+    throw new Error("actions_recommender finished without a structured payload");
   } finally {
     clearTimeout(timer);
   }
@@ -157,15 +227,13 @@ async function compute(companyId: string, snapshot: ScoreSnapshot) {
   try {
     const picks = await runEveFicha(companyId, snapshot, facts, currency);
     const merged = applyAgentCopy(ground, picks);
-    if (merged.length) {
-      await writeActions(companyId, merged);
-      return merged;
-    }
+    const out = merged.length ? merged : ground;
+    if (out.length) await writeActions(companyId, out);
+    return out;
   } catch (err) {
-    console.error("[actions] eve failed, using grounded screens:", err);
+    console.error("[actions] eve failed:", err);
+    throw err;
   }
-  if (ground.length) await writeActions(companyId, ground);
-  return ground;
 }
 
 async function resolve(companyId: string, snapshot: ScoreSnapshot) {
@@ -187,8 +255,30 @@ export async function GET(_req: Request, ctx: Ctx) {
   if (!snapshot) {
     return NextResponse.json({ error: "company not found" }, { status: 404 });
   }
-  const actions = await resolve(companyId, snapshot);
-  return NextResponse.json(actions, {
-    headers: { "Cache-Control": "no-store" },
-  });
+  try {
+    const actions = await resolve(companyId, snapshot);
+    return NextResponse.json(actions, {
+      headers: { "Cache-Control": "no-store" },
+    });
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    if (isTimeoutError(err)) {
+      return NextResponse.json(
+        {
+          error: "Se ha agotado el tiempo de espera del agente",
+          detail,
+          code: "timeout",
+        },
+        { status: llmErrorStatus(err) }
+      );
+    }
+    return NextResponse.json(
+      {
+        error: "No se han podido redactar las acciones con el agente",
+        detail,
+        code: "eve_actions_failed",
+      },
+      { status: 502 }
+    );
+  }
 }

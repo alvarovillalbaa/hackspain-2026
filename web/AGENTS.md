@@ -10,21 +10,29 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # eve agent
 
-This Next.js app also hosts an eve agent. `withEve()` in `next.config.ts` mounts the agent in `agent/` at `/eve/v1/*`, so `npm run dev` runs both, and one Vercel deploy ships both. There is no separate agent package: eve, the agent and the web app share this `package.json` and `node_modules`.
+Human map of this folder: [`README.md`](README.md). This Next.js app also hosts an eve agent. `withEve()` in `next.config.ts` mounts the agent in `agent/` at `/eve/v1/*`, so `npm run dev` runs both, and one Vercel deploy ships both. There is no separate agent package: eve, the agent and the web app share this `package.json` and `node_modules`.
 
 - `agent/` — the agent (instructions, `agent.ts`, tools, channels, subagents, …). Import its files with `#…` (for example `#lib/foo.ts`).
+- `agent/subagents/financing_finale/` — marketplace orchestrator; nested `quantity` → `offering` → `match`.
+- `agent/subagents/actions_recommender/` — ficha action Spanish copy.
+- `agent/subagents/watcher/` — portfolio alerts.
+- `lib/ai/` — Eve binds one model (Helmcode if `OPENAI_API_KEY`, else Gateway) with **no** provider failover. Simple AI SDK calls (`generateStructured` / `generatePlain`) try Gateway then Helmcode. Hooks: `hooks/ai/use-ai-object.ts`.
 - `app/chat/`, `app/s/`, `app/_components/` — the web chat that talks to the agent through `useEveAgent` from `eve/react`.
-- `app/page.tsx`, `app/companies/`, `app/acciones/`, `app/productos/`, `app/c/` — demo X Ray (dashboard → empresas → ficha → marketplace). Docs: `docs/frontend_v0.md`. Runtime: `docs/auditoria_plataforma.md`.
+- `app/page.tsx`, `app/companies/`, `app/acciones/`, `app/productos/`, `app/c/` — demo X Ray (dashboard → empresas → ficha → marketplace). Docs: `docs/specs/frontend-v0.md`. Runtime: `docs/audits/2026-09-20-auditoria-plataforma.md`. LLM ops: `docs/runbooks/ai-runtime.md`.
 
-For a content-only change to the agent's identity, purpose, tone, or response guidelines, edit `agent/instructions.md`. Preserve the model in `agent/agent.ts` unless asked to change it.
+For a content-only change to the agent's identity, purpose, tone, or response guidelines, edit `agent/instructions.md`. Preserve the model resolver in `lib/ai/provider.ts` / `agent/lib/model.ts` unless asked to change it.
 
-The retrieval tools in `agent/tools/` and the marketplace subagents read the committed fact pack in `lib/xray/dataset/` (`companies.json`, `facts.json`, `scores.json`) through `agent/lib/data.ts` and `agent/lib/facts.ts`. Acciones de la ficha: `GET /api/xray/actions` llama a `recommendActions` (mismos hechos que `get_recommended_actions`); el LLM no elige importes. Regenerate with `npm run build:facts` (cash/debt/invoices) and `uv run xray-export-web` (Health Scorer).
+The retrieval tools in `agent/tools/` and the marketplace subagents read the committed fact pack in `lib/xray/dataset/` (`companies.json`, `facts.json`, `scores.json`) through `agent/lib/data.ts` and `agent/lib/facts.ts`. Acciones de la ficha: `GET /api/xray/actions` llama a `actions_recommender` (mismos hechos que `get_recommended_actions`); el LLM no elige importes. Regenerate with `npm run build:facts` (cash/debt/invoices) and `uv run xray-export-web` (Health Scorer).
 
-Mutable demo state persists to Vercel Blob when `BLOB_READ_WRITE_TOKEN` is set (memory Maps otherwise): `xray/session.json` (focus group for rehearsal, default `GROUP_0147`; does not filter `/` or `/companies`), `xray/imports/`, `xray/recommendations/`, `xray/actions/`, `xray/deals/`, `xray/alerts/`. Hidden operator UI: `/start` (noindex, not in nav). Pins that group (reset deals/actions) and opens `/g/{id}`. A “Demo” chip marks it on the groups table and group ficha.
+Mutable demo state persists to Vercel Blob when `BLOB_READ_WRITE_TOKEN` is set (memory Maps otherwise): `xray/session.json` (focus group for rehearsal, default `GROUP_0147`; does not filter `/` or `/companies`), `xray/imports/`, `xray/import-csvs/` (canonical tables so deal approve can re-call Python `/ingest`), `xray/recommendations/`, `xray/actions/`, `xray/deals/`, `xray/alerts/`. Hidden operator UI: `/start` (noindex, not in nav). Pins that group (reset deals/actions) and opens `/g/{id}`. A “Demo” chip marks it on the groups table and group ficha.
 
 ## X Ray demo seam
 
-All demo data goes through `lib/xray/provider.ts` (`export const provider = eveProvider`). Screens and `components/xray/**` must **never** import `lib/xray/registry/` — only the provider does. No mock portfolio: companies/scores/facts come from `lib/xray/dataset/` (built from `docs/data/raw`). Ficha JSON is `ScoreSnapshot` (`lib/xray/schemas.ts`) via `snapshotFromExported`; the Health Scorer export has no `band`.
+All demo data goes through `lib/xray/provider.ts` (`export const provider = eveProvider`). Screens and `components/xray/**` must **never** import `lib/xray/registry/` — only the provider does. No mock portfolio: companies/scores/facts come from `lib/xray/dataset/` (built from `data/raw`). Ficha JSON is `ScoreSnapshot` (`lib/xray/schemas.ts`) via `snapshotFromExported`; the Health Scorer export has no `band`.
+
+AI failures must surface as `ErrorState` (page or card). Empty successful loads use `EmptyState`. Never return 200 with invented / echoed AI copy when the provider key is missing — see `docs/runbooks/ai-runtime.md`.
+
+Tests live under `tests/` (vitest unit/integration/smoke + Playwright `tests/e2e/`), never next to source. `npm test` · `npm run test:coverage` · `npm run test:e2e`. Packs CSV: `../data/packs/`.
 
 ## Read the eve docs before writing agent code
 

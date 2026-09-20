@@ -14,8 +14,8 @@ export default function CompaniesPage() {
       crumbs={[{ label: "Empresas" }]}
       trailing={
         <CompaniasToolbar
-          filters={state.filters}
-          setFilters={state.setFilters}
+          rules={state.rules}
+          setRules={state.setRules}
           currencies={state.currencies}
           onImport={() => state.setImportOpen(true)}
         />

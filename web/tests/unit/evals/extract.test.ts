@@ -4,8 +4,8 @@ import {
   extractFigures,
   hasAnalystSections,
   parseSpanishNumber,
-} from "./extract";
-import { groundingRate, legalFigures } from "./grounding";
+} from "@/evals/lib/extract";
+import { groundingRate, legalFigures } from "@/evals/lib/grounding";
 
 describe("extract", () => {
   it("parses Spanish thousand+decimal form", () => {

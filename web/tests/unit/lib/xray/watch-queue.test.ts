@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupWatchQueue } from "./watch-queue";
+import { groupWatchQueue } from "@/lib/xray/watch-queue";
 
 describe("groupWatchQueue", () => {
   it("groups two rules for the same company into one row", () => {

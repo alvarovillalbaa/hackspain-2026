@@ -334,7 +334,7 @@ export const opportunities = (): Opportunity[] => {
 export const dataQuality = (): DataQuality => ({
   dataset_as_of_date: "2026-09-01",
   notes: [
-    "Fact pack from docs/data/raw via build:facts + xray-export-web.",
+    "Fact pack from data/raw via build:facts + xray-export-web.",
     "Analyst metrics are derived views over committed JSON — not the screening pipeline CSVs.",
   ],
   company_count: companies.length,

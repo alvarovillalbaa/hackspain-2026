@@ -5,7 +5,7 @@ import {
   embatOriginationFee,
   loanTotal,
   scoreImprovement,
-} from "./offer-metrics";
+} from "@/lib/xray/offer-metrics";
 
 describe("annualInterestSaving", () => {
   it("resta el tipo de la oferta al tipo actual sobre el ticket", () => {

@@ -70,9 +70,9 @@ export default function SettingsPage() {
 
   return (
     <AppShell crumbs={[{ label: "Ajustes" }]}>
-      <section className="max-w-xl rounded-2xl border border-border bg-white p-5 shadow-sm">
+      <section className="max-w-xl rounded-2xl bg-card p-5 shadow-sm ring-1 ring-border/40">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-[14px] font-medium tracking-[-0.14px] text-black">
+          <h2 className="text-[14px] font-medium tracking-[-0.14px] text-foreground">
             Slack
           </h2>
           {loading ? null : (
@@ -90,7 +90,7 @@ export default function SettingsPage() {
           )}
         </div>
         <p className="mb-4 text-[13px] tracking-[-0.13px] text-muted-foreground">
-          Incoming Webhook (Apps → Incoming Webhooks). Al guardar se mandan las
+          Webhook de entrada (Apps → Incoming Webhooks). Al guardar se mandan las
           alertas abiertas. Luego, al abrir X Ray y cada mañana laborable.
         </p>
         <form className="space-y-4" onSubmit={save}>
@@ -99,7 +99,7 @@ export default function SettingsPage() {
               htmlFor="slack-webhook"
               className="text-[13px] font-medium text-muted-foreground"
             >
-              Incoming Webhook
+              Webhook de entrada
             </FieldLabel>
             <Input
               id="slack-webhook"

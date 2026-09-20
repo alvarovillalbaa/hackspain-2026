@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useSelection } from "./use-selection";
+import { useSelection } from "@/hooks/xray/use-selection";
 
 describe("useSelection", () => {
   it("toggles, clears and reports count", () => {

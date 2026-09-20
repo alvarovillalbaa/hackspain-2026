@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { snapshotFromExported, buildScoreExplanation } from "./snapshot";
-import { ScoreSnapshotSchema, TreasuryProjectionSchema } from "./schemas";
+import { snapshotFromExported, buildScoreExplanation } from "@/lib/xray/snapshot";
+import { ScoreSnapshotSchema, TreasuryProjectionSchema } from "@/lib/xray/schemas";
 import { ScoreHero, TreasuryCard } from "@/components/xray/score-overview";
-import type { TreasuryProjection } from "./types";
-import type { ExportedScore } from "./dataset/types";
+import type { TreasuryProjection } from "@/lib/xray/types";
+import type { ExportedScore } from "@/lib/xray/dataset/types";
 
 function treasury(): TreasuryProjection {
   const baseline = {

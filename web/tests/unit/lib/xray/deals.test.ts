@@ -1,62 +1,77 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   clearDeal,
   clearDealsForCompanies,
   fetchDeal,
   saveDeal,
-} from "./deals";
-import {
-  clearStoreMemoryForTests,
-  deleteDealsForCompanies,
-  readDeal,
-  writeDeal,
-} from "./store";
-import type { AcceptedDeal } from "./types";
+} from "@/lib/xray/deals";
+import type { AcceptedDeal } from "@/lib/xray/types";
 
-function deal(over: Partial<AcceptedDeal> = {}): AcceptedDeal {
-  return {
-    company_id: "COMP_0001",
-    action_id: "COMP_0001-refinance-0",
-    product_id: "PROD_1",
-    label: "Préstamo",
-    issuer_name: "Banco Demo",
-    amount: 120_000,
-    projected_score: 56,
-    projected_band: "BB",
-    uplift: 4,
-    accepted_at: "2026-09-19T12:00:00.000Z",
-    ...over,
-  };
-}
+const deal: AcceptedDeal = {
+  company_id: "COMP_0001",
+  action_id: "a1",
+  product_id: "p1",
+  label: "Préstamo",
+  issuer_name: "Banco",
+  amount: 100_000,
+  projected_score: 60,
+  projected_band: "BB",
+  uplift: 4,
+  accepted_at: "2026-09-20T00:00:00.000Z",
+};
 
-/**
- * Client helpers call /api/xray/deals — unit tests exercise the store memory
- * path (same as the API without BLOB_READ_WRITE_TOKEN).
- */
-describe("deals (store memory)", () => {
-  beforeEach(() => {
-    clearStoreMemoryForTests();
+describe("deals client", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete process.env.NEXT_PUBLIC_APP_URL;
+    delete process.env.VERCEL_URL;
   });
 
-  it("round-trips via store", async () => {
-    await writeDeal(deal());
-    expect((await readDeal("COMP_0001"))?.product_id).toBe("PROD_1");
+  it("fetchDeal returns null on error and the deal on ok", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(new Response("nope", { status: 404 }))
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ deal }), { status: 200 })
+        )
+    );
+    expect(await fetchDeal("COMP_0001")).toBeNull();
+    expect(await fetchDeal("COMP_0001")).toEqual(deal);
   });
 
-  it("deleteDealsForCompanies clears selected ids", async () => {
-    await writeDeal(deal());
-    await writeDeal(deal({ company_id: "COMP_0002" }));
-    await deleteDealsForCompanies(["COMP_0001"]);
-    expect(await readDeal("COMP_0001")).toBeNull();
-    expect(await readDeal("COMP_0002")).not.toBeNull();
+  it("saveDeal / clearDeal report ok boolean", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(new Response("{}", { status: 200 }))
+        .mockResolvedValueOnce(new Response("{}", { status: 500 }))
+        .mockResolvedValueOnce(new Response("{}", { status: 200 }))
+    );
+    expect(await saveDeal(deal)).toBe(true);
+    expect(await saveDeal(deal)).toBe(false);
+    expect(await clearDeal("COMP_0001")).toBe(true);
   });
-});
 
-describe("deals client exports", () => {
-  it("exports async helpers", () => {
-    expect(typeof fetchDeal).toBe("function");
-    expect(typeof saveDeal).toBe("function");
-    expect(typeof clearDeal).toBe("function");
-    expect(typeof clearDealsForCompanies).toBe("function");
+  it("clearDealsForCompanies fans out deletes", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await clearDealsForCompanies(["A", "B"]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("uses relative URLs when window is defined (jsdom)", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ deal: null }), { status: 200 })
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    await fetchDeal("X");
+    expect(String(fetchMock.mock.calls[0]![0])).toBe("/api/xray/deals/X");
   });
 });

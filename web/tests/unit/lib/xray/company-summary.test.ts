@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { formatRatePct } from "./format";
+import { formatRatePct } from "@/lib/xray/format";
 import {
   buildCompanySummaries,
   companySituation,
-} from "./company-summary";
+} from "@/lib/xray/company-summary";
 import type {
   CompanyFacts,
   DatasetCompany,
   DebtContract,
   ExportedScore,
-} from "./dataset/types";
+} from "@/lib/xray/dataset/types";
 
 function exported(
   id: string,

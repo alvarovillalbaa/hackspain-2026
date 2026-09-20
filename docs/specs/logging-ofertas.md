@@ -1,5 +1,7 @@
 # Logging de ofertas para Embat (C1)
 
+Last updated: 2026-09-20
+
 > **Propuesta de ML-2 (Tianwei), sábado 19 sep 2026.** Entregable C1 de
 > [experimentos_productos.md](experimentos_productos.md) §4, con las cifras del ensayo en seco de
 > `notebooks/05_productos_ope_tianwei.ipynb` (124 empresas × 12 meses = 1.488 ofertas simuladas, 1.472 tras descartar 16 meses con cargos

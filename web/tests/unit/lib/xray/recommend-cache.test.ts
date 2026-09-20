@@ -5,9 +5,9 @@ import {
   quantityFromDecision,
   recommendCacheKey,
   setRecommendCache,
-} from "./recommend-cache";
-import type { RecommendationDecision } from "../../agent/lib/schemas";
-import type { ProductMatch } from "./types";
+} from "@/lib/xray/recommend-cache";
+import type { RecommendationDecision } from "@/agent/lib/schemas";
+import type { ProductMatch } from "@/lib/xray/types";
 
 const stub = {
   matches: [] as ProductMatch[],

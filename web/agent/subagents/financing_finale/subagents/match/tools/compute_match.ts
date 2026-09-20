@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getLiveFacts, getLiveScore } from "#lib/facts";
 import { computeMatch, fitContext } from "#lib/engine";
 import { ActionKindSchema, ProductTermsSchema } from "#lib/schemas";
-import type { Band } from "../../../../lib/xray/types";
+import type { Band } from "@/lib/xray/types";
 
 export default defineTool({
   description:

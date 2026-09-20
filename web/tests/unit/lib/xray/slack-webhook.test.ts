@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { isSlackWebhookUrl } from "./slack-webhook";
-import { formatSlackQueue } from "./watch-queue";
+import { isSlackWebhookUrl } from "@/lib/xray/slack-webhook";
+import { formatSlackQueue } from "@/lib/xray/watch-queue";
 import {
   clearSlackWebhookForTests,
   setSlackWebhook,
   slackStatus,
-} from "./slack-settings";
+} from "@/lib/xray/slack-settings";
 
 describe("isSlackWebhookUrl", () => {
   it("accepts a hooks.slack.com services URL", () => {
@@ -37,7 +37,7 @@ describe("formatSlackQueue", () => {
         message: "DSCR bajo",
       },
     ]);
-    expect(text).toContain("*X Ray Watcher* — 1 empresa en cola");
+    expect(text).toContain("*X Ray — vigilancia* — 1 empresa en cola");
     expect(text).toContain("*Northbrook*");
     expect(text).toContain("`COMP_0001`");
     expect(text).toContain("DSCR < 1,2");

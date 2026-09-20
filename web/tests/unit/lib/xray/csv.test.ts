@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseCsvChunk, readCsvPreview } from "./csv";
+import { parseCsvChunk, readCsvPreview } from "@/lib/xray/csv";
 
 describe("parseCsvChunk", () => {
   it("parses simple CSV", () => {

@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,27 +10,77 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemSeparator,
-  ItemTitle,
-} from "@/components/ui/item";
 import { signedBadgeClass } from "@/components/embat/chrome";
+import { ErrorState } from "@/components/xray/feedback-state";
+import {
+  SortableTable,
+  type SortableColumn,
+} from "@/components/xray/sortable-table";
 import { usePortfolioActions } from "@/hooks/xray/use-portfolio-actions";
 import {
   formatCompactEuro,
   formatSignedNumber,
   actionKindLabel,
 } from "@/lib/xray/format";
-import { portfolioActionHref } from "@/lib/xray/portfolio-actions";
+import {
+  portfolioActionHref,
+  type PortfolioAction,
+} from "@/lib/xray/portfolio-actions";
 import { cn } from "@/lib/utils";
 
 export function AccionesPortfolio() {
+  const router = useRouter();
   const { data, loading, error } = usePortfolioActions();
+
+  const columns: SortableColumn<PortfolioAction>[] = useMemo(
+    () => [
+      {
+        id: "company",
+        header: "Empresa",
+        sortKey: "company_name",
+        cell: (row) => (
+          <div>
+            <div className="font-medium">{row.company_name}</div>
+            <div className="text-[12px] text-muted-foreground">
+              {actionKindLabel(row.kind)} · {row.title}
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: "kind",
+        header: "Tipo",
+        sortKey: "kind",
+        cell: (row) => actionKindLabel(row.kind),
+      },
+      {
+        id: "amount",
+        header: "Importe",
+        sortKey: "recommended_amount",
+        align: "right",
+        cell: (row) => (
+          <span className="tabular-nums text-muted-foreground">
+            {formatCompactEuro(row.recommended_amount)}
+          </span>
+        ),
+      },
+      {
+        id: "uplift",
+        header: "Uplift",
+        sortKey: "uplift",
+        align: "right",
+        cell: (row) => (
+          <Badge
+            variant="outline"
+            className={cn("rounded-xl", signedBadgeClass(row.uplift))}
+          >
+            {formatSignedNumber(row.uplift)}
+          </Badge>
+        ),
+      },
+    ],
+    []
+  );
 
   if (loading) {
     return (
@@ -43,9 +94,10 @@ export function AccionesPortfolio() {
 
   if (error) {
     return (
-      <p className="py-8 text-sm text-destructive">
-        No se han podido cargar las acciones. {error.message}
-      </p>
+      <ErrorState
+        title="No se han podido cargar las acciones"
+        description={error.message}
+      />
     );
   }
 
@@ -63,38 +115,12 @@ export function AccionesPortfolio() {
   }
 
   return (
-    <ItemGroup className="gap-0">
-      {data.map((row, i) => {
-        const href = portfolioActionHref(row);
-        return (
-          <div key={`${row.company_id}:${row.id}`}>
-            {i > 0 ? <ItemSeparator className="my-0" /> : null}
-            <Item
-              size="sm"
-              className="rounded-none border-0 px-0 py-3 hover:bg-muted/50"
-              render={<Link href={href} />}
-            >
-              <ItemContent>
-                <ItemTitle className="text-[15px]">{row.company_name}</ItemTitle>
-                <ItemDescription>
-                  {actionKindLabel(row.kind)} · {row.title}
-                </ItemDescription>
-              </ItemContent>
-              <ItemActions className="flex-wrap justify-end gap-2">
-                <span className="text-sm tabular-nums text-muted-foreground">
-                  {formatCompactEuro(row.recommended_amount)}
-                </span>
-                <Badge
-                  variant="outline"
-                  className={cn("rounded-xl", signedBadgeClass(row.uplift))}
-                >
-                  {formatSignedNumber(row.uplift)}
-                </Badge>
-              </ItemActions>
-            </Item>
-          </div>
-        );
-      })}
-    </ItemGroup>
+    <SortableTable
+      rows={data}
+      columns={columns}
+      rowKey={(r) => `${r.company_id}:${r.id}`}
+      defaultSortKey="uplift"
+      onRowClick={(row) => router.push(portfolioActionHref(row))}
+    />
   );
 }

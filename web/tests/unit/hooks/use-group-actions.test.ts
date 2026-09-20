@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { rankGroupActions, type GroupAction } from "./use-group-actions";
+import { rankGroupActions, type GroupAction } from "@/hooks/xray/use-group-actions";
 
 function action(
   over: Pick<GroupAction, "id" | "company_id" | "company_name" | "uplift">

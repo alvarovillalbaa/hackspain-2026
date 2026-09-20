@@ -8,7 +8,7 @@ import {
   relErr,
   relativeHalfRange,
   stddev,
-} from "./dispersion";
+} from "@/evals/lib/dispersion";
 
 describe("dispersion", () => {
   it("cv is 0 for identical values", () => {

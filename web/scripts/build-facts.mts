@@ -1,10 +1,10 @@
 /**
  * Offline fact-pack builder (cash, debt, invoices — NOT the Health Score).
- * Reads docs/data/raw CSVs (gitignored, local only) and emits companies.json
+ * Reads data/raw CSVs (gitignored, local only) and emits companies.json
  * + facts.json under web/lib/xray/dataset/. Scores come from Python:
- *   XRAY_DATA_DIR=docs/data/raw uv run xray-export-web
+ *   XRAY_DATA_DIR=data/raw uv run xray-export-web
  *
- * Usage: XRAY_DATA_DIR=../docs/data/raw npm run build:facts
+ * Usage: XRAY_DATA_DIR=../data/raw npm run build:facts
  */
 import { createReadStream, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { createInterface } from "node:readline";
@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = resolve(__dirname, "../lib/xray/dataset");
 const DATA_DIR = resolve(
-  process.env.XRAY_DATA_DIR ?? join(__dirname, "../../docs/data/raw")
+  process.env.XRAY_DATA_DIR ?? join(__dirname, "../../data/raw")
 );
 
 const NAME_PREFIXES = [

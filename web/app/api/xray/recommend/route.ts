@@ -20,13 +20,13 @@ import {
   setRecommendCache,
   type RecommendCacheEntry,
 } from "@/lib/xray/recommend-cache";
-import { deterministicMarketplace } from "@/lib/xray/deterministic-marketplace";
 import { runMarketplacePipeline } from "@/lib/xray/marketplace-orchestrator";
 import {
   beginMarketplaceProgress,
   emitMarketplaceProgress,
   marketplaceProgressKey,
 } from "@/lib/xray/marketplace-progress";
+import { isTimeoutError, llmErrorStatus } from "@/lib/ai/errors";
 import {
   decisionWithAmount,
   phaseFromEvent,
@@ -329,45 +329,29 @@ export async function POST(req: Request) {
       cached: false,
     });
   } catch (err) {
-    console.error("[recommend] eve failed, engine fallback:", err);
-    const action = await actionFor(body.action_id, snapshot);
-    if (!action) {
-      emitMarketplaceProgress(progressKey, {
-        phase: "fallback",
-        detail: err instanceof Error ? err.message : String(err),
-      });
-      return NextResponse.json(
-        {
-          error: "No action available for marketplace",
-          detail: err instanceof Error ? err.message : String(err),
-        },
-        { status: 502 }
-      );
-    }
-    const { facts } = await resolveFacts(body.company_id);
-    const matches = deterministicMarketplace(
-      snapshot,
-      action,
-      body.amount,
-      facts
-    );
-    const entry: CacheEntry = {
-      matches,
-      headline: "Marketplace determinista (motor de match)",
-      source: "engine",
-    };
-    // Do not cache engine fallback — a later Eve retry (key present) must run.
+    console.error("[recommend] eve failed:", err);
+    const detail = err instanceof Error ? err.message : String(err);
     emitMarketplaceProgress(progressKey, {
       phase: "fallback",
-      detail: err instanceof Error ? err.message : String(err),
+      detail,
     });
-    return NextResponse.json({
-      matches: entry.matches,
-      headline: entry.headline,
-      source: entry.source,
-      cached: false,
-      fallback: true,
-      fallback_reason: err instanceof Error ? err.message : String(err),
-    });
+    if (isTimeoutError(err)) {
+      return NextResponse.json(
+        {
+          error: "Se ha agotado el tiempo de espera del agente",
+          detail,
+          code: "timeout",
+        },
+        { status: llmErrorStatus(err) }
+      );
+    }
+    return NextResponse.json(
+      {
+        error: "No se ha podido generar la recomendación con el agente",
+        detail,
+        code: "eve_recommend_failed",
+      },
+      { status: 502 }
+    );
   }
 }

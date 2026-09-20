@@ -36,12 +36,12 @@ export function EmbatIcon({
 
 export function statusClass(outlook: Outlook): string {
   if (outlook === "positive") {
-    return "border-[rgba(166,235,132,0.7)] bg-[rgba(215,247,194,0.5)] text-[#00a14e]";
+    return "border-positive/30 bg-positive/10 text-positive";
   }
   if (outlook === "negative") {
-    return "border-[#fbd3dc] bg-[#fef4f6] text-[#e61847]";
+    return "border-destructive/20 bg-destructive/5 text-destructive";
   }
-  return "border-border bg-muted text-muted-foreground";
+  return "border-warning/30 bg-warning/10 text-warning";
 }
 
 export function signedBadgeClass(value: number): string {
@@ -57,9 +57,9 @@ export function scoreBadgeClass(value: number): string {
 }
 
 export function outlookColor(outlook: Outlook): string {
-  if (outlook === "positive") return "#00a14e";
-  if (outlook === "negative") return "#e61847";
-  return "#666666";
+  if (outlook === "positive") return "var(--positive)";
+  if (outlook === "negative") return "var(--destructive)";
+  return "var(--warning)";
 }
 
 export function DemoChip({ className }: { className?: string }) {
@@ -68,7 +68,7 @@ export function DemoChip({ className }: { className?: string }) {
       variant="outline"
       className={cn("border-primary/20 bg-primary/5 text-primary", className)}
     >
-      Demo
+      Ensayo
     </Badge>
   );
 }
@@ -79,7 +79,7 @@ export function FilterChip({
   active,
   children,
 }: {
-  icon: string;
+  icon?: string;
   label: string;
   active?: boolean;
   children: (close: () => void) => ReactNode;
@@ -90,19 +90,21 @@ export function FilterChip({
       <PopoverTrigger
         render={
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             className={cn(
               "gap-1.5 rounded-xl text-muted-foreground",
-              active && "border-primary text-primary"
+              active && "bg-primary/10 text-primary"
             )}
           />
         }
       >
-        <EmbatIcon
-          src={icon}
-          className={active ? "bg-primary" : undefined}
-        />
+        {icon ? (
+          <EmbatIcon
+            src={icon}
+            className={active ? "bg-primary" : undefined}
+          />
+        ) : null}
         {label}
       </PopoverTrigger>
       <PopoverContent
@@ -110,7 +112,7 @@ export function FilterChip({
         sideOffset={8}
         className={cn(
           embatUiClass,
-          "z-50 w-[172px] gap-1.5 rounded-xl border border-border bg-popover p-1.5 text-[13px] text-popover-foreground shadow-sm ring-0"
+          "z-50 w-[172px] gap-1.5 rounded-xl border-0 bg-popover p-1.5 text-[13px] text-popover-foreground shadow-sm ring-1 ring-border/40"
         )}
       >
         {children(() => setOpen(false))}
@@ -154,7 +156,7 @@ export function FilterField({
 }
 
 export const embatSelectTriggerClass =
-  "h-auto w-full rounded-xl border border-border bg-white px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] text-black shadow-sm ring-0 outline-none dark:hover:bg-white data-placeholder:text-[#999]";
+  "h-auto w-full rounded-xl border border-border bg-white px-2.5 py-1 text-[13px] font-medium tracking-[-0.13px] text-black shadow-sm ring-0 outline-none dark:hover:bg-white data-placeholder:text-table-header";
 
 export const embatSelectContentClass = `${embatUiClass} rounded-xl border border-border bg-white text-black shadow-sm ring-0`;
 

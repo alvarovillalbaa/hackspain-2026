@@ -1,6 +1,6 @@
 """Tests de xray.score al seam: puntuador por lotes sobre la tabla del contrato (slice #11)."""
 
-import sys
+from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -13,7 +13,10 @@ def test_score_table_scores_every_row_with_an_index_and_never_imports_api():
     assert len(table) == 41
     assert "trend" in table.columns and "score" in table.columns
     assert table.loc[table["state_index"].notna(), "score"].notna().all()
-    assert not any(m == "api" or m.startswith("api.") for m in sys.modules)
+    # Source-level seam: score.py must not import api (sys.modules is polluted
+    # when integration tests load FastAPI in the same pytest process).
+    src = Path(score.__file__).read_text(encoding="utf-8")
+    assert "import api" not in src and "from api" not in src
     assert model.n_train > 0
 
 

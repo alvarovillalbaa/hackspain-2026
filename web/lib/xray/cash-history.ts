@@ -3,6 +3,7 @@
  * Same logic as agent/lib/data.ts working-capital rebuild.
  */
 import type { MonthlyCash } from "./dataset/types";
+import { appendProjectionFan } from "./projection-fan";
 
 export interface CashHistoryPoint {
   month: string;
@@ -47,36 +48,26 @@ export function rebuildCashHistory(
   return rebuilt;
 }
 
-/** Add a 6m projection fan anchored on the last history point. */
+/** Add a 6m projection fan anchored on the last history cash. */
 export function appendCashProjection(
   history: CashHistoryPoint[],
   projection: { p10: number; p50: number; p90: number } | null | undefined
 ): CashChartPoint[] {
-  const data: CashChartPoint[] = history.map((h) => ({ ...h }));
-  if (!projection || data.length === 0) return data;
-  const last = data[data.length - 1]!;
-  const [y, m] = last.month.split("-").map(Number);
-  let yy = y!;
-  let mm = m! + 6;
-  while (mm > 12) {
-    mm -= 12;
-    yy += 1;
+  if (!projection || history.length === 0) {
+    return history.map((h) => ({ ...h }));
   }
-  const future = `${yy}-${String(mm).padStart(2, "0")}`;
-  data[data.length - 1] = {
-    ...last,
-    p10: projection.p10,
-    p50: projection.p50,
-    p90: projection.p90,
-  };
-  data.push({
-    month: future,
-    inflow: 0,
-    outflow: 0,
-    net: 0,
-    p10: projection.p10,
-    p50: projection.p50,
-    p90: projection.p90,
+  const last = history[history.length - 1]!;
+  const fanned = appendProjectionFan(history, projection, last.cash);
+  return fanned.map((row, i) => {
+    if (i < history.length) return row as CashChartPoint;
+    return {
+      month: row.month,
+      inflow: 0,
+      outflow: 0,
+      net: 0,
+      p10: row.p10,
+      p50: row.p50,
+      p90: row.p90,
+    };
   });
-  return data;
 }

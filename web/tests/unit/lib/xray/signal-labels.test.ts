@@ -5,7 +5,7 @@ import {
   signalBlurb,
   signalLabel,
   signalPolarity,
-} from "./signal-labels";
+} from "@/lib/xray/signal-labels";
 
 describe("signalLabel", () => {
   it("maps known Health Score signals to Spanish", () => {

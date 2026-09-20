@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { formatCompactEuro, formatSlashDateFromMonth } from "./format";
-import { buildGroupSummaries } from "./group-summary";
-import type { CompanyFacts, DatasetCompany, ExportedScore } from "./dataset/types";
+import { formatCompactEuro, formatSlashDateFromMonth } from "@/lib/xray/format";
+import { buildGroupSummaries } from "@/lib/xray/group-summary";
+import type { CompanyFacts, DatasetCompany, ExportedScore } from "@/lib/xray/dataset/types";
 
 function exported(
   id: string,

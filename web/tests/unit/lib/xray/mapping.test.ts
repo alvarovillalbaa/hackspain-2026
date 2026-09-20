@@ -5,7 +5,7 @@ import {
   suggestMapping,
   missingRequired,
   DATASET_SPECS,
-} from "./mapping";
+} from "@/lib/xray/mapping";
 
 describe("suggestMapping", () => {
   it("maps real headers for all 9 datasets", () => {

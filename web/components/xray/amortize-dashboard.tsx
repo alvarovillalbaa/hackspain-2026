@@ -7,6 +7,7 @@ import { ScoreBandBadge } from "@/components/xray/score-band-badge";
 import { ScoreGauge } from "@/components/xray/score-gauge";
 import { ScoreTrajectory } from "@/components/xray/score-trajectory";
 import { ReasoningHint } from "@/components/xray/reasoning-hint";
+import { ErrorState } from "@/components/xray/feedback-state";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Card,
@@ -39,7 +40,8 @@ export function AmortizeDashboard({
   action,
   score,
 }: AmortizeDashboardProps) {
-  const { data: ctx, loading: ctxLoading } = useAmortizeContext(companyId);
+  const { data: ctx, loading: ctxLoading, error: ctxError } =
+    useAmortizeContext(companyId);
   const [amount, setAmount] = useState<number | undefined>(undefined);
 
   const bounds = useMemo(
@@ -63,6 +65,16 @@ export function AmortizeDashboard({
     const base = allocateAmortization(ctx?.contracts ?? [], effectiveAmount);
     return withCashWarning(base, effectiveAmount, ctx?.cash_balance);
   }, [ctx, effectiveAmount]);
+
+  if (ctxError) {
+    return (
+      <ErrorState
+        title="No se ha podido cargar el contexto de amortización"
+        description={ctxError.message}
+        placement="card"
+      />
+    );
+  }
 
   return (
     <div className="space-y-8">

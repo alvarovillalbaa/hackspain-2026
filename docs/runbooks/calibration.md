@@ -1,5 +1,7 @@
 # Calibración agéntica
 
+Last updated: 2026-09-20
+
 Un **eval** pregunta *¿acertó?*. La **calibración** pregunta *¿acierta siempre igual?* y *¿cita cifras del motor o inventa?*.
 
 No sustituye a `uv run xray-evals` (métricas del score Python) ni a un eval de calidad semántica. Vive junto a ellos en `web/evals/calibration/` y se invoca aparte.
@@ -31,7 +33,9 @@ Esa ruta resuelve memoria → Blob → `recommendations.json` **antes** de llama
 ```bash
 cd web
 # Node ≥ 24 (engines del package.json)
-export AI_GATEWAY_API_KEY=…   # o eve link / VERCEL_OIDC_TOKEN
+# Prefer Helmcode; Gateway alone is enough on Vercel (OIDC or AI_GATEWAY_API_KEY).
+export OPENAI_API_KEY=…          # Helmcode glm5.3 / deepseek-v4-flash
+# export AI_GATEWAY_API_KEY=…    # or eve link / VERCEL_OIDC_TOKEN
 npm run calibrate             # eve eval calibration --strict
 
 # Humo barato (2 reps)

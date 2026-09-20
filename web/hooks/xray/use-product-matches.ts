@@ -5,6 +5,7 @@ import { onDataImported } from "@/lib/xray/import-events";
 import type { MarketplacePhase } from "@/lib/xray/marketplace-progress";
 import type { QuantitySummary } from "@/lib/xray/recommend-cache";
 import type { ProductMatch } from "@/lib/xray/types";
+import { TimeoutError } from "@/lib/ai/errors";
 
 export type RecommendPhase = MarketplacePhase;
 
@@ -88,8 +89,14 @@ export function useProductMatches(
           fallback_reason?: string;
           quantity?: QuantitySummary;
           error?: string;
+          code?: string;
         };
         if (!res.ok) {
+          if (res.status === 504 || json.code === "timeout") {
+            throw new TimeoutError(
+              json.error || "Se ha agotado el tiempo de espera del agente."
+            );
+          }
           throw new Error(json.error || `recommend HTTP ${res.status}`);
         }
         if (cancelled) return;
@@ -109,9 +116,13 @@ export function useProductMatches(
         );
       } catch (e) {
         if (cancelled) return;
+        setData([]);
         setError(e instanceof Error ? e : new Error(String(e)));
         setFetchedFor(`${key}:${tick}`);
-        setPhase("fallback");
+        setHeadline(null);
+        setSource(null);
+        setFallbackReason(null);
+        setPhase("idle");
       } finally {
         es?.close();
       }

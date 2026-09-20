@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { shouldKeepImportDialogOpen } from "./import-dialog-dismiss";
+import { shouldKeepImportDialogOpen } from "@/lib/xray/import-dialog-dismiss";
 
 describe("shouldKeepImportDialogOpen", () => {
   it("does not block opening", () => {

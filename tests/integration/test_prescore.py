@@ -15,8 +15,8 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[1]
-PACKS = ROOT / "docs" / "data" / "raw" / "new"
+ROOT = Path(__file__).resolve().parents[2]
+PACKS = ROOT / "data" / "packs"
 PRESCORED = ROOT / "web" / "lib" / "xray" / "dataset" / "import_packs.json"
 
 pytestmark = pytest.mark.skipif(

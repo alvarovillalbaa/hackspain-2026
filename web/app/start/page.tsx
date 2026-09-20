@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 /** Hidden operator route: pin the Blob focus group. Not linked from AppShell. */
 export default function StartRoute() {
   return (
-    <AppShell crumbs={[{ label: "Start" }]}>
+    <AppShell crumbs={[{ label: "Ensayo" }]}>
       <StartPage />
     </AppShell>
   );

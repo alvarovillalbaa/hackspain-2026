@@ -48,7 +48,7 @@ export function orchestratorPrompt(c: ManifestCase): string {
     `dimension_deltas: ${JSON.stringify(action.dimension_deltas)}`,
     `band: ${snapshot.band}`,
     `score: ${snapshot.score}`,
-    "Delegate quantity → offering → match. Return structured RecommendationDecision.",
+    "Delegate financing_finale (quantity → offering → match). Return structured RecommendationDecision.",
   ].join("\n");
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { scoreToBand, bandMeta, BANDS } from "./bands";
+import { scoreToBand, bandMeta, BANDS } from "@/lib/xray/bands";
 
 describe("scoreToBand", () => {
   it("maps boundary scores to the correct band", () => {

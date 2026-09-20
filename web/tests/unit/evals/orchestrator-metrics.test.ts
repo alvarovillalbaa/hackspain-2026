@@ -3,14 +3,14 @@
  * (no LLM). Proves parse → metrics → gates without Gateway spend.
  */
 import { describe, expect, it } from "vitest";
-import recommendations from "../../lib/xray/dataset/recommendations.json";
+import recommendations from "@/lib/xray/dataset/recommendations.json";
 import {
   collectOrchestratorMetrics,
   orchestratorGates,
   parseDecision,
   type ManifestCase,
-} from "./orchestrator-metrics";
-import { cvWithin } from "./dispersion";
+} from "@/evals/lib/orchestrator-metrics";
+import { cvWithin } from "@/evals/lib/dispersion";
 
 type WarmEntry = {
   decision: unknown;

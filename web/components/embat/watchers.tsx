@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,21 +10,63 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { ErrorState } from "@/components/xray/feedback-state";
 import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemSeparator,
-  ItemTitle,
-} from "@/components/ui/item";
+  SortableTable,
+  type SortableColumn,
+} from "@/components/xray/sortable-table";
 import { useWatchQueue } from "@/hooks/xray/use-watch-queue";
 import { WATCH_RULE_LABEL } from "@/lib/xray/watch-queue";
+import type { WatchQueueItem } from "@/lib/xray/types";
 import { cn } from "@/lib/utils";
 
 export function Watchers() {
+  const router = useRouter();
   const { data, loading, error } = useWatchQueue();
+
+  const columns: SortableColumn<WatchQueueItem>[] = useMemo(
+    () => [
+      {
+        id: "name",
+        header: "Empresa",
+        sortKey: "name",
+        cell: (row) => (
+          <div>
+            <div className="font-medium">{row.name}</div>
+            <div className="text-[12px] text-muted-foreground">
+              {row.message}
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: "rules",
+        header: "Reglas",
+        cell: (row) =>
+          row.rules.map((r) => WATCH_RULE_LABEL[r] ?? r).join(" · "),
+      },
+      {
+        id: "severity",
+        header: "Severidad",
+        sortKey: "severity",
+        align: "right",
+        cell: (row) => (
+          <Badge
+            variant="outline"
+            className={cn(
+              "rounded-xl",
+              row.severity === "critical"
+                ? "border-destructive/20 bg-destructive/5 text-destructive"
+                : "border-warning/30 bg-warning/10 text-warning"
+            )}
+          >
+            {row.severity}
+          </Badge>
+        ),
+      },
+    ],
+    []
+  );
 
   if (loading) {
     return (
@@ -37,9 +80,10 @@ export function Watchers() {
 
   if (error) {
     return (
-      <p className="py-8 text-sm text-destructive">
-        No se ha podido cargar la cola de vigilancia. {error.message}
-      </p>
+      <ErrorState
+        title="No se ha podido cargar la cola de vigilancia"
+        description={error.message}
+      />
     );
   }
 
@@ -57,49 +101,12 @@ export function Watchers() {
   }
 
   return (
-    <ItemGroup className="gap-0">
-      {data.map((item, i) => (
-        <div key={item.company_id}>
-          {i > 0 ? <ItemSeparator className="my-0" /> : null}
-          <Item
-            size="sm"
-            className="rounded-none border-0 px-0 py-3"
-            render={<Link href={`/c/${item.company_id}`} />}
-          >
-            <ItemContent>
-              <ItemTitle className="text-[15px]">{item.name}</ItemTitle>
-              <ItemDescription>{item.message}</ItemDescription>
-            </ItemContent>
-            <ItemActions className="flex-wrap justify-end gap-2">
-              <Badge
-                variant="outline"
-                className={cn(
-                  "rounded-xl",
-                  item.severity === "critical"
-                    ? "border-[#fbd3dc] bg-[#fef4f6] text-[#e61847]"
-                    : "border-border bg-muted text-muted-foreground"
-                )}
-              >
-                {item.severity === "critical" ? "Crítica" : "Aviso"}
-              </Badge>
-              {item.rules.map((rule) => (
-                <Badge
-                  key={rule}
-                  variant="secondary"
-                  className="rounded-xl"
-                >
-                  {WATCH_RULE_LABEL[rule]}
-                </Badge>
-              ))}
-              {item.score != null ? (
-                <span className="text-sm tabular-nums text-muted-foreground">
-                  {Math.round(item.score)}
-                </span>
-              ) : null}
-            </ItemActions>
-          </Item>
-        </div>
-      ))}
-    </ItemGroup>
+    <SortableTable
+      rows={data}
+      columns={columns}
+      rowKey={(r) => r.company_id}
+      defaultSortKey="severity"
+      onRowClick={(row) => router.push(`/c/${row.company_id}`)}
+    />
   );
 }

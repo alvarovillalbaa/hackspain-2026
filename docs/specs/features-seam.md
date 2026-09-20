@@ -1,5 +1,7 @@
 # Seam 1: `features(company_id, month)` — propuesta para revisar
 
+Last updated: 2026-09-20
+
 > **Propuesta de ML-2 (Tianwei), sábado 19 sep 2026.** Pendiente de revisión de **ML-1**, dueño del slice #2, el domingo por la mañana. Nada de esto es decisión cerrada hasta que ML-1 lo acepte o lo corrija; los cambios se hacen en `xray/features.py` (contrato), `tests/fixtures/make_features_mock.py` (fixture) y aquí, en el mismo commit.
 >
 > Objetivo: que `labels`, `score`, `bands` y `projection` (slices #15, #4, #5, #6) se puedan escribir hoy contra `tests/fixtures/features_mock.csv` sin esperar a la tabla real, y que cuando la tabla real llegue `features.validate()` diga si encaja.

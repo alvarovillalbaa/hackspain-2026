@@ -16,6 +16,7 @@ import argparse
 import json
 import math
 import sys
+from dataclasses import asdict
 from pathlib import Path
 
 import numpy as np
@@ -24,7 +25,7 @@ from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import GroupKFold
 
 from xray import features as features_mod
-from xray import labels, rules
+from xray import challenger, labels, rules
 from xray.data import artifacts_dir
 from xray.rules import RulesConfig
 
@@ -446,6 +447,166 @@ def preview_event_count(feats: pd.DataFrame, cfg: RulesConfig | None = None) -> 
 # --- todo junto ---------------------------------------------------------------------------
 
 
+# --- PD6: AUC sobre rotura de caja, estabilidad y retadores ------------------------------------
+
+
+def auc_pd6_by_horizon(
+    scored: pd.DataFrame,
+    score_col: str = "score",
+    horizons=range(1, 13),
+    test_months: list[str] | None = TEST_MONTHS,
+    clean: bool = False,
+) -> pd.DataFrame:
+    """AUC de (−score_col) para «empieza un episodio de rotura en (t, t+h]» (labels.breach_state),
+    entre filas con saldo mínimo ≥ 0 en t. Positivo observado vale aunque falte t+h; negativo exige
+    t+h presente. `clean=True`: solo filas sin mes negativo en los últimos 6 (la cifra de anticipación)."""
+    o = _sorted(scored)
+    if "breach_entry" not in o.columns:
+        o = labels.breach_state(o)
+    g = o.groupby("company_id")
+    base_mask = (o["min_balance_eur"] >= 0) & o[score_col].notna()
+    if clean:
+        base_mask &= o["months_negative_6m"].fillna(0) == 0
+    if test_months is not None:
+        base_mask &= o["month"].astype(str).isin(test_months)
+    rows = []
+    for h in horizons:
+        fut = np.zeros(len(o), dtype=bool)
+        for k in range(1, h + 1):
+            fut |= g["breach_entry"].shift(-k).fillna(False).astype(bool).to_numpy()
+        complete = g["min_balance_eur"].shift(-h).notna().to_numpy()
+        mask = base_mask.to_numpy() & (fut | complete)
+        y = pd.Series(fut[mask])
+        rows.append({"h": h, "auc": _auc(y, -o.loc[mask, score_col]), "n": int(mask.sum()), "n_pos": int(y.sum())})
+    return pd.DataFrame(rows).set_index("h")
+
+
+def stability(scored: pd.DataFrame, score_col: str, test_months: list[str] | None = TEST_MONTHS) -> dict:
+    """Spearman entre el score en t y en t−1 (media sobre los meses de test) y cuota de filas cuyo
+    decil dentro del mes cambia ≥ 2 respecto al mes anterior."""
+    o = _sorted(scored)[KEYS + [score_col]].dropna(subset=[score_col]).copy()
+    o["decile"] = np.minimum((o.groupby("month")[score_col].rank(method="first", pct=True) * 10).astype(int), 9)
+    g = o.groupby("company_id", sort=False)
+    o["prev_score"] = g[score_col].shift(1)
+    o["prev_decile"] = g["decile"].shift(1)
+    if test_months is not None:
+        o = o[o["month"].astype(str).isin(test_months)]
+    o = o.dropna(subset=["prev_score"])
+    if o.empty:
+        return {"spearman_month_to_month": float("nan"), "jump_rate_2_deciles": float("nan"), "n": 0}
+    rhos = [d[score_col].corr(d["prev_score"], method="spearman") for _, d in o.groupby("month")]
+    jumps = (o["decile"] - o["prev_decile"]).abs() >= 2
+    return {"spearman_month_to_month": float(np.nanmean(rhos)), "jump_rate_2_deciles": float(jumps.mean()),
+            "n": int(len(o))}
+
+
+def group_kfold_pd6(
+    indexed: pd.DataFrame,
+    groups: pd.Series,
+    ccfg: challenger.ChallengerConfig | None = None,
+    train_until: str = TRAIN_UNTIL,
+    n_splits: int = 5,
+) -> pd.DataFrame:
+    """AUC(6) sobre PD6 por pliegue de grupo: reglas (score ya presente; el ranking no depende del
+    ajuste) y retador reajustado con las filas de train de los otros grupos."""
+    ccfg = ccfg or challenger.ChallengerConfig()
+    o = _sorted(indexed)
+    if "label_pd6" not in o.columns:
+        o = labels.label_pd6(o)
+    grp = o["company_id"].map(groups)
+    if grp.isna().any():
+        raise ValueError("group_kfold_pd6: hay company_id sin grupo")
+    rows = []
+    for fold, (tr, te) in enumerate(GroupKFold(n_splits=n_splits).split(o, groups=grp)):
+        train, test = o.iloc[tr], o.iloc[te]
+        auc_rules = auc_pd6_by_horizon(test, "score", horizons=[6], test_months=None).loc[6, "auc"]
+        try:
+            model = challenger.fit(train, ccfg, train_until)
+        except ValueError:
+            rows.append({"fold": fold, "auc6_rules": float(auc_rules), "auc6_challenger": float("nan"),
+                         "n_test_rows": len(te), "n_train": 0})
+            continue
+        scored = challenger.score(test, model, ccfg)
+        auc_ch = auc_pd6_by_horizon(scored, challenger.SCORE_COL, horizons=[6], test_months=None).loc[6, "auc"]
+        rows.append({"fold": fold, "auc6_rules": float(auc_rules), "auc6_challenger": float(auc_ch),
+                     "n_test_rows": len(te), "n_train": model.n_train})
+    return pd.DataFrame(rows)
+
+
+def _pd6_block(table: pd.DataFrame, strict_table: pd.DataFrame, score_col: str, test_months) -> dict:
+    auc = auc_pd6_by_horizon(table, score_col, test_months=test_months)
+    return {
+        "auc_pd6_by_horizon": {str(h): {"auc": r["auc"], "n": r["n"], "n_pos": r["n_pos"]} for h, r in auc.iterrows()},
+        "auc6_clean": float(auc_pd6_by_horizon(table, score_col, horizons=[6], test_months=test_months, clean=True).loc[6, "auc"]),
+        "auc6_strict": float(auc_pd6_by_horizon(strict_table, score_col, horizons=[6], test_months=test_months).loc[6, "auc"]),
+        "stability": stability(table, score_col, test_months),
+        "auc6_group_kfold": None,
+    }
+
+
+def compare_challenger(
+    scored: pd.DataFrame,
+    groups: pd.Series | None = None,
+    ccfg: challenger.ChallengerConfig | None = None,
+    train_until: str = TRAIN_UNTIL,
+    test_months: list[str] | None = TEST_MONTHS,
+    kinds: tuple[str, ...] = challenger.KINDS,
+) -> tuple[dict, dict[str, challenger.ChallengerModel], pd.DataFrame]:
+    """Reglas vs retadores (`kinds`) sobre la etiqueta PD6, con la regla del plan §4. `scored` es la
+    salida de rules.run (trae score, rangos, índice y nivel). Devuelve (metrics, modelos por tipo,
+    tabla con score_<kind> y pd6_<kind>)."""
+    base = ccfg or challenger.ChallengerConfig()
+    out = labels.label_pd6(scored)
+    metrics: dict = {
+        "train_until": train_until,
+        "test_months": test_months,
+        "label": "breach_entry in (t, t+6], eligible min_balance_eur >= 0 at t, two consecutive negative months",
+        "kinds": list(kinds),
+        "challenger_config": asdict(base),
+        "verdict": {},
+    }
+    models: dict[str, challenger.ChallengerModel] = {}
+    strict_tables: dict[str, pd.DataFrame] = {}
+    for kind in kinds:
+        cfg = challenger.ChallengerConfig(**{**asdict(base), "kind": kind, "strict": False})
+        strict_cfg = challenger.ChallengerConfig(**{**asdict(base), "kind": kind, "strict": True})
+        model = challenger.fit(out, cfg, train_until)
+        strict_model = challenger.fit(out, strict_cfg, train_until)
+        scored_k = challenger.score(out, model, cfg)
+        out[f"pd6_{kind}"] = scored_k["pd6"].to_numpy()
+        out[f"score_{kind}"] = scored_k[challenger.SCORE_COL].to_numpy()
+        strict = out.copy()
+        strict[f"score_{kind}"] = challenger.score(out, strict_model, strict_cfg)[challenger.SCORE_COL].to_numpy()
+        strict_tables[kind] = strict
+        models[kind] = model
+        metrics[kind] = {
+            **_pd6_block(out, strict_tables[kind], f"score_{kind}", test_months),
+            "n_train": model.n_train, "n_pos_train": model.n_pos,
+            "n_train_strict": strict_model.n_train, "n_pos_train_strict": strict_model.n_pos,
+            "feature_importance": model.feature_importance().round(6).to_dict(),
+        }
+    any_strict = next(iter(strict_tables.values())) if strict_tables else out
+    metrics["rules"] = _pd6_block(out, any_strict, "score", test_months)
+    for kind in kinds:
+        gain = float("nan")
+        if groups is not None:
+            cfg = challenger.ChallengerConfig(**{**asdict(base), "kind": kind, "strict": False})
+            gk = group_kfold_pd6(out, groups, cfg, train_until)
+            metrics["rules"]["auc6_group_kfold"] = {"mean": float(gk["auc6_rules"].mean()), "std": float(gk["auc6_rules"].std())}
+            metrics[kind]["auc6_group_kfold"] = {"mean": float(gk["auc6_challenger"].mean()), "std": float(gk["auc6_challenger"].std())}
+            metrics[kind]["group_kfold_folds"] = gk.to_dict(orient="records")
+            gain = float(gk["auc6_challenger"].mean() - gk["auc6_rules"].mean())
+        jump = metrics[kind]["stability"]["jump_rate_2_deciles"]
+        wins = bool(gain == gain and gain >= 0.03 and jump == jump and jump < 0.12)  # x == x descarta NaN
+        metrics["verdict"][kind] = {
+            "gain_auc6_groupkfold": gain,
+            "jump_rate_challenger": jump,
+            "rule": "gain >= 0.03 and jump_rate < 0.12 (plan §4, auditoría §8 W2.2)",
+            "challenger_wins": wins,
+        }
+    return metrics, models, out
+
+
 def run_all(
     feats: pd.DataFrame,
     events_ext: pd.DataFrame | None = None,
@@ -579,6 +740,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out-dir", default=str(artifacts_dir() / "evals"))
     ap.add_argument("--name", default="rules")
     ap.add_argument("--train-until", default=TRAIN_UNTIL)
+    ap.add_argument("--challenger", action="store_true",
+                    help="ajusta los retadores (GBM monótono y scorecard logístico) sobre PD6 y los compara "
+                         "con las reglas (metrics.json['challenger'])")
     args = ap.parse_args(argv)
 
     feats_path = Path(args.features)
@@ -606,12 +770,30 @@ def main(argv: list[str] | None = None) -> int:
         if groups.isna().any():
             groups = None
 
-    metrics, model, _ = run_all(feats, events_ext=events_ext, groups=groups, train_until=args.train_until)
+    metrics, model, scored = run_all(feats, events_ext=events_ext, groups=groups, train_until=args.train_until)
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     write_metrics(metrics, args.name, out_dir / "metrics.json")
     model.save(out_dir / f"{args.name}_model.json")
     _print_summary(args.name, _clean(metrics))
+    if args.challenger:
+        try:
+            cm, cmodels, _ = compare_challenger(scored, groups=groups, train_until=args.train_until)
+        except ValueError as exc:
+            print(f"[challenger] omitido: {exc}")
+        else:
+            write_metrics(cm, "challenger", out_dir / "metrics.json")
+            for kind, cmodel in cmodels.items():
+                cmodel.save(out_dir / f"challenger_{kind}.joblib")
+            r = cm["rules"]
+            print(f"[challenger] AUC(6) PD6 test: reglas {r['auc_pd6_by_horizon']['6']['auc']:.3f} "
+                  f"(limpio {r['auc6_clean']:.3f}, estricto {r['auc6_strict']:.3f}, "
+                  f"saltos {r['stability']['jump_rate_2_deciles']:.1%})")
+            for kind in cm["kinds"]:
+                c = cm[kind]
+                print(f"[challenger] {kind}: AUC(6) {c['auc_pd6_by_horizon']['6']['auc']:.3f} "
+                      f"(limpio {c['auc6_clean']:.3f}, estricto {c['auc6_strict']:.3f}, "
+                      f"saltos {c['stability']['jump_rate_2_deciles']:.1%}) · veredicto {cm['verdict'][kind]}")
     print(f"-> {out_dir / 'metrics.json'} · {out_dir / f'{args.name}_model.json'}")
     return 0
 

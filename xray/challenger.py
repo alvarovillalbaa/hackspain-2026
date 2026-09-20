@@ -73,15 +73,15 @@ def _month_plus(month: pd.Series, k: int) -> pd.Series:
 
 def design_matrix(indexed: pd.DataFrame) -> pd.DataFrame:
     """Matriz de diseño con las columnas de FEATURES, en float y con NaN donde falte cobertura."""
-    x = pd.DataFrame(index=indexed.index)
+    cols: dict[str, np.ndarray] = {}
     for col in FEATURES:
         if col == "momentum":
-            x[col] = indexed["state_index"] - indexed["level"]
+            cols[col] = (indexed["state_index"] - indexed["level"]).to_numpy(dtype=float)
         elif col == "log_outflows":
-            x[col] = np.log1p(pd.to_numeric(indexed["outflows_eur"], errors="coerce").clip(lower=0))
+            cols[col] = np.log1p(pd.to_numeric(indexed["outflows_eur"], errors="coerce").clip(lower=0).to_numpy(dtype=float))
         else:
-            x[col] = pd.to_numeric(indexed[col], errors="coerce")
-    return x.astype(float)
+            cols[col] = pd.to_numeric(indexed[col], errors="coerce").to_numpy(dtype=float)
+    return pd.DataFrame(cols, index=indexed.index)
 
 
 @dataclass
@@ -168,9 +168,13 @@ def fit(indexed: pd.DataFrame, cfg: ChallengerConfig | None = None, train_until:
 
 def smooth(indexed: pd.DataFrame, col: str, window: int) -> pd.Series:
     """Media móvil por empresa de los últimos `window` meses disponibles; alineada al índice."""
-    o = indexed.sort_values(KEYS)
-    s = o.groupby("company_id", sort=False)[col].transform(lambda v: v.rolling(window, min_periods=1).mean())
-    return s.reindex(indexed.index)
+    tmp = indexed[KEYS + [col]].reset_index(drop=True)
+    tmp["_pos"] = np.arange(len(tmp))
+    tmp = tmp.sort_values(KEYS)
+    sm = tmp.groupby("company_id", sort=False)[col].transform(lambda v: v.rolling(window, min_periods=1).mean())
+    result = np.empty(len(tmp), dtype=float)
+    result[tmp["_pos"].to_numpy()] = sm.to_numpy()
+    return pd.Series(result, index=indexed.index)
 
 
 def score(indexed: pd.DataFrame, model: ChallengerModel, cfg: ChallengerConfig | None = None) -> pd.DataFrame:

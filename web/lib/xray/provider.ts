@@ -2,7 +2,6 @@ import type { CompanySummary } from "./company-summary";
 import type { GroupScore } from "./group-score";
 import type { GroupSummary } from "./group-summary";
 import type { PeerCohort } from "./peers";
-import type { BookProduct } from "./book-products";
 import type { PortfolioAction } from "./portfolio-actions";
 import type { CashHistoryPoint } from "./cash-history";
 import type {
@@ -37,8 +36,6 @@ export interface XrayProvider {
   listActions(companyId: string): Promise<ActionRecommendation[]>;
   /** Portfolio-wide grounded actions (no Eve fan-out). */
   listPortfolioActions(): Promise<PortfolioAction[]>;
-  /** Live debt book + accepted deals. */
-  listBookProducts(): Promise<BookProduct[]>;
   listProducts(
     companyId: string,
     actionId: string,

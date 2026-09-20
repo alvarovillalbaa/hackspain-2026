@@ -9,7 +9,6 @@ import {
   ListTodo,
   Settings,
   Users,
-  Wallet,
 } from "lucide-react";
 import {
   Command,
@@ -100,14 +99,6 @@ const PAGES: Extract<SearchHit, { kind: "page" }>[] = [
   },
   {
     kind: "page",
-    id: "page-productos",
-    value: "productos deuda libro",
-    title: "Productos",
-    href: "/productos",
-    description: "Libro de deuda y deals",
-  },
-  {
-    kind: "page",
     id: "page-ajustes",
     value: "ajustes settings slack",
     title: "Ajustes",
@@ -149,8 +140,6 @@ function hitIcon(hit: SearchHit) {
       return Building2;
     case "page-acciones":
       return ListTodo;
-    case "page-productos":
-      return Wallet;
     case "page-ajustes":
       return Settings;
     default:

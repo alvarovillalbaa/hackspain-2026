@@ -22,4 +22,6 @@ La validación AFS canónica pasó el perfil docs con el propietario `c0173467b8
 
 Se leyeron AGENTS raíz y web, el mapa y guías relevantes; se inspeccionaron metadatos, agendas y estados de las investigaciones originales. Se reutilizaron las capacidades instaladas Engineering/code-documentation y use-afs con el contrato actual del usuario. Esto no declara ingestión ni una nueva revisión de toda la literatura citada.
 
-No se ejecutaron tests Python/web, build, typecheck amplio, servidor ni navegador. No hay cambios de dependencias, auth, infra, CI, prompts, dataset o contratos generados; no se valida despliegue, demo, aceptación del equipo ni vigencia de métricas.
+No se ejecutaron tests Python/web locales, build, typecheck amplio, servidor ni navegador. No hay cambios de dependencias, auth, infra, CI, prompts, dataset o contratos generados; no se valida despliegue, demo, aceptación del equipo ni vigencia de métricas.
+
+La [lectura de CI alojado](afs-hosted-ci.json) fija el commit de migración `13504c1`: web pasó; Python terminó con 285 tests pasados, uno omitido y uno deseleccionado, pero falló el umbral de cobertura (89,46% frente a 90%). El log del baseline `05e6062` contiene las mismas cifras y el mismo fallo; no se rebajó el gate ni se alteró código para corregir una condición heredada. Solo se consultaron jobs completados, sin relanzarlos. El recibo no atribuye este resultado a commits de evidencia posteriores.

@@ -1,1 +1,2 @@
 - AFS: reorganiza documentación por propietario y fecha, preserva intake original en Drive y define cinco unidades de investigación; [evidencia](../../../audits/2026/10-10/afs-contract.md).
+- CI alojado: web pasó y Python conserva el fallo de cobertura del baseline (89,46% < 90%, 285 tests pasados); [recibo por commit](../../../audits/2026/10-10/afs-hosted-ci.json).

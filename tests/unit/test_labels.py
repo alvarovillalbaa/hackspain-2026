@@ -1,4 +1,4 @@
-"""Tests de xray.labels al seam: dada una tabla, el resultado esperado (docs/rules_spec.md §2–§4)."""
+"""Tests de xray.labels al seam: dada una tabla, el resultado esperado (docs/specs/rules-spec.md §2–§4)."""
 
 import numpy as np
 import pandas as pd
@@ -197,7 +197,7 @@ def test_label_t6_does_not_cross_companies():
     assert out.loc[0, "label_t6"] == pytest.approx(0.5)
 
 
-# --- PD6: rotura de caja en euros (docs/research/revision-objetivo-score.md §3) ---------------
+# --- PD6: rotura de caja en euros (docs/research/objetivo-pd6/evidence/2026-09-19.md §3) ---------------
 
 
 def _fixture_company(name: str) -> pd.DataFrame:

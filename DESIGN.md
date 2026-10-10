@@ -147,7 +147,7 @@ X Ray vive hoy sobre el chrome Embat (`web/components/embat/`): tema claro, tipo
 
 El tono visual es sobrio y de lectura tranquila: nada de degradados, glassmorphism ni elevaciones dramáticas. Los números son tabulares (`tabular-nums`) para que las columnas no bailen; las etiquetas de sección van en 14 px, los rótulos de dato en 12 px y los encabezados de página en Inter Display 20 px. Los radios son generosos (la escala arranca en 1 rem), así que la forma dominante es la tarjeta redondeada de borde fino, no el bloque duro.
 
-El chrome de producto es claro por defecto: el bloque `.embat-ui` fuerza fondo blanco, tinta negra y borde `#dce0e6` incluso si la app entra en modo oscuro, de modo que las pantallas del score no tienen una variante nocturna real. `docs/frontend_v0.md` y el look shadcn/Geist de `components/xray/*` (cards muy redondeadas, fuentes de plantilla) son el anti-referente histórico, no el sistema vigente.
+El chrome de producto es claro por defecto: el bloque `.embat-ui` fuerza fondo blanco, tinta negra y borde `#dce0e6` incluso si la app entra en modo oscuro, de modo que las pantallas del score no tienen una variante nocturna real. `docs/specs/frontend-v0.md` y el look shadcn/Geist de `components/xray/*` (cards muy redondeadas, fuentes de plantilla) son el anti-referente histórico, no el sistema vigente.
 
 **Key Characteristics:**
 - Un solo acento: verde `#146c43`; el color restante es semántico (positivo / estable / negativo / aviso).
@@ -187,7 +187,7 @@ Paleta clara y de bajo croma: blanco de lienzo, un verde de marca y una familia 
 **The Word-Before-Color Rule.** Un color de estado nunca viaja solo: todo chip de outlook, banda o delta lleva su etiqueta textual encima. Es un requisito de accesibilidad del producto, no una preferencia.
 
 ### Inconsistencies
-- `web/components/embat/anticipacion.tsx:52` fija `#11a8ff` (cian) en un chip, mientras el token primario vivo es `#146c43`. `docs/frontend_v0.md` sigue documentando el cian como acento; hoy es un residuo fuera de la ficha.
+- `web/components/embat/anticipacion.tsx:52` fija `#11a8ff` (cian) en un chip, mientras el token primario vivo es `#146c43`. `docs/specs/frontend-v0.md` sigue documentando el cian como acento; hoy es un residuo fuera de la ficha.
 - Dos grises casi idénticos conviven sin criterio explícito: `#666666` (muted-foreground) y `#6b6b6b` (rótulos de tarjeta / ticks de gráfico).
 - `#ef8000` y `#eb002b` existen solo como hex sueltos en `ficha.tsx`; no tienen token.
 
@@ -240,7 +240,7 @@ La forma dominante es la tarjeta rectangular de esquinas redondeadas y borde fin
 Los bordes son siempre de 1 px y del mismo `#dce0e6`. Los pocos elementos circulares son funcionales: avatar `rounded-full`, puntos de confianza `size-1.5 rounded-full`, barras de progreso `rounded-full`. Hay radios diminutos explícitos en enlaces (`rounded-[2px]`) y en las puntas de las barras de benchmark (`[0,4,4,0]`).
 
 ### Named Rules
-**The One-Rem Radius Rule.** Los radios no se eligen por instinto de Tailwind: se derivan del `--radius` del chrome (1 rem). Cualquier valor "de librería" (4 px, 8 px) contradice el sistema; `docs/frontend_v0.md` todavía describe «radio 4px», que es herencia.
+**The One-Rem Radius Rule.** Los radios no se eligen por instinto de Tailwind: se derivan del `--radius` del chrome (1 rem). Cualquier valor "de librería" (4 px, 8 px) contradice el sistema; `docs/specs/frontend-v0.md` todavía describe «radio 4px», que es herencia.
 
 ### Inconsistencies
 - El diálogo base usa `rounded-4xl` (41,6 px) mientras las tarjetas usan `rounded-2xl` (28,8 px); la diferencia no responde a una regla escrita.
@@ -301,8 +301,8 @@ Voz confirmada (20 sep 2026): sobrio, preciso, tranquilo. Un rojo se explica, no
 - **Do** buscar cada cifra en el fact pack, un tool o el ingest: el LLM redacta, no calcula.
 
 ### Don't:
-- **Don't** reintroducir el cian `#11a8ff` como primario (residuo en `anticipacion.tsx`; `docs/frontend_v0.md` está desactualizado).
-- **Don't** usar los radios "de librería" (4 px / 8 px) que describe `docs/frontend_v0.md`: son el anti-referente de la plantilla.
+- **Don't** reintroducir el cian `#11a8ff` como primario (residuo en `anticipacion.tsx`; `docs/specs/frontend-v0.md` está desactualizado).
+- **Don't** usar los radios "de librería" (4 px / 8 px) que describe `docs/specs/frontend-v0.md`: son el anti-referente de la plantilla.
 - **Don't** revivir el look shadcn/Geist de `components/xray/*` (cards muy redondeadas, fuentes de plantilla) como identidad de producto.
 - **Don't** introducir un segundo acento decorativo, degradados, glassmorphism ni sombras apiladas.
 - **Don't** presentar empresas sintéticas como reales ni insinuar que el score es una probabilidad de impago.

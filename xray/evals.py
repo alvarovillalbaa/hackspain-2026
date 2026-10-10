@@ -1,4 +1,4 @@
-"""Evaluación compartida del score (slices #15 y #4). Especificación: docs/rules_spec.md §8.
+"""Evaluación compartida del score (slices #15 y #4). Especificación: docs/specs/rules-spec.md §8.
 
 Las mismas métricas para el score por reglas y para el modelo GBM, escritas en un único
 `metrics.json` con una clave por modelo, para que la comparación del sábado 18:00 sea un diff.
@@ -387,7 +387,7 @@ def group_kfold_auc6(
 def reliability(
     scored: pd.DataFrame, test_months: list[str] | None = TEST_MONTHS, n_bins: int = 10
 ) -> dict:
-    """Dos tablas por deciles sobre las filas con score y etiqueta (docs/model_card.md §4 y §5).
+    """Dos tablas por deciles sobre las filas con score y etiqueta (docs/references/model-card.md §4 y §5).
 
     `by_score_decile`: score medio frente a etiqueta realizada media (×100). Si el mapa está
     calibrado fuera de train, las dos columnas coinciden salvo ruido; `mean_abs_gap` es el desvío
@@ -730,7 +730,7 @@ def main(argv: list[str] | None = None) -> int:
     # consola cp1252 de Windows: UTF-8 para separadores y flechas de los resúmenes
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    ap = argparse.ArgumentParser(prog="xray-evals", description="Evals del score por reglas (docs/rules_spec.md §8)")
+    ap = argparse.ArgumentParser(prog="xray-evals", description="Evals del score por reglas (docs/specs/rules-spec.md §8)")
     ap.add_argument("--features", default=str(artifacts_dir() / "features.parquet"), help="tabla del contrato (parquet o csv)")
     ap.add_argument("--events", default=None, help="events_ext csv (company_id, month, kind); opcional")
     ap.add_argument("--events-from-data", action="store_true",
@@ -746,7 +746,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--tune", action="store_true",
                     help="aprende pesos y ventana del índice por CV anidada (GroupKFold en train) y los "
                          "compara en test con producción; escribe metrics.json['tune'] (docs/research/"
-                         "2026-09-20-pesos-por-cv.md)")
+                         "pesos-cv/evidence/2026-09-20.md)")
     args = ap.parse_args(argv)
 
     feats_path = Path(args.features)

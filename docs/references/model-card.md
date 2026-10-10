@@ -4,21 +4,21 @@ Last updated: 2026-09-20
 
 > Escrita el sábado 19 sep 2026 (noche) por ML-2. Describe el score por reglas calibradas **tal y como está en `main`**, medido sobre la tabla real (`artifacts/features.parquet`: 21.423 filas, 1.265 empresas, 2024-09 → 2026-08) y el modelo `artifacts/scores/rules_model.json` (mapa ajustado hasta 2025-08 sobre 7.777 filas, 135 nudos, corte de lead time 39,8). Todo se regenera con `uv run xray-features && uv run xray-score && uv run xray-evals`; si esas cifras cambian, cambia esta ficha en el mismo PR.
 >
-> No repite la especificación: [rules_spec.md](rules_spec.md) tiene cada parámetro y [MODEL_toni.md](MODEL_toni.md) la versión sin tecnicismos. Esta ficha reúne lo que no estaba escrito en ningún sitio: **qué asumimos, por qué, cómo lo comprobamos y qué lo rompería**, y la calibración con sus números.
+> No repite la especificación: [rules_spec.md](../specs/rules-spec.md) tiene cada parámetro y [MODEL_toni.md](score-explained.md) la versión sin tecnicismos. Esta ficha reúne lo que no estaba escrito en ningún sitio: **qué asumimos, por qué, cómo lo comprobamos y qué lo rompería**, y la calibración con sus números.
 
 ## 1. Qué significa el número
 
 - `score` es **la posición media que las empresas que hoy están como esta ocuparon, entre sus pares, durante los seis meses siguientes**, en escala 0–100. Es una esperanza calibrada sobre el pasado del propio dataset, no una probabilidad de impago ni un umbral en euros.
 - Es **relativo**: todo empieza por el rango percentil de cada señal dentro del mes. Un 51 dice «como el percentil 51 de la cartera», no «51 días de caja».
-- Es **un pronóstico de persistencia**: en este dataset el estado dura (P(mes rojo en t+6 | rojo hoy) = 54 % frente a 12 % de base) pero ninguna señal adelanta a otra ([plan.md](plan.md) §5). El score dice hacia dónde apunta la empresa si su estado persiste con la reversión a la media que se observa; no detecta patrones ocultos.
+- Es **un pronóstico de persistencia**: en este dataset el estado dura (P(mes rojo en t+6 | rojo hoy) = 54 % frente a 12 % de base) pero ninguna señal adelanta a otra ([plan.md](../plans/2026/09-18/xray-hackathon.md) §5). El score dice hacia dónde apunta la empresa si su estado persiste con la reversión a la media que se observa; no detecta patrones ocultos.
 - El **orden** de las empresas por score es exactamente el orden por nivel (§4). Lo aprendido solo cambia la escala.
-- Lo que acompaña al número (`outlook`, `trend`, `watch`, `confidence`) no lo toca; son capas de lectura ([rules_spec.md](rules_spec.md) §6).
+- Lo que acompaña al número (`outlook`, `trend`, `watch`, `confidence`) no lo toca; son capas de lectura ([rules_spec.md](../specs/rules-spec.md) §6).
 
 ## 2. Entradas y condiciones de validez
 
 | Condición | De dónde sale | Qué pasa si no se cumple |
 |---|---|---|
-| Tabla `features(company_id, month)` conforme al contrato, validada con `features.validate()` | [features_seam.md](features_seam.md) | `validate()` lanza `ValueError`; nada se puntúa |
+| Tabla `features(company_id, month)` conforme al contrato, validada con `features.validate()` | [features_seam.md](../specs/features-seam.md) | `validate()` lanza `ValueError`; nada se puntúa |
 | **Sin huecos** dentro del rango activo de cada empresa | `features.build()` crea la fila con flujos 0 y saldo arrastrado | La etiqueta y el nivel desplazan por fila, no por calendario: con huecos, «t+6» dejaría de ser seis meses |
 | La tabla termina en el **último mes completo** (2026-08) | `features.build()`; 2026-09 tiene un día | Un mes parcial ranqueado como entero hunde a todas las empresas ese mes |
 | Lo que no existe es **NaN, nunca 0** (sin deuda → sin DSCR) | Contrato §1 | Un 0 se ranquearía como «lo peor del mes» |
@@ -28,7 +28,7 @@ Last updated: 2026-09-20
 
 ## 3. Cómo se calcula, en seis pasos
 
-Cada paso es una función; los parámetros están en `RulesConfig` ([xray/rules.py](../xray/rules.py)) y su valor por defecto es el acordado en [rules_spec.md](rules_spec.md).
+Cada paso es una función; los parámetros están en `RulesConfig` ([xray/rules.py](../../xray/rules.py)) y su valor por defecto es el acordado en [rules_spec.md](../specs/rules-spec.md).
 
 | Paso | Función | Qué hace | Parámetro |
 |---|---|---|---|
@@ -74,11 +74,11 @@ Desvío medio 0,9 puntos por decil; el mayor, 3,1 en el decil más sano, donde e
 |---|---|---|---|---|
 | 1 | **A más nivel hoy, nunca peor etiqueta media.** Es la única restricción del mapa. | Es lo que hace legible un rating (mejor grado nunca significa peor futuro esperado); y el estado persiste (autocorrelación 0,7–0,8; P(rojo t+6 \| rojo) 54 % frente a 12 %): la persistencia tira hacia la posición de hoy y la reversión a la media comprime pero no invierte | `evals.reliability["by_level_decile"]`: etiqueta media por decil de nivel **sin suavizar**. Hoy sube en los 9 escalones (25,4 → 70,0); con 50 tramos aparecen 14 bajadas de −0,024 como máximo en unidades de etiqueta, del tamaño del ruido de un tramo (±0,008) | Una señal que fuese malsana en los dos extremos (p. ej. caja ociosa como síntoma de cierre). Se vería como una bajada en la tabla cruda mayor que su ruido; entonces se revisa el supuesto, no se impone |
 | 2 | **El futuro se parece al año de train.** El mapa se ajusta hasta 2025-08 y se aplica después | No hay alternativa con 24 meses de datos; el split temporal es la prueba | Tabla de fiabilidad en test (§4): desvío 0,9 pts | Un cambio de régimen en la cartera. Se vería como una brecha sistemática en la tabla, sobre todo en los deciles extremos |
-| 3 | **La posición dentro del mes es la medida correcta**, no los euros | Compara tamaños distintos; y la reconstrucción del saldo **deriva** hacia la foto final (10 % → 2 % de cuentas en negativo; [plan.md](plan.md) §5): los euros del pasado están sesgados, los rangos no | Notebook 01 §9; AUC externa contra el saldo bruto 0,685 | Que Embat entregue saldos históricos reales: entonces los euros vuelven a ser candidatos a señal |
+| 3 | **La posición dentro del mes es la medida correcta**, no los euros | Compara tamaños distintos; y la reconstrucción del saldo **deriva** hacia la foto final (10 % → 2 % de cuentas en negativo; [plan.md](../plans/2026/09-18/xray-hackathon.md) §5): los euros del pasado están sesgados, los rangos no | Notebook 01 §9; AUC externa contra el saldo bruto 0,685 | Que Embat entregue saldos históricos reales: entonces los euros vuelven a ser candidatos a señal |
 | 4 | **El 20 % de cada señal está en rojo cada mes, por construcción** | Umbral relativo robusto a la deriva; los umbrales absolutos de la literatura no se trasladan a este dataset (mediana 12 días de caja; 35 % de meses con vencidas > 0,5) | Recuento de eventos con umbrales absolutos como diagnóstico (302 frente a 379) | Un empeoramiento agregado de toda la cartera es invisible para el score; en pantalla se enseñan los euros para eso |
 | 5 | **Mes rojo = 2 señales, evento = 2 meses seguidos** | Separa bache de deterioro (plan §2); 2 síntomas persistentes que coinciden | Las banderas co-ocurren a 0,9–1,8× de la independencia; la tasa de mes rojo sube con `n_signals` (5,9 % con 2 → 17,1 % con 4) | Que la cobertura de señales cambie mucho entre subpoblaciones: la alternativa anotada es rojo por cuantil del índice dentro de (mes, `n_signals`) |
 | 6 | **Sin huecos y hasta el último mes completo** | Garantías de `features.build()` (§2) | `features.validate()` y `tests/test_features_build.py` | Una tabla construida por otro camino |
-| 7 | **Los pesos del índice vienen de la evidencia, no del ajuste** (0,35 / 0,25 / 0,20 / 0,20) | Orden de la literatura ([investigacion_score.md](investigacion_score.md) §7); pesos iguales pierden 0,008 de AUC(6) | rules_spec §10 | Si se calibraran, la dispersión por grupos pasaría a medir generalización y haría falta validarla |
+| 7 | **Los pesos del índice vienen de la evidencia, no del ajuste** (0,35 / 0,25 / 0,20 / 0,20) | Orden de la literatura ([investigacion_score.md](../research/financiabilidad/evidence/2026-09-18.md) §7); pesos iguales pierden 0,008 de AUC(6) | rules_spec §10 | Si se calibraran, la dispersión por grupos pasaría a medir generalización y haría falta validarla |
 | 8 | **El nivel promedia los mismos meses que la etiqueta** (`level_window == horizon`) | Es lo que convierte al score en E[nivel a t+6] y hace leíble la proyección | Test de identidad en `tests/test_rules.py` | Cambiar una ventana sin la otra |
 | 9 | **Las empresas nuevas se comparan con la referencia de su mes**, no entre ellas | Una copia de una empresa de referencia debe obtener su misma puntuación | `tests/test_score.py` | Un mes futuro sin referencia usa el más cercano; hay que decirlo en pantalla |
 | 10 | **Los datos sintéticos contienen persistencia pero no adelanto** entre señales | Medido el 18 sep: Spearman entre señales a 3 meses \|ρ\| ≤ 0,14; dentro de empresa ≈ 0 | plan §5; AUC(h) plana con h (0,72 → 0,71) | Datos reales de Embat con adelanto: el modelo retador (GBM) tendría entonces algo que aprender |
@@ -103,13 +103,13 @@ Fuente: `artifacts/evals/metrics.json` (`uv run xray-evals`). Lo que sale mal se
 
 ## 7. Limitaciones conocidas y decisiones abiertas
 
-- **Circularidad**: etiqueta y score son el mismo objeto de rangos, suavizado. Contar las banderas de hoy da la misma AUC que el score (0,71), y la curva AUC(h) no decae con el horizonte. [revision_objetivo_score.md](revision_objetivo_score.md) propone calibrar a la probabilidad de rotura de caja en euros (PD a 6 meses) y anclar las bandas a ella. Pendiente del equipo; si se acepta cambian §1 y §4 de esta ficha, no los pasos 1–5.
+- **Circularidad**: etiqueta y score son el mismo objeto de rangos, suavizado. Contar las banderas de hoy da la misma AUC que el score (0,71), y la curva AUC(h) no decae con el horizonte. [revision_objetivo_score.md](../research/objetivo-pd6/evidence/2026-09-19.md) propone calibrar a la probabilidad de rotura de caja en euros (PD a 6 meses) y anclar las bandas a ella. Pendiente del equipo; si se acepta cambian §1 y §4 de esta ficha, no los pasos 1–5.
 - **Relativo por construcción**: no puede decir que toda la cartera empeora.
 - **Primer mes de historia**: suele ser parcial y produce el 26 % de los eventos, no anticipables. Pendiente: empezar la tabla en el primer mes completo, como ya termina en el último.
 - **Bandas** (slice #5) aún no existen; el watch ya sale de `xray/events.py` pero solo cubre lo que los CSV ven: `large_maturity` necesita cuadro de amortización (87 contratos) y `expensive_new_debt` necesita contrato con tipo.
 - **Cobertura**: sin facturas no hay señal de vencidas, sin deuda no hay DSCR; el 31 % de las filas tiene `confidence = low`.
 - **Un solo mapa global**: no hay mapas por tamaño ni por grupo; la dispersión 0,69 ± 0,05 dice cuánto varía el acierto entre subpoblaciones.
-- **Retadores medidos (20 sep 2026)**: sobre la etiqueta PD6 de rotura de caja (`labels.label_pd6`), AUC(6) en test reglas 0,716 · scorecard logístico de 7 variables 0,756 · GBM monótono 0,773; en GroupKFold +0,02 los dos, por debajo del 0,03 del plan §4, así que las reglas se quedan. El scorecard es el candidato explicable y calibrado si el equipo adopta PD6 (`xray/challenger.py`, `xray-evals --challenger`); detalle en [../research/2026-09-20-retador-gbm-pd6.md](../research/2026-09-20-retador-gbm-pd6.md). El score publicado no cambia.
+- **Retadores medidos (20 sep 2026)**: sobre la etiqueta PD6 de rotura de caja (`labels.label_pd6`), AUC(6) en test reglas 0,716 · scorecard logístico de 7 variables 0,756 · GBM monótono 0,773; en GroupKFold +0,02 los dos, por debajo del 0,03 del plan §4, así que las reglas se quedan. El scorecard es el candidato explicable y calibrado si el equipo adopta PD6 (`xray/challenger.py`, `xray-evals --challenger`); detalle en [../research/2026-09-20-retador-gbm-pd6.md](../research/retadores-pd6/evidence/2026-09-20.md). El score publicado no cambia.
 
 ## 8. Qué modelo describe esta ficha y cuándo actualizarla
 
@@ -121,4 +121,4 @@ Fuente: `artifacts/evals/metrics.json` (`uv run xray-evals`). Lo que sale mal se
 | `lead_cutoff` | 39,8 | lead time en §6 |
 | `rank_profile` | 24 meses × 4 señales | supuesto 9 |
 
-Regla: cualquier PR que toque `xray/labels.py`, `xray/rules.py`, `xray/features.py` o las señales del contrato vuelve a correr `xray-evals`, pega aquí los números nuevos y anota la fecha en la cabecera. Las decisiones con fecha siguen en [rules_spec.md](rules_spec.md) §11 y [plan.md](plan.md); esta ficha solo describe el estado.
+Regla: cualquier PR que toque `xray/labels.py`, `xray/rules.py`, `xray/features.py` o las señales del contrato vuelve a correr `xray-evals`, pega aquí los números nuevos y anota la fecha en la cabecera. Las decisiones con fecha siguen en [rules_spec.md](../specs/rules-spec.md) §11 y [plan.md](../plans/2026/09-18/xray-hackathon.md); esta ficha solo describe el estado.

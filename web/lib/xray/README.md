@@ -22,4 +22,4 @@ No pongas aquí el mapa isotónico (eso es Python). No dejes que el LLM emita un
 
 Si cambias un campo del snapshot: el mismo commit toca `records_from_scored` (Python), `snapshotFromExported` y Zod.
 
-Tests: `web/tests/unit/lib/xray/`. Runtime: [`../docs/audits/2026-09-20-auditoria-plataforma.md`](../../../docs/audits/2026-09-20-auditoria-plataforma.md).
+Tests: `web/tests/unit/lib/xray/`. Runtime: [`../../../docs/audits/2026/09-20/auditoria-plataforma.md`](../../../docs/audits/2026/09-20/auditoria-plataforma.md).

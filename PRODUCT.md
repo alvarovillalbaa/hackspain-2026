@@ -10,7 +10,7 @@ web
 
 Usuario principal (confirmado 19 sep 2026): el **gestor financiero de la pyme** — el CFO, director financiero o el propio dueño que lleva la tesorería. Tiene 24 meses de movimientos, facturas y deuda cargados en Embat y quiere saber cómo estará su caja dentro de seis meses, por qué, y si le conviene pedir financiación o refinanciar la que tiene. No es analista: lee un score y una tendencia, no una tabla de features.
 
-El asesor de Embat **ya no es usuario** (decisión del 19 sep): Embat es el canal y el comprador del módulo, no quien mira la pantalla. El código y `docs/frontend_v0.md` todavía hablan de «consola del asesor»; esa vocabulario es heredado, no la intención actual.
+El asesor de Embat **ya no es usuario** (decisión del 19 sep): Embat es el canal y el comprador del módulo, no quien mira la pantalla. El código y `docs/specs/frontend-v0.md` todavía hablan de «consola del asesor»; esa vocabulario es heredado, no la intención actual.
 
 El jurado de HackSpain 2026 es la audiencia de la demo: debe entender el score en tres minutos sin conocer el dataset.
 
@@ -53,9 +53,9 @@ Decisión **abierta** (no tomada): convertir el marketplace en un *marketmaker* 
 
 ## Evidence on Hand
 
-- Métricas reales del método en el fact pack (`metrics.json`, panel «Cómo anticipa el score»): meses de antelación, persistencia a 6 meses, acierto de orden (AUC), cobertura del abanico, eficacia del watch. Respaldo en `docs/model_card.md` y `docs/auditoria_health_score.md`.
+- Métricas reales del método en el fact pack (`metrics.json`, panel «Cómo anticipa el score»): meses de antelación, persistencia a 6 meses, acierto de orden (AUC), cobertura del abanico, eficacia del watch. Respaldo en `docs/references/model-card.md` y `docs/audits/2026/09-20/auditoria-health-score.md`.
 - Catálogo de productos de financiación: `product_catalog.json` (único inventario de ofertas; el subagente `offering` cotiza sobre él, no inventa productos).
-- Explicación sin tecnicismos: `docs/MODEL_toni.md`, `docs/sistema_en_cinco_figuras.html`.
+- Explicación sin tecnicismos: `docs/references/score-explained.md`, `docs/results/2026/09-19/sistema_en_cinco_figuras.html`.
 - **No hay** testimonios, clientes reales, logos de entidades ni cifras de negocio: no fabricarlos. Las empresas son sintéticas y no deben presentarse como reales.
 
 ## Product Principles

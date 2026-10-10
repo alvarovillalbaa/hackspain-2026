@@ -8,7 +8,7 @@ PD6 (`labels.label_pd6`). Los elegidos se evalúan una sola vez en test, junto a
 bootstrap pareado por empresa.
 
 Uso: `uv run xray-evals --features artifacts/features.parquet --tune`.
-Referencia del protocolo: `docs/research/2026-09-20-pesos-por-cv.md`.
+Referencia del protocolo: `docs/research/pesos-cv/evidence/2026-09-20.md`.
 """
 
 from __future__ import annotations

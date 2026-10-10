@@ -15,7 +15,7 @@ Last updated: 2026-09-20
 
 Models: Helmcode ficha `glm5.3` · flash `deepseek-v4-flash`. Gateway ficha `openai/gpt-5.6-luna` · flash `openai/gpt-5.6-luna-fast`.
 
-Code: [`web/lib/ai/provider.ts`](../web/lib/ai/provider.ts). Eve re-exports via [`web/agent/lib/model.ts`](../web/agent/lib/model.ts).
+Code: [`web/lib/ai/provider.ts`](../../web/lib/ai/provider.ts). Eve re-exports via [`web/agent/lib/model.ts`](../../web/agent/lib/model.ts).
 
 **Vercel:** set `OPENAI_API_KEY` for Eve quality. Keep Gateway (OIDC or `AI_GATEWAY_API_KEY`) so explain/simple calls can fail over to Helmcode. Gateway alone still boots both stacks (Eve then uses Gateway with no retry).
 
@@ -55,7 +55,7 @@ HTTP recommend stages: root → `financing_finale` → stage child. HTTP actions
 | 200 with nothing to show | card/page `EmptyState` |
 | AI route failed (missing key, Eve throw, invented numbers) | **4xx/5xx** — no echo / no engine-as-success |
 
-Primitives: [`web/components/xray/feedback-state.tsx`](../web/components/xray/feedback-state.tsx).
+Primitives: [`web/components/xray/feedback-state.tsx`](../../web/components/xray/feedback-state.tsx).
 
 Deterministic marketplace (`deterministicMarketplace`) remains for tests / `npm run warm:recommendations` only — live `POST /api/xray/recommend` returns **504** on timeout and **502** if Eve fails otherwise.
 

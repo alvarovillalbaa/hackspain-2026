@@ -366,7 +366,7 @@ Es decir: reajustar el mapa quitando un grupo no puede reordenar a las empresas,
 monótona conserva el orden y el AUC solo depende del orden. Lo que cambia entre pliegues es **qué
 empresas** se evalúan. Medido para las reglas: dispersión por grupos 0,69 ± 0,05 sobre la etiqueta
 externa (`docs/specs/rules-spec.md` §11) y 0,734 ± 0,022 sobre PD6
-(`docs/research/2026-09-20-retador-gbm-pd6.md` §2). El `metrics.json` lo guarda bajo
+(`docs/research/retadores-pd6/evidence/2026-09-20.md` §2). El `metrics.json` lo guarda bajo
 `auc6_group_dispersion` con esa misma nota.
 
 **3. El bootstrap pareado por empresa** (`tune.compare`, y el mismo protocolo detrás de las cifras
@@ -389,9 +389,9 @@ el intervalo. La unidad de independencia razonable es la empresa.
 candidato quedó por delante de producción en esa métrica, así que la ventaja no se explica por qué
 empresas cayeron en la muestra. No significa que sea grande ni que aplique al objetivo del score.
 
-**Regla de decisión.** El plan (`docs/plans/2026-09-18-xray-hackathon.md` §4) dice que el retador
+**Regla de decisión.** El plan (`docs/plans/2026/09-18/xray-hackathon.md` §4) dice que el retador
 sustituye al score por reglas solo si lo supera en **≥ 0,03 de AUC(6)** sin perder en estabilidad;
-la auditoría (`docs/audits/2026-09-20-auditoria-health-score.md`) añade que la ganancia se mide en
+la auditoría (`docs/audits/2026/09-20/auditoria-health-score.md`) añade que la ganancia se mide en
 GroupKFold y que la **tasa de saltos ≥ 2 deciles del retador debe quedar por debajo del 12 %**.
 
 **Números medidos**, con el fichero de donde salen:
@@ -399,18 +399,18 @@ GroupKFold y que la **tasa de saltos ≥ 2 deciles del retador debe quedar por d
 | Candidato | AUC(6) | IC 95 % del Δ frente a reglas | Fuente |
 |---|---|---|---|
 | Reglas, etiqueta externa | 0,685 | — | `docs/specs/rules-spec.md` §11 |
-| Reglas, PD6 | 0,716 | — | `docs/research/2026-09-20-retador-gbm-pd6.md` §2 |
-| Scorecard 7 variables, PD6 | 0,756 | +0,040 [+0,005, +0,074] | `docs/research/2026-09-20-retador-gbm-pd6.md` §2 |
-| GBM monótono, PD6 | 0,773 | +0,056 [+0,008, +0,107] | `docs/research/2026-09-20-retador-gbm-pd6.md` §2 |
-| Pesos aprendidos 0,60/0,35/0,05/0,00 con L = 6, etiqueta externa | 0,707 | +0,020 [+0,003, +0,038] | `docs/research/2026-09-20-pesos-por-cv.md` §2 |
-| Los mismos pesos, PD6 | 0,727 | +0,009 [−0,016, +0,031] | `docs/research/2026-09-20-pesos-por-cv.md` §2 |
-| Variante `cv_best_min10` 0,50/0,30/0,10/0,10, la del árbol de trabajo, etiqueta externa | 0,703 | +0,016 [+0,006, +0,028] | `docs/research/2026-09-20-pesos-por-cv.md` §2 |
+| Reglas, PD6 | 0,716 | — | `docs/research/retadores-pd6/evidence/2026-09-20.md` §2 |
+| Scorecard 7 variables, PD6 | 0,756 | +0,040 [+0,005, +0,074] | `docs/research/retadores-pd6/evidence/2026-09-20.md` §2 |
+| GBM monótono, PD6 | 0,773 | +0,056 [+0,008, +0,107] | `docs/research/retadores-pd6/evidence/2026-09-20.md` §2 |
+| Pesos aprendidos 0,60/0,35/0,05/0,00 con L = 6, etiqueta externa | 0,707 | +0,020 [+0,003, +0,038] | `docs/research/pesos-cv/evidence/2026-09-20.md` §2 |
+| Los mismos pesos, PD6 | 0,727 | +0,009 [−0,016, +0,031] | `docs/research/pesos-cv/evidence/2026-09-20.md` §2 |
+| Variante `cv_best_min10` 0,50/0,30/0,10/0,10, la del árbol de trabajo, etiqueta externa | 0,703 | +0,016 [+0,006, +0,028] | `docs/research/pesos-cv/evidence/2026-09-20.md` §2 |
 
 Los intervalos del scorecard, del GBM y de los pesos aprendidos sobre la etiqueta externa excluyen
 el cero; el de los pesos aprendidos sobre PD6 no. Y aun así **ninguno sustituye a las reglas hoy**:
 la ganancia en GroupKFold se queda en +0,021 / +0,022 para los retadores y en +0,020 de media para
-los pesos, por debajo del listón de 0,03 (`docs/research/2026-09-20-retador-gbm-pd6.md` §5 y
-`docs/research/2026-09-20-pesos-por-cv.md` §5).
+los pesos, por debajo del listón de 0,03 (`docs/research/retadores-pd6/evidence/2026-09-20.md` §5 y
+`docs/research/pesos-cv/evidence/2026-09-20.md` §5).
 
 ## 4. Dónde está cada cosa
 
@@ -448,9 +448,9 @@ los pesos, por debajo del listón de 0,03 (`docs/research/2026-09-20-retador-gbm
 - `docs/specs/rules-spec.md` — especificación viva; §11 cifras del 19 sep, §12.1 el abanico,
   §13–§14 los retadores y los pesos por CV.
 - `docs/references/model-card.md` — supuestos con su chequeo y reparto de `confidence`.
-- `docs/research/2026-09-20-retador-gbm-pd6.md` — AUC(6) PD6 e intervalos bootstrap de los retadores.
-- `docs/research/2026-09-20-pesos-por-cv.md` — protocolo de CV anidada, picks e intervalos.
-- `docs/plans/2026-09-18-xray-hackathon.md` §4 — regla de decisión ≥ 0,03 de AUC(6).
-- `docs/plans/2026-09-19-slice14-proyeccion-watch-metricas.md` — diseño del abanico y de
+- `docs/research/retadores-pd6/evidence/2026-09-20.md` — AUC(6) PD6 e intervalos bootstrap de los retadores.
+- `docs/research/pesos-cv/evidence/2026-09-20.md` — protocolo de CV anidada, picks e intervalos.
+- `docs/plans/2026/09-18/xray-hackathon.md` §4 — regla de decisión ≥ 0,03 de AUC(6).
+- `docs/plans/2026/09-19/slice14-proyeccion-watch-metricas.md` — diseño del abanico y de
   `projection_metrics`.
-- `docs/audits/2026-09-20-auditoria-health-score.md` — condición adicional de saltos < 12 %.
+- `docs/audits/2026/09-20/auditoria-health-score.md` — condición adicional de saltos < 12 %.

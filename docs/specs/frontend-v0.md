@@ -4,7 +4,7 @@ Last updated: 2026-09-20 (widget board en `/`, tokens semánticos, TimeoutState,
 
 Demo de pantallas dentro de `web/`. Chrome advisor: sidebar cream (`#f6f3ee`) + Inter Variable / Inter Display, nav activo en ink `#333333` (no verde), wordmark “X Ray” (sin logo Embat). Footer: Ajustes + identidad demo “Alvaro Villalba”. Hay backend propio: rutas `app/api/xray/*` (Next) y, para importar CSV, FastAPI de ingest (`POST /ingest`), no `GET /score`.
 
-Todo el dato de UI pasa por un único seam: `provider` en [`web/lib/xray/provider.ts`](../web/lib/xray/provider.ts). Cómo está cableado el resto (fact pack, Eve, dos scores): [`auditoria_plataforma.md`](auditoria_plataforma.md). Persistencia mutable en Vercel Blob (JSON), no Postgres ni Supabase.
+Todo el dato de UI pasa por un único seam: `provider` en [`web/lib/xray/provider.ts`](../../web/lib/xray/provider.ts). Cómo está cableado el resto (fact pack, Eve, dos scores): [`auditoria_plataforma.md`](../audits/2026/09-20/auditoria-plataforma.md). Persistencia mutable en Vercel Blob (JSON), no Postgres ni Supabase.
 
 ## Pantallas
 
@@ -55,7 +55,7 @@ Cada bloque de datos lleva `origin: "ml" | "llm" | "eve" | "deterministic"`. El 
 
 **Regla:** ninguna pantalla ni componente de `components/xray/` importa `lib/xray/registry/`. Solo el provider. Las rutas `app/api/xray/*` sí pueden usar registry en servidor.
 
-El contrato de ficha es `ScoreSnapshot` (Zod en `web/lib/xray/schemas.ts`). El JSON crudo de `xray-export-web` **no** trae `band` / `sub_scores` / `alerts`: los deriva `snapshotFromExported`. `docs/plan.md` §6 es el diseño del viernes, no este objeto.
+El contrato de ficha es `ScoreSnapshot` (Zod en `web/lib/xray/schemas.ts`). El JSON crudo de `xray-export-web` **no** trae `band` / `sub_scores` / `alerts`: los deriva `snapshotFromExported`. `docs/plans/2026/09-18/xray-hackathon.md` §6 es el diseño del viernes, no este objeto.
 
 ## Fórmulas
 

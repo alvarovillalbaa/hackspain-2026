@@ -1,8 +1,8 @@
 """Índice de estado, evento de deterioro y etiqueta a t+6 (slices #4 y #15).
 
 Parte compartida entre el score por reglas y el modelo GBM: los dos se entrenan y evalúan sobre
-lo que sale de aquí. Especificación: docs/rules_spec.md §2–§4. Entrada: la tabla del contrato
-`xray.features` (docs/features_seam.md).
+lo que sale de aquí. Especificación: docs/specs/rules-spec.md §2–§4. Entrada: la tabla del contrato
+`xray.features` (docs/specs/features-seam.md).
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ KEYS = ["company_id", "month"]
 SIGNALS: dict[str, tuple[str, bool]] = {
     # nombre corto → (columna de features, ascending): ascending=True cuando más alto es más sano.
     # Señales v2 (19 sep, revisión): los nombres cortos, y con ellos rank_*, red_* y las claves de
-    # los pesos, no cambian; solo cambia la columna que leen (docs/features_seam.md §2).
+    # los pesos, no cambian; solo cambia la columna que leen (docs/specs/features-seam.md §2).
     "balance": ("cash_buffer_days", True),
     "overdue": ("overdue_flow_rate_3m", False),
     "dscr": ("dscr_6m", True),
@@ -144,7 +144,7 @@ def label_t6(indexed: pd.DataFrame, cfg: RulesConfig | None = None) -> pd.DataFr
     return out.sort_index()
 
 
-# --- PD6: rotura de caja en euros (docs/research/revision-objetivo-score.md §3) ---------------
+# --- PD6: rotura de caja en euros (docs/research/objetivo-pd6/evidence/2026-09-19.md §3) ---------------
 
 
 def breach_state(features: pd.DataFrame, run: int = 2) -> pd.DataFrame:

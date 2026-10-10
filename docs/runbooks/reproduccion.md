@@ -75,7 +75,7 @@ uv run xray-demopacks        # → data/packs/
 uv run xray-prescore-packs   # scores precomputados para el wizard
 ```
 
-Tablero HTML de evals: [`../results/dashboard_resultados.html`](../results/dashboard_resultados.html). Qué significa cada cifra: [`../references/model-card.md`](../references/model-card.md).
+Tablero HTML de evals: [`../results/dashboard_resultados.html`](../results/2026/09-19/dashboard_resultados.html). Qué significa cada cifra: [`../references/model-card.md`](../references/model-card.md).
 
 Notebooks (importan `xray`, no reimplementan el pipeline): [`../../notebooks/README.md`](../../notebooks/README.md).
 

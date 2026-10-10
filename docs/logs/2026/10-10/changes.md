@@ -1,0 +1,1 @@
+- AFS: reorganiza documentación por propietario y fecha, preserva intake original en Drive y define cinco unidades de investigación; [evidencia](../../../audits/2026/10-10/afs-contract.md).

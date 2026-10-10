@@ -7,7 +7,7 @@ web/AGENTS.md manda dentro de web/ (el más cercano gana); aquí no se repite na
 
 # X Ray — instrucciones para agentes
 
-Score de financiabilidad a 6 meses para pymes a partir de tesorería, y encima un producto de refinanciación para el asesor de Embat. Reto de HackSpain 2026 (18–20 sep). Decisiones cerradas en `docs/plans/2026-09-18-xray-hackathon.md`; stack en `docs/references/tech-stack.md`; enunciado en `CONTEXTO_RETO.md`. Índice docs: `docs/knowledge/map.md`. Pitch y reproducción: `README.md`. Cada paquete tiene README in-folder.
+Score de financiabilidad a 6 meses para pymes a partir de tesorería, y encima un producto de refinanciación para el asesor de Embat. Reto de HackSpain 2026 (18–20 sep). Decisiones cerradas en `docs/plans/2026/09-18/xray-hackathon.md`; stack en `docs/references/tech-stack.md`; enunciado en `CONTEXTO_RETO.md`. Índice docs: `docs/README.md`. Pitch y reproducción: `README.md`. Cada paquete tiene README in-folder.
 
 ## Mapa
 
@@ -43,7 +43,7 @@ cd web && npm run calibrate                # Eve CV/fidelidad ≤2 %; docs/runbo
 
 ## Hechos del dataset (resumen)
 
-Facturas sin dirección (`amount` signo); `overdue.payment_date` no es pago real; `balances.csv` solo foto final; sin sector; `interest_charge` ≠ interés de préstamos; cargar con `xray.data.load()`; features terminan en 2026-08. Detalle en `docs/knowledge/map.md` → audits/research.
+Facturas sin dirección (`amount` signo); `overdue.payment_date` no es pago real; `balances.csv` solo foto final; sin sector; `interest_charge` ≠ interés de préstamos; cargar con `xray.data.load()`; features terminan en 2026-08. Detalle en `docs/README.md` → audits/research.
 
 ## Límites
 
@@ -57,19 +57,29 @@ Facturas sin dirección (`amount` signo); `overdue.payment_date` no es pago real
 - Código/ids/columnas en **inglés**; docs/commits en **español**.
 - Commits imperativo, < 72 chars; cita slice (`#4`).
 - Datos: `XRAY_DATA_DIR` → `data/raw` → `input_data/`. Packs: `data/packs/`.
-- Tests bajo `tests/` o `web/tests/` (nunca colocados). Docs AFS bajo `docs/<surface>/` (nada suelto en `docs/`).
+- Tests bajo `tests/` o `web/tests/` (nunca colocados). Docs AFS bajo `docs/<surface>/`; `docs/README.md` es el mapa del shell.
 
 ## Cuándo leer qué
 
-- Score / bandas → `docs/specs/rules-spec.md`, `docs/plans/2026-09-18-xray-hackathon.md` §2, `docs/research/investigacion-score.md`
-- Mejorar el score → `docs/audits/2026-09-20-auditoria-health-score.md`
+- Score / bandas → `docs/specs/rules-spec.md`, `docs/plans/2026/09-18/xray-hackathon.md` §2, `docs/research/financiabilidad/evidence/2026-09-18.md`
+- Mejorar el score → `docs/audits/2026/09-20/auditoria-health-score.md`
 - Features → `docs/specs/features-seam.md`
 - Model card → `docs/references/model-card.md`
-- Sin tecnicismos → `docs/knowledge/MODEL_toni.md`
+- Sin tecnicismos → `docs/references/score-explained.md`
 - Stack → `docs/references/tech-stack.md`
 - Web → `web/AGENTS.md` · mapa humano `web/README.md`
 - Reproducir local / evals / tests → `docs/runbooks/reproduccion.md`
 - Calibración Eve → `docs/runbooks/calibration.md`
-- Runtime → `docs/audits/2026-09-20-auditoria-plataforma.md`
-- Campos / mocks → `docs/audits/2026-09-20-auditoria-flujo-datos.md`
-- Mapa completo → `docs/knowledge/map.md`
+- Runtime → `docs/audits/2026/09-20/auditoria-plataforma.md`
+- Campos / mocks → `docs/audits/2026/09-20/auditoria-flujo-datos.md`
+- Mapa completo → `docs/README.md`
+
+## Contrato AFS
+
+- Catálogos raíz: `REFERENCES.md` para navegación; `SOURCES.md` para procedencia y originales preservados en Drive; `GAPS.md` para comprensión pendiente.
+- Memoria y resultados: `logs/YYYY/MM-DD/`, `lessons/<domain>/YYYY/MM-DD/`, `fixes/YYYY/MM-DD/`, `audits/YYYY/MM-DD/`, `plans/YYYY/MM-DD/`, `results/YYYY/MM-DD/`. Logs de dos líneas como máximo, enlazando evidencia extensa.
+- `specs/`, `facts/<domain>/`, `decisions/`, `cookbooks/` y `runbooks/` son documentación viva. Guías técnicas existentes conservan sus propietarios en `docs/references/`.
+- `research/<unit>/README.md` define preguntas ordenadas, hipótesis, razonamiento, método, evidencia y estado. Observaciones históricas quedan dentro de la unidad; no son una nueva aceptación.
+- `knowledge/` contiene síntesis única generalizable, no mapas ni operaciones de este producto. Los originales de intake están en Drive; `data/raw/` y `artifacts/raw/` son rutas operativas del dataset, no superficies AFS.
+- No recrear FRICTION, PREDICTION, REGRESSIONS, BRAIN, VISION ni FOCUS: su contenido pertenece a logs, fixes, AGENTS y los propietarios de producto/roadmap. Objetivos en Notion, enlazados por ROADMAP cuando exista; plantillas junto al contenido que generan.
+- Para AFS, leer `use-afs` instalado y aplicar el contrato actual del usuario/repositorio si una guía anterior difiere. Mantener README/ARCHITECTURE/TESTS en subsistemas; SETUP/CHANGELOG/SECURITY cuando proceda. RUNBOOK y DECISIONS locales se consolidan en sus familias.

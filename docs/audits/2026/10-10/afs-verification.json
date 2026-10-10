@@ -1,0 +1,43 @@
+{
+  "source_revision": "05e6062a014d6b4a3113dcef19c4f505122df843",
+  "preserved_original_and_final_hashes_checked": 26,
+  "hash_failures": [],
+  "relative_targets_checked": 234,
+  "new_or_regressed_missing_links": [],
+  "inherited_missing_link_occurrences": [],
+  "python_documentation_pointer_files_checked": [
+    "tests/unit/test_labels.py",
+    "xray/evals.py",
+    "xray/labels.py",
+    "xray/rules.py",
+    "xray/tune.py"
+  ],
+  "python_ast_failures_after_exact_pointer_normalization": [],
+  "drive_source_git_hash_and_catalog_verified": true,
+  "research_units": 5,
+  "unit_definition_failures": [],
+  "removed_surfaces_remaining": [],
+  "symlink_changes": [],
+  "root_agents_lines": 85,
+  "proof_limit": "Static documentation/provenance proof; no application tests, runtime or metric/decision revalidation.",
+  "link_scope": "Repository root, docs and subsystem Markdown; bundled .agents skills excluded.",
+  "canonical_afs_validation": {
+    "status": "passed",
+    "profile": "docs",
+    "owner_repository": "alvarovillalbaa/afs",
+    "owner_revision": "c0173467b840cf7dd1491ccbfb3ea5b568208aaf",
+    "recommended_families_absent": [
+      "lessons",
+      "facts",
+      "facts/general",
+      "decisions",
+      "steers",
+      "problems",
+      "reflections",
+      "lib",
+      "objects",
+      "cookbooks",
+      "knowledge"
+    ]
+  }
+}

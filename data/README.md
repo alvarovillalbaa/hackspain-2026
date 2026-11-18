@@ -39,7 +39,7 @@ Sintético: ninguna fila es una empresa real. 24 meses; `2026-09` tiene un solo 
 
 ## Trampas (léelas antes de tocar un CSV)
 
-Detalle y evidencia: [`../docs/plans/2026-09-18-xray-hackathon.md`](../docs/plans/2026-09-18-xray-hackathon.md) §5. `xray.data.load()` ya aplica la limpieza.
+Detalle y evidencia: [`../docs/plans/2026/09-18/xray-hackathon.md`](../docs/plans/2026/09-18/xray-hackathon.md) §5. `xray.data.load()` ya aplica la limpieza.
 
 | Hecho | Consecuencia |
 |---|---|

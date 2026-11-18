@@ -1,0 +1,51 @@
+{
+  "observed_at_utc": "2026-10-10T19:52:27Z",
+  "checked_head": "13504c18ebf864e9d5580d50c098beb106a27f54",
+  "pull_request": "https://github.com/alvarovillalbaa/hackspain-2026/pull/43",
+  "method": "Read-only GitHub run/job metadata and completed failed-job logs; no local suite or manual rerun.",
+  "workflow": {
+    "url": "https://github.com/alvarovillalbaa/hackspain-2026/actions/runs/38081155217",
+    "conclusion": "failure",
+    "web": {
+      "url": "https://github.com/alvarovillalbaa/hackspain-2026/actions/runs/38081155217/job/114298166901",
+      "conclusion": "success",
+      "completed_at": "2026-10-10T19:48:29Z",
+      "checks": ["npm run typecheck", "npm run test:coverage"]
+    },
+    "python": {
+      "url": "https://github.com/alvarovillalbaa/hackspain-2026/actions/runs/38081155217/job/114298167065",
+      "conclusion": "failure",
+      "completed_at": "2026-10-10T19:47:48Z",
+      "failed_step": "Pytest + coverage",
+      "passed": 285,
+      "skipped": 1,
+      "deselected": 1,
+      "warnings": 4,
+      "test_duration_seconds": 41.44,
+      "statements": 3757,
+      "missing_statements": 396,
+      "coverage_percent": 89.46,
+      "required_coverage_percent": 90.0,
+      "reason": "Coverage gate failed; the selected tests had no failed assertions."
+    }
+  },
+  "baseline_comparison": {
+    "head": "05e6062a014d6b4a3113dcef19c4f505122df843",
+    "python_job": "https://github.com/alvarovillalbaa/hackspain-2026/actions/runs/35500955505/job/106052507324",
+    "conclusion": "failure",
+    "passed": 285,
+    "skipped": 1,
+    "deselected": 1,
+    "warnings": 4,
+    "statements": 3757,
+    "missing_statements": 396,
+    "coverage_percent": 89.46,
+    "required_coverage_percent": 90.0,
+    "result": "The same coverage gate failure exists at the unmodified source baseline."
+  },
+  "limits": [
+    "This receipt pins the migration commit, not any later evidence-only commit.",
+    "No CI settings, thresholds, dependencies, runner state or application logic were changed.",
+    "Web job success does not establish deployment, product acceptance or external-source freshness."
+  ]
+}

@@ -6,7 +6,7 @@ Reto de **Embat** en **HackSpain 2026** (18–20 de septiembre, ETSIT UPM, Madri
 
 > ¿Puede el dinero decir cómo está una empresa? Con 24 meses de tesorería de 1.286 pymes sintéticas construimos un **score de financiabilidad a 6 meses** y, encima, un **marketplace de refinanciación** para el asesor de Embat.
 
-Índice de documentación: [`docs/knowledge/map.md`](docs/knowledge/map.md). Convenciones para agentes: [`AGENTS.md`](AGENTS.md).
+Índice de documentación: [`docs/README.md`](docs/README.md). Convenciones para agentes: [`AGENTS.md`](AGENTS.md).
 
 ## Descripción
 
@@ -19,7 +19,7 @@ X Ray lee el rastro de caja (movimientos, facturas, deuda) y responde, empresa a
 | **Explicación** | Cada movimiento del score se reparte exactamente entre las cuatro señales (`xray.explain`). El LLM **solo redacta** sobre ese JSON. |
 | **Producto** | A quien tiene deuda: cuándo refinanciar y cuánto ahorra en €. A quien no: cuánto puede pedir y a qué cuota. El asesor pide ofertas; Eve orquesta quantity → offering → match; el servidor **recalcula** match y uplift. |
 
-El número, las bandas y las cifras de la ficha viven en [`docs/references/model-card.md`](docs/references/model-card.md) y [`docs/specs/rules-spec.md`](docs/specs/rules-spec.md). Versión sin tecnicismos: [`docs/knowledge/MODEL_toni.md`](docs/knowledge/MODEL_toni.md).
+El número, las bandas y las cifras de la ficha viven en [`docs/references/model-card.md`](docs/references/model-card.md) y [`docs/specs/rules-spec.md`](docs/specs/rules-spec.md). Versión sin tecnicismos: [`docs/references/score-explained.md`](docs/references/score-explained.md).
 
 ## Valor para la entidad financiera, y monetización
 
@@ -36,7 +36,7 @@ El comprador del software es **Embat** (ya tiene los datos). Quien gana con el n
 1. **Módulo premium** dentro de Embat — el asesor ya está en la tesorería; X Ray es la capa de financiabilidad.
 2. **Comisión de originación al banco** cuando se cierra una refinanciación o un préstamo nuevo. En la demo: **3 % del ticket** (`EMBAT_ORIGINATION_RATE` en `web/lib/xray/offer-metrics.ts`; el frame de Figma es 15 k€ sobre 500 k€). Esa tasa es una constante de producto, no una estimación del dataset.
 
-Lo que el banco no tiene hoy: el rating interno llega con 6–12 meses de retraso. Aquí el estado de caja **persiste** (P(rojo a 6 m \| rojo hoy) 54 % frente a 12 % de base) y el watch avisa sin que nadie pregunte. Detalle comercial en [`docs/plans/2026-09-18-xray-hackathon.md`](docs/plans/2026-09-18-xray-hackathon.md) §1 y §8.
+Lo que el banco no tiene hoy: el rating interno llega con 6–12 meses de retraso. Aquí el estado de caja **persiste** (P(rojo a 6 m \| rojo hoy) 54 % frente a 12 % de base) y el watch avisa sin que nadie pregunte. Detalle comercial en [`docs/plans/2026/09-18/xray-hackathon.md`](docs/plans/2026/09-18/xray-hackathon.md) §1 y §8.
 
 ## Cómo usarlo
 
@@ -143,7 +143,7 @@ Tres decisiones que no se negocian:
 
 FastAPI **no** sirve `GET /score`: solo `GET /health` y `POST /ingest` contra el `RulesModel` congelado. La ficha lee el fact pack vía `GET /api/xray/score/{id}` (Next).
 
-Stack: [`docs/references/tech-stack.md`](docs/references/tech-stack.md). Runtime: [`docs/audits/2026-09-20-auditoria-plataforma.md`](docs/audits/2026-09-20-auditoria-plataforma.md).
+Stack: [`docs/references/tech-stack.md`](docs/references/tech-stack.md). Runtime: [`docs/audits/2026/09-20/auditoria-plataforma.md`](docs/audits/2026/09-20/auditoria-plataforma.md).
 
 ## Mapa del repositorio
 
@@ -160,7 +160,7 @@ Stack: [`docs/references/tech-stack.md`](docs/references/tech-stack.md). Runtime
 | [`web/evals/`](web/evals/README.md) | Calibración Eve / never-calculate | sí |
 | [`notebooks/`](notebooks/README.md) | Experimentos; importan `xray` | sí |
 | [`artifacts/`](artifacts/README.md) | Caché parquet / modelos (gitignored) | sí |
-| [`docs/`](docs/knowledge/map.md) | Specs, runbooks, audits (AFS; nada suelto en la raíz) | mapa |
+| [`docs/`](docs/README.md) | Specs, runbooks, audits (AFS; nada suelto en la raíz) | mapa |
 | [`company_optimization_pipeline/`](company_optimization_pipeline/README.md) | Screening stdlib (legado; no es el Health Score) | sí |
 | [`src/xray_score/`](src/xray_score/README.md) | Spike histórico, sustituido por `xray/` | sí |
 
@@ -196,7 +196,7 @@ uv run xray-export-web            # → web/lib/xray/dataset/scores.json (+ metr
 cd web && npm run build:facts     # cash / deuda / facturas → facts.json
 ```
 
-Lo que el jurado ve en la ficha (AUC, lead time, persistencia) sale de `metrics.json` del pack, no de un slide. Tablero HTML de resultados: `docs/results/dashboard_resultados.html`. Notebooks: [`notebooks/README.md`](notebooks/README.md).
+Lo que el jurado ve en la ficha (AUC, lead time, persistencia) sale de `metrics.json` del pack, no de un slide. Tablero HTML de resultados: `docs/results/2026/09-19/dashboard_resultados.html`. Notebooks: [`notebooks/README.md`](notebooks/README.md).
 
 Packs demo: `uv run xray-demopacks` → `data/packs/`.
 
@@ -244,4 +244,4 @@ Cinco personas. Los recuentos son commits en `main` (autores agrupados; merges d
 | **mikelgda** | 7 | ML-1 | Primer score explorable (el spike de tesorería), `.gitignore` del dump y de `artifacts/`, exploración + calibración Eve y viz. El motor de producción lo sustituyó el de reglas; el trabajo de dataset/carga queda debajo. |
 | **tamudosoyyo11** | 2 | UX / front | Chrome Embat de grupos, compañías y fichas; ofertas de financiación y el modal de contratar préstamo — el frame que se enseña al jurado. |
 
-Reparto previsto por día: [`docs/plans/2026-09-18-xray-hackathon.md`](docs/plans/2026-09-18-xray-hackathon.md) §7. Lo que el git enseña: ML-2 cargó el motor y la evidencia; el full-stack cerró el producto navegable; UX puso el chrome que se ve; ML-1 abrió el terreno el viernes.
+Reparto previsto por día: [`docs/plans/2026/09-18/xray-hackathon.md`](docs/plans/2026/09-18/xray-hackathon.md) §7. Lo que el git enseña: ML-2 cargó el motor y la evidencia; el full-stack cerró el producto navegable; UX puso el chrome que se ve; ML-1 abrió el terreno el viernes.

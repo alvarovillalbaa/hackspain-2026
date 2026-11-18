@@ -1,0 +1,17 @@
+{
+  "archive_bytes": 4097,
+  "archive_md5": "214d1715e8f0f8f0902d77f0dcab5022",
+  "archive_sha256": "c59ab829e6e8ccd6699181f6d9e9eff6735e9db8aa7e66a9150ca34a1df49595",
+  "source_commit": "05e6062a014d6b4a3113dcef19c4f505122df843",
+  "preservation_status": "original bytes archived; ingestion not claimed",
+  "files": [
+    {
+      "path": "docs/raw/ideas-equipo.md",
+      "bytes": 8003,
+      "sha256": "240ee807ed5ba770399bc8830ffd0feabac3730183e6e992f9d4a415cf95ef67"
+    }
+  ],
+  "drive_url": "https://drive.google.com/file/d/1_sRfVN4dBZw0CL6pIiDkM2hqeOrsWjLt/view",
+  "account": "alvaro.villalbaperez@gmail.com",
+  "download_verified": true
+}

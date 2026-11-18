@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-20
 
-> Acordada el sábado 19 sep 2026 (ML-2) en tres rondas de preguntas. Refina `docs/plan.md` §2 y §4; donde difiere, manda esto. Vive en `xray/labels.py` (parte compartida con el slice #4) y `xray/rules.py` (solo ML-2), con evals en `xray/evals.py`. Construida contra el contrato de `xray/features.py` (`docs/features_seam.md`).
+> Acordada el sábado 19 sep 2026 (ML-2) en tres rondas de preguntas. Refina `docs/plans/2026/09-18/xray-hackathon.md` §2 y §4; donde difiere, manda esto. Vive en `xray/labels.py` (parte compartida con el slice #4) y `xray/rules.py` (solo ML-2), con evals en `xray/evals.py`. Construida contra el contrato de `xray/features.py` (`docs/specs/features-seam.md`).
 >
 > **Actualización 19 sep 2026 (mañana):** revisión del score sobre la tabla provisional real. Los cambios van marcados «(19 sep, mañana)» y se resumen en §11: señales v2, una señal basta, outlook positivo tras un rojo, columna `trend`, AUC externa, lead time en tres cifras, direccionalidad por persistencia y `xray-score`.
 
@@ -30,7 +30,7 @@ Last updated: 2026-09-20
 
 ## 2. Señales, rangos y rojo
 
-- **Cuatro señales**, versión 2 (19 sep, mañana): `cash_buffer_days`, `overdue_flow_rate_3m`, `dscr_6m`, `net_cash_flow_ratio_3m` (`docs/features_seam.md` §2). Hasta esa fecha eran `min_balance_eur`, `overdue_received_ratio_3m`, `dscr_6m`, `inflows_yoy_change`, que siguen en la tabla para la pantalla; el porqué del cambio está en §11. El uso de línea de crédito (137 empresas) queda como driver de pantalla, no entra en el índice.
+- **Cuatro señales**, versión 2 (19 sep, mañana): `cash_buffer_days`, `overdue_flow_rate_3m`, `dscr_6m`, `net_cash_flow_ratio_3m` (`docs/specs/features-seam.md` §2). Hasta esa fecha eran `min_balance_eur`, `overdue_received_ratio_3m`, `dscr_6m`, `inflows_yoy_change`, que siguen en la tabla para la pantalla; el porqué del cambio está en §11. El uso de línea de crédito (137 empresas) queda como driver de pantalla, no entra en el índice.
 - **Rango percentil dentro del mes** sobre las empresas que tienen la señal ese mes, empates por media, NaN excluidos del rango. Orientado a **1 = más sana**: la ratio de vencidas se ranquea descendente; las otras tres, ascendente. Columnas `rank_balance`, `rank_overdue`, `rank_dscr`, `rank_inflows`.
 - **Rojo por percentil**: `red_<señal>` = rango ≤ 0,20. Robusto a la deriva de la reconstrucción de saldo (§5 del plan). Las pantallas muestran los euros; los umbrales absolutos del preview del notebook (saldo < 0, vencidas > 0,5, entradas < −30 %) quedan como diagnóstico en las evals para comparar el recuento de eventos con los 222 del preview.
 - **Mes rojo** = `n_red ≥ 2`. Es la única definición de rojo: la usan el evento, el deterioro y el outlook. **Depende de la cobertura** (19 sep, mañana): con n señales disponibles, P(≥ 2 rojas) sube con n aunque las señales sean independientes (en la tabla provisional v1: 5,9 % con 2, 11,3 % con 3, 17,1 % con 4), y las banderas rojas co-ocurren a 0,9–1,8× de la independencia. Un mes rojo son dos síntomas persistentes que coinciden, no un co-movimiento, y así se cuenta. Se mantiene por sencillez; la alternativa anotada es rojo por cuantil del índice dentro de (mes, `n_signals`), que fija la tasa base.
@@ -69,7 +69,7 @@ Un DataFrame plano por `(company_id, month)` con: `rank_*` (4), `red_*` (4), `n_
 - **Horizonte de persistencia** = P(rojo en t+k | rojo en t) frente a la tasa base, k = 1…12; se reporta el mayor k con lift ≥ 2×.
 - **Direccionalidad** (19 sep, mañana) = Spearman entre Δscore(t−3→t) y Δnivel(t→t+6) y, sobre todo, P(mes rojo en t+6 | outlook) y P(mes rojo en t+6 | trend), en test. La versión anterior, P(nivel baja | outlook), salía invertida (40 % con negativo frente a 55 % con estable) porque un índice de rangos acotado revierte a la media.
 - **Dispersión por grupos** (antes «GroupKFold»): por `group_id`, 5 pliegues, se ajusta el mapa con las filas de train de los otros cuatro grupos y se evalúa AUC(6) en el grupo retenido. Como el mapa es monótono, mide la variabilidad entre subpoblaciones, no la generalización del ajuste; solo la mediría si se calibraran los pesos.
-- **Fiabilidad del mapa** (19 sep, noche): `evals.reliability` da, en test, el score medio frente a la etiqueta realizada media por decil de score (calibración fuera de train: desvío medio 0,9 pts sobre la tabla real) y la etiqueta media por decil de **nivel sin suavizar**, con el número de bajadas entre deciles vecinos: es el chequeo crudo del único supuesto del mapa (0 bajadas en 9 escalones). Lectura y justificación en [model_card.md](model_card.md) §4–§5.
+- **Fiabilidad del mapa** (19 sep, noche): `evals.reliability` da, en test, el score medio frente a la etiqueta realizada media por decil de score (calibración fuera de train: desvío medio 0,9 pts sobre la tabla real) y la etiqueta media por decil de **nivel sin suavizar**, con el número de bajadas entre deciles vecinos: es el chequeo crudo del único supuesto del mapa (0 bajadas en 9 escalones). Lectura y justificación en [model_card.md](../references/model-card.md) §4–§5.
 - Salida: `artifacts/evals/metrics.json` con una clave por modelo (`rules`; ML-1 añade `gbm`) y tabla impresa. Diagnóstico adicional: recuento de eventos con los umbrales absolutos del preview.
 
 ## 9. Tests (escritos antes que el código, en este orden)
@@ -91,7 +91,7 @@ Un DataFrame plano por `(company_id, month)` con: `rank_*` (4), `red_*` (4), `n_
 
 - Todo vive en la rama `tianwei-model` (PR #19), que sustituye a las PR apiladas #16–#18. Si se renombra una columna del contrato, los tests dicen dónde.
 - `features.build()` existe desde el 19 sep (tarde): las evals y el puntuador leen `artifacts/features.parquet` por defecto; los tests siguen corriendo sobre la fixture sin dataset.
-- Pregunta abierta 6 de `docs/tech_stack.md` (calibración de pesos) se resuelve pasando otro `RulesConfig`, no editando el módulo. Cerrada el 19 sep (mañana): pesos iguales pierden 0,008 de AUC(6); no se calibran.
+- Pregunta abierta 6 de `docs/references/tech-stack.md` (calibración de pesos) se resuelve pasando otro `RulesConfig`, no editando el módulo. Cerrada el 19 sep (mañana): pesos iguales pierden 0,008 de AUC(6); no se calibran.
 
 ## 11. Actualización 19 sep 2026 (mañana): decisiones de la revisión
 
@@ -119,7 +119,7 @@ Números en la tabla provisional, meses de test 2025-09…2026-02, antes → des
 
 ### 11.2 Hecho por la noche (19 sep): ficha del modelo
 
-- **[model_card.md](model_card.md)** reúne lo que no estaba escrito: qué significa el número, condiciones de validez, los seis pasos con su parámetro, la calibración con la forma del mapa y su fiabilidad en test, once supuestos con justificación, chequeo y modo de fallo, la evaluación sobre la tabla real y qué actualizar cuando cambie el modelo.
+- **[model_card.md](../references/model-card.md)** reúne lo que no estaba escrito: qué significa el número, condiciones de validez, los seis pasos con su parámetro, la calibración con la forma del mapa y su fiabilidad en test, once supuestos con justificación, chequeo y modo de fallo, la evaluación sobre la tabla real y qué actualizar cuando cambie el modelo.
 - **Identidad nivel(t+6) = etiqueta(t)**: como `level_window == horizon`, el score de dentro de 6 meses es exactamente el mapa aplicado a `label_t6` (diferencia 0,000 en 13.682 filas). `tests/test_rules.py` lo afirma; es lo que permite leer la proyección del score de los cuantiles de la etiqueta (campo `projection_6m` del contrato, pendiente).
 - **`evals.reliability`** en `xray-evals` y en `metrics.json` (§8).
 
@@ -154,11 +154,11 @@ Medido (19 sep, noche): 241 meses-empresa con watch activo en la historia —172
 
 Existen la etiqueta PD6 (`labels.breach_state`, `labels.label_pd6`: rotura = saldo mínimo reconstruido < 0 dos meses seguidos; etiqueta = empieza un episodio en (t, t+6] entre filas con saldo ≥ 0 en t) y tres retadores en `xray/challenger.py` sobre la misma matriz de diseño: `gbm` (LightGBM monótono), `logistic` (16 variables) y `scorecard` (logístico de 7 variables no colineales). `xray-evals --challenger` los compara con las reglas sobre PD6 (AUC(h), subconjunto sin mes negativo, split estricto, GroupKFold por grupo, estabilidad) y aplica la regla del plan §4 (≥ 0,03 en GroupKFold y saltos < 12 %), todo bajo `metrics.json["challenger"]`.
 
-Medido: AUC(6) test reglas 0,716 · scorecard 0,756 · GBM 0,773; GroupKFold +0,022 / +0,021: **las reglas se quedan**. El scorecard es el retador recomendado por explicable (siete coeficientes legibles), calibrado por decil y estable (7,6 % de saltos); el GBM gana 0,017 más a costa del tamaño y la concentración de clientes. Ninguna de las piezas entra en `score`, `export_web` ni el contrato web hasta que el equipo decida el objetivo. Detalle: `docs/research/2026-09-20-retador-gbm-pd6.md`.
+Medido: AUC(6) test reglas 0,716 · scorecard 0,756 · GBM 0,773; GroupKFold +0,022 / +0,021: **las reglas se quedan**. El scorecard es el retador recomendado por explicable (siete coeficientes legibles), calibrado por decil y estable (7,6 % de saltos); el GBM gana 0,017 más a costa del tamaño y la concentración de clientes. Ninguna de las piezas entra en `score`, `export_web` ni el contrato web hasta que el equipo decida el objetivo. Detalle: `docs/research/retadores-pd6/evidence/2026-09-20.md`.
 
 ## 14. Pesos y ventana del índice por CV anidada (20 sep 2026, rama ML-experiments)
 
 `xray/tune.py` aprende los pesos y la ventana del índice con GroupKFold por `group_id` dentro de train y los compara en test con producción; se lanza con `uv run xray-evals --features artifacts/features.parquet --tune` y escribe `metrics.json["tune"]` (`picks` + `search_top`).
 Medido: el mejor candidato (0,60/0,35/0,05/0,00, L = 6) sube la AUC externa de 0,685 a 0,707 —Δ IC 95 % [+0,003, +0,038], excluye el cero— y PD6 de 0,716 a 0,727, con el intervalo a caballo del cero; el top 10 pone `overdue = 0` y se apoya en balance e inflows.
 No se adopta: la ganancia externa (+0,020) no llega al listón de +0,03 de la regla del plan §4, mover el índice de producción es decisión del equipo y afecta a eventos, outlook, bandas y export, así que `RulesConfig.weights` y `level_window = 6` se quedan como están.
-Detalle: `docs/research/2026-09-20-pesos-por-cv.md`.
+Detalle: `docs/research/pesos-cv/evidence/2026-09-20.md`.

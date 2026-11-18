@@ -16,7 +16,7 @@ Last updated: 2026-09-20
 - Solo meses con al menos un movimiento; **sin huecos** dentro del rango activo de cada empresa (si un mes no tiene movimientos pero los meses anterior y posterior sí, la fila existe con flujos 0 y saldo arrastrado).
 - **La tabla termina en el último mes completo** (19 sep): 2026-09 solo tiene el día 1, y ranqueado como mes entero daba entradas medianas de 106 € frente a 70 K. La foto de `balances.csv` (2026-09-01) es el cierre de 2026-08, no una fila.
 - `months_of_history` es 1 en el primer mes y crece de uno en uno.
-- Las señales van en **euros y ratios brutos**. El rango percentil dentro del mes lo calcula `labels` aguas abajo, porque la reconstrucción de saldo deriva hacia la foto final (`docs/plan.md` §5) y las pantallas quieren los euros.
+- Las señales van en **euros y ratios brutos**. El rango percentil dentro del mes lo calcula `labels` aguas abajo, porque la reconstrucción de saldo deriva hacia la foto final (`docs/plans/2026/09-18/xray-hackathon.md` §5) y las pantallas quieren los euros.
 - **Lo que no existe es NaN, nunca 0.** Una empresa sin deuda no tiene DSCR; una sin año anterior no tiene variación interanual. Las banderas `has_*` explican cada NaN y alimentan `confidence`.
 - Añadir columnas es libre. Renombrar, borrar o cambiar el grano exige aviso al equipo (AGENTS.md raíz).
 

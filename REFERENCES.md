@@ -1,0 +1,158 @@
+# Referencias
+
+Última actualización: 2026-10-10
+
+Catálogo único de navegación y enlaces retenidos. Los contratos técnicos mantienen su propietario; una URL incluida no prueba lectura, vigencia ni aceptación.
+
+## Propietarios del repositorio
+
+- [Mapa de documentación](docs/README.md).
+- [Fuentes originales y procedencia](SOURCES.md).
+- [Límites pendientes](GAPS.md).
+- [Enunciado y excepciones del reto](CONTEXTO_RETO.md).
+- [Arquitectura del modelo X Ray](docs/references/arquitectura-modelo.md).
+- [Ficha del modelo: supuestos, cálculo y calibración del score](docs/references/model-card.md).
+- [Cómo funciona el score de X Ray, contado sin tecnicismos](docs/references/score-explained.md).
+- [Tech stack — PRD técnico de X Ray](docs/references/tech-stack.md).
+- [AI runtime — X Ray](docs/runbooks/ai-runtime.md).
+- [Calibración agéntica](docs/runbooks/calibration.md).
+- [Reproducir X Ray](docs/runbooks/reproduccion.md).
+- [Watcher agent (Eve)](docs/runbooks/watcher-agent.md).
+- [Seam 1: `features(company_id, month)` — propuesta para revisar](docs/specs/features-seam.md).
+- [Frontend v0 — X Ray demo](docs/specs/frontend-v0.md).
+- [Logging de ofertas para Embat (C1)](docs/specs/logging-ofertas.md).
+- [Especificación del score por reglas calibradas (slice #15)](docs/specs/rules-spec.md).
+- [Unidades de investigación](docs/research/README.md).
+- [Resultados históricos](docs/results/README.md).
+
+## URLs retenidas
+
+Extraídas de los documentos originales, incluidos ejemplos e investigaciones históricas. Las páginas externas no se visitaron durante la migración; los originales conservan contexto y límites. Parámetros de acceso permanecen en su fuente, no se replican en el catálogo.
+
+- [http://127.0.0.1:2000/internal/watch](<http://127.0.0.1:2000/internal/watch>)
+- [http://127.0.0.1:8000](<http://127.0.0.1:8000>)
+- [http://localhost:2000/eve/v1/dev/schedules/portfolio-watch](<http://localhost:2000/eve/v1/dev/schedules/portfolio-watch>)
+- [http://localhost:3000](<http://localhost:3000>)
+- [http://localhost:3000/c/COMP_0003](<http://localhost:3000/c/COMP_0003>)
+- [https://academic.oup.com/qje/article/80/3/413/1876608](<https://academic.oup.com/qje/article/80/3/413/1876608>)
+- [https://academic.oup.com/rfs/article-abstract/23/10/3665/1566409](<https://academic.oup.com/rfs/article-abstract/23/10/3665/1566409>)
+- [https://arxiv.org/abs/1003.5956](<https://arxiv.org/abs/1003.5956>)
+- [https://arxiv.org/abs/1103.4601](<https://arxiv.org/abs/1103.4601>)
+- [https://arxiv.org/abs/1510.04342](<https://arxiv.org/abs/1510.04342>)
+- [https://arxiv.org/abs/1605.04219](<https://arxiv.org/abs/1605.04219>)
+- [https://arxiv.org/abs/1611.04941](<https://arxiv.org/abs/1611.04941>)
+- [https://arxiv.org/abs/1705.00109](<https://arxiv.org/abs/1705.00109>)
+- [https://arxiv.org/abs/1706.05663](<https://arxiv.org/abs/1706.05663>)
+- [https://arxiv.org/abs/1707.00757](<https://arxiv.org/abs/1707.00757>)
+- [https://arxiv.org/abs/1711.08695](<https://arxiv.org/abs/1711.08695>)
+- [https://arxiv.org/abs/1812.02900](<https://arxiv.org/abs/1812.02900>)
+- [https://arxiv.org/abs/1911.06854](<https://arxiv.org/abs/1911.06854>)
+- [https://arxiv.org/abs/2005.01643](<https://arxiv.org/abs/2005.01643>)
+- [https://arxiv.org/abs/2005.13239](<https://arxiv.org/abs/2005.13239>)
+- [https://arxiv.org/abs/2006.04779](<https://arxiv.org/abs/2006.04779>)
+- [https://arxiv.org/abs/2008.07146](<https://arxiv.org/abs/2008.07146>)
+- [https://arxiv.org/abs/2201.01194](<https://arxiv.org/abs/2201.01194>)
+- [https://arxiv.org/abs/2306.15585](<https://arxiv.org/abs/2306.15585>)
+- [https://arxiv.org/abs/2406.00592](<https://arxiv.org/abs/2406.00592>)
+- [https://arxiv.org/abs/2507.15441](<https://arxiv.org/abs/2507.15441>)
+- [https://arxiv.org/abs/2604.27186](<https://arxiv.org/abs/2604.27186>)
+- [https://assets.ctfassets.net/03fbs7oah13w/409vZSxu0inBzZ1CbEDFCH/78ed6d67c8add209aae973a9f8e497e1/Fitch_Criteria_Essentials_-_Corporate_Ratings.pdf](<https://assets.ctfassets.net/03fbs7oah13w/409vZSxu0inBzZ1CbEDFCH/78ed6d67c8add209aae973a9f8e497e1/Fitch_Criteria_Essentials_-_Corporate_Ratings.pdf>)
+- [https://buscaayudas.es/blog/lineas-ico-2026-autonomos-pymes-tipos-interes/](<https://buscaayudas.es/blog/lineas-ico-2026-autonomos-pymes-tipos-interes/>)
+- [https://claude.ai/artifact/8N8Q7QMjprCUWxGAiJaWoP](<https://claude.ai/artifact/8N8Q7QMjprCUWxGAiJaWoP>)
+- [https://data.ecb.europa.eu/data/datasets/MIR](<https://data.ecb.europa.eu/data/datasets/MIR>)
+- [https://dl.acm.org/doi/10.1145/1401890.1402014](<https://dl.acm.org/doi/10.1145/1401890.1402014>)
+- [https://files.wmich.edu/s3fs-public/attachments/u730/2022/PSIfinal.pdf](<https://files.wmich.edu/s3fs-public/attachments/u730/2022/PSIfinal.pdf>)
+- [https://finantres.com/costes-factoring/](<https://finantres.com/costes-factoring/>)
+- [https://finantres.com/cuanto-cuesta-confirming/](<https://finantres.com/cuanto-cuesta-confirming/>)
+- [https://finreglab.org/research/machine-learning-underwriting-models-cash-flow-data/](<https://finreglab.org/research/machine-learning-underwriting-models-cash-flow-data/>)
+- [https://finreglab.org/wp-content/uploads/2023/12/FinRegLab_2019-07-25_Research-Report_The-Use-of-Cash-Flow-Data-in-Underwriting-Credit_Empirical-Research-Findings.pdf](<https://finreglab.org/wp-content/uploads/2023/12/FinRegLab_2019-07-25_Research-Report_The-Use-of-Cash-Flow-Data-in-Underwriting-Credit_Empirical-Research-Findings.pdf>)
+- [https://finreglab.org/wp-content/uploads/2023/12/FinRegLab_2019-09-06_Research-Report_Small-Business-Spotlight_The-Use-of-Cash-Flow-Data-in-Underwriting-Credit.pdf](<https://finreglab.org/wp-content/uploads/2023/12/FinRegLab_2019-09-06_Research-Report_Small-Business-Spotlight_The-Use-of-Cash-Flow-Data-in-Underwriting-Credit.pdf>)
+- [https://finreglab.org/wp-content/uploads/2025/06/FinRegLab_06-03-2025_Sharpening-the-Focus-Accessible-Text.pdf](<https://finreglab.org/wp-content/uploads/2025/06/FinRegLab_06-03-2025_Sharpening-the-Focus-Accessible-Text.pdf>)
+- [https://forbes.es/economia/901516/el-coste-financiero-de-las-pymes-derivado-de-la-morosidad-baja-hasta-los-1-957-millones-a-cierre-de-2025/](<https://forbes.es/economia/901516/el-coste-financiero-de-las-pymes-derivado-de-la-morosidad-baja-hasta-los-1-957-millones-a-cierre-de-2025/>)
+- [https://github.com/alvarovillalbaa/hackspain-2026](<https://github.com/alvarovillalbaa/hackspain-2026>)
+- [https://hooks.slack.com/services/](<https://hooks.slack.com/services/>)
+- [https://ideas.repec.org/a/eee/jbfina/v30y2006i11p2945-2966.html](<https://ideas.repec.org/a/eee/jbfina/v30y2006i11p2945-2966.html>)
+- [https://ideas.repec.org/p/zbw/bubdp2/7326.html](<https://ideas.repec.org/p/zbw/bubdp2/7326.html>)
+- [https://intelligence.oaknorth.com/credit](<https://intelligence.oaknorth.com/credit>)
+- [https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0250115](<https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0250115>)
+- [https://maalot.co.il/Publications/FTS20250331162126.pdf](<https://maalot.co.il/Publications/FTS20250331162126.pdf>)
+- [https://mytriplea.com/preguntas-frecuentes/cuales-son-los-tipos-de-interes-de-la-financiacion-a-traves-de-mytriplea/](<https://mytriplea.com/preguntas-frecuentes/cuales-son-los-tipos-de-interes-de-la-financiacion-a-traves-de-mytriplea/>)
+- [https://onlinelibrary.wiley.com/doi/10.1002/jtsa.12053](<https://onlinelibrary.wiley.com/doi/10.1002/jtsa.12053>)
+- [https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1467-6281.2007.00234.x](<https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1467-6281.2007.00234.x>)
+- [https://pages.ucsd.edu/~aronatas/project/academic/The%20value%20of%20private%20sector%20business%20credit%20information%20sha.pdf](<https://pages.ucsd.edu/~aronatas/project/academic/The%20value%20of%20private%20sector%20business%20credit%20information%20sha.pdf>)
+- [https://papers.ssrn.com/sol3/papers.cfm?abstract_id=275842](<https://papers.ssrn.com/sol3/papers.cfm?abstract_id=275842>)
+- [https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4278803](<https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4278803>)
+- [https://pmc.ncbi.nlm.nih.gov/articles/PMC10014414/](<https://pmc.ncbi.nlm.nih.gov/articles/PMC10014414/>)
+- [https://pmc.ncbi.nlm.nih.gov/articles/PMC13279299/](<https://pmc.ncbi.nlm.nih.gov/articles/PMC13279299/>)
+- [https://proceedings.mlr.press/v15/chu11a.html](<https://proceedings.mlr.press/v15/chu11a.html>)
+- [https://proceedings.neurips.cc/paper/2015/hash/39027dfad5138c9ca0c474d71db915c3-Abstract.html](<https://proceedings.neurips.cc/paper/2015/hash/39027dfad5138c9ca0c474d71db915c3-Abstract.html>)
+- [https://pubsonline.informs.org/doi/10.1287/msom.2021.1064](<https://pubsonline.informs.org/doi/10.1287/msom.2021.1064>)
+- [https://qonto.com/es/financing](<https://qonto.com/es/financing>)
+- [https://quickbooks.intuit.com/r/news/intuit-quickbooks-introduces-line-of-credit/](<https://quickbooks.intuit.com/r/news/intuit-quickbooks-introduces-line-of-credit/>)
+- [https://register.eiopa.europa.eu/Publications/Consultations/Draft%20Mapping%20Report%20-%20CERVED.pdf](<https://register.eiopa.europa.eu/Publications/Consultations/Draft%20Mapping%20Report%20-%20CERVED.pdf>)
+- [https://sms.onlinelibrary.wiley.com/doi/10.1002/sej.1220](<https://sms.onlinelibrary.wiley.com/doi/10.1002/sej.1220>)
+- [https://ssrn.com/abstract=996025](<https://ssrn.com/abstract=996025>)
+- [https://www.bankofcanada.ca/2021/02/staff-working-paper-2021-7/](<https://www.bankofcanada.ca/2021/02/staff-working-paper-2021-7/>)
+- [https://www.bankofengland.co.uk/-/media/boe/files/working-paper/2024/customer-data-access-and-fintech-entry-early-evidence-from-open-banking.pdf](<https://www.bankofengland.co.uk/-/media/boe/files/working-paper/2024/customer-data-access-and-fintech-entry-early-evidence-from-open-banking.pdf>)
+- [https://www.bankofengland.co.uk/paper/2020/open-data-for-sme-finance](<https://www.bankofengland.co.uk/paper/2020/open-data-for-sme-finance>)
+- [https://www.bbva.com/es/salud-financiera/polizas-credito-calculo-practico-intereses-comisiones-gastos/](<https://www.bbva.com/es/salud-financiera/polizas-credito-calculo-practico-intereses-comisiones-gastos/>)
+- [https://www.bde.es/f/webbde/SES/Secciones/Publicaciones/InformesBoletinesRevistas/BoletinEconomico/23/T2/Files/be2302-art06e.pdf](<https://www.bde.es/f/webbde/SES/Secciones/Publicaciones/InformesBoletinesRevistas/BoletinEconomico/23/T2/Files/be2302-art06e.pdf>)
+- [https://www.bde.es/f/webbde/SES/Secciones/Publicaciones/PublicacionesSeriadas/DocumentosTrabajo/21/Files/dt2105e.pdf](<https://www.bde.es/f/webbde/SES/Secciones/Publicaciones/PublicacionesSeriadas/DocumentosTrabajo/21/Files/dt2105e.pdf>)
+- [https://www.bde.es/f/webbe/SES/Secciones/Publicaciones/Informesituacionfinancierafamiliasyempresas/2025/S1/Fich/SituacionFinanciera_Informe_012025.pdf](<https://www.bde.es/f/webbe/SES/Secciones/Publicaciones/Informesituacionfinancierafamiliasyempresas/2025/S1/Fich/SituacionFinanciera_Informe_012025.pdf>)
+- [https://www.bde.es/informes/be/docs/dt0821e.pdf](<https://www.bde.es/informes/be/docs/dt0821e.pdf>)
+- [https://www.bde.es/webbe/es/estadisticas/compartido/datos/csv/be1905.csv](<https://www.bde.es/webbe/es/estadisticas/compartido/datos/csv/be1905.csv>)
+- [https://www.bis.org/publ/bcbsca05.pdf](<https://www.bis.org/publ/bcbsca05.pdf>)
+- [https://www.bis.org/publ/qtrpdf/r_qt1803e.htm](<https://www.bis.org/publ/qtrpdf/r_qt1803e.htm>)
+- [https://www.bis.org/publ/work421.htm](<https://www.bis.org/publ/work421.htm>)
+- [https://www.bis.org/publ/work779.pdf](<https://www.bis.org/publ/work779.pdf>)
+- [https://www.bis.org/publ/work834.htm](<https://www.bis.org/publ/work834.htm>)
+- [https://www.bis.org/publ/work881.pdf](<https://www.bis.org/publ/work881.pdf>)
+- [https://www.caixabank.com/es/actualidad/noticias/caixabank-pone-a-disposicion-de-las-pequenas-empresas-24-000-millones-de-euros-en-prestamos-preconcedidos](<https://www.caixabank.com/es/actualidad/noticias/caixabank-pone-a-disposicion-de-las-pequenas-empresas-24-000-millones-de-euros-en-prestamos-preconcedidos>)
+- [https://www.crc.business-school.ed.ac.uk/sites/crc/files/2025-11/AI-Powered-Credit-Limit-Decisions-for-Revolving-Credit_-A-Reinforcement-Learning-Approach-paper.pdf](<https://www.crc.business-school.ed.ac.uk/sites/crc/files/2025-11/AI-Powered-Credit-Limit-Decisions-for-Revolving-Credit_-A-Reinforcement-Learning-Approach-paper.pdf>)
+- [https://www.crifratings.com/news/crif-ratings-pubblica-la-metodologia-di-rating-per-piccole-e-medie-aziende-non-finanziarie-segmento-sme-corporate/](<https://www.crifratings.com/news/crif-ratings-pubblica-la-metodologia-di-rating-per-piccole-e-medie-aziende-non-finanziarie-segmento-sme-corporate/>)
+- [https://www.eba.europa.eu/sites/default/files/document_library/Final%20Report%20on%20Big%20Data%20and%20Advanced%20Analytics.pdf](<https://www.eba.europa.eu/sites/default/files/document_library/Final%20Report%20on%20Big%20Data%20and%20Advanced%20Analytics.pdf>)
+- [https://www.eba.europa.eu/sites/default/files/document_library/Regulation%20and%20Policy/Mapping%20Reports/2021/1014556/JC%202021%2040%20(Amended%20Draft%20Mapping%20Report%20-%20CRIF).pdf](<https://www.eba.europa.eu/sites/default/files/document_library/Regulation%20and%20Policy/Mapping%20Reports/2021/1014556/JC%202021%2040%20(Amended%20Draft%20Mapping%20Report%20-%20CRIF).pdf>)
+- [https://www.ecb.europa.eu/mopo/coll/risk/ecaf/html/index.en.html](<https://www.ecb.europa.eu/mopo/coll/risk/ecaf/html/index.en.html>)
+- [https://www.ecb.europa.eu/press/conferences/shared/pdf/20190905_4th_ARC/Puri_Manju.pdf](<https://www.ecb.europa.eu/press/conferences/shared/pdf/20190905_4th_ARC/Puri_Manju.pdf>)
+- [https://www.ecb.europa.eu/pub/pdf/scpops/ecb.op284~bbce5257bf.en.pdf](<https://www.ecb.europa.eu/pub/pdf/scpops/ecb.op284~bbce5257bf.en.pdf>)
+- [https://www.ecb.europa.eu/pub/pdf/scpwps/ecb.wp2614~6974517ac3.en.pdf](<https://www.ecb.europa.eu/pub/pdf/scpwps/ecb.wp2614~6974517ac3.en.pdf>)
+- [https://www.ecb.europa.eu/pub/pdf/scpwps/ecbwp1039.pdf](<https://www.ecb.europa.eu/pub/pdf/scpwps/ecbwp1039.pdf>)
+- [https://www.ecb.europa.eu/pub/pdf/scpwps/ecbwp1395.pdf](<https://www.ecb.europa.eu/pub/pdf/scpwps/ecbwp1395.pdf>)
+- [https://www.ecb.europa.eu/pub/pdf/scpwps/ecbwp1509.pdf](<https://www.ecb.europa.eu/pub/pdf/scpwps/ecbwp1509.pdf>)
+- [https://www.ecb.europa.eu/stats/ecb_surveys/safe/html/ecb.safe202604.en.html](<https://www.ecb.europa.eu/stats/ecb_surveys/safe/html/ecb.safe202604.en.html>)
+- [https://www.embat.io/treasury-management/debt-management](<https://www.embat.io/treasury-management/debt-management>)
+- [https://www.experianplc.com/newsroom/press-releases/2025/launch-of-experian-s-cashflow-score-signals-new-era-of-open-bank](<https://www.experianplc.com/newsroom/press-releases/2025/launch-of-experian-s-cashflow-score-signals-new-era-of-open-bank>)
+- [https://www.fedsmallbusiness.org/reports/survey/2025/2025-report-on-employer-firms](<https://www.fedsmallbusiness.org/reports/survey/2025/2025-report-on-employer-firms>)
+- [https://www.fedsmallbusiness.org/reports/survey/2026/2026-report-on-employer-firms](<https://www.fedsmallbusiness.org/reports/survey/2026/2026-report-on-employer-firms>)
+- [https://www.getdefacto.com/article/underwriting-defacto-automated-lending](<https://www.getdefacto.com/article/underwriting-defacto-automated-lending>)
+- [https://www.gtreview.com/news/digital-trade/kyriba-launches-receivables-finance-solution-to-help-corporates-release-tied-up-cash/](<https://www.gtreview.com/news/digital-trade/kyriba-launches-receivables-finance-solution-to-help-corporates-release-tied-up-cash/>)
+- [https://www.hbs.edu/ris/Publication%20Files/22-024_80dc9115-69cc-4564-99c6-3a937f275d31.pdf](<https://www.hbs.edu/ris/Publication%20Files/22-024_80dc9115-69cc-4564-99c6-3a937f275d31.pdf>)
+- [https://www.ico.es/ico-empresas-y-emprendedores](<https://www.ico.es/ico-empresas-y-emprendedores>)
+- [https://www.imf.org/en/publications/wp/issues/2016/12/31/rating-through-the-cycle-what-does-the-concept-imply-for-rating-stability-and-accuracy-40378](<https://www.imf.org/en/publications/wp/issues/2016/12/31/rating-through-the-cycle-what-does-the-concept-imply-for-rating-stability-and-accuracy-40378>)
+- [https://www.imf.org/external/pubs/ft/staffp/1998/03-98/kaminsky.htm](<https://www.imf.org/external/pubs/ft/staffp/1998/03-98/kaminsky.htm>)
+- [https://www.infoautonomos.com/financiacion-autonomos-empresas/poliza-de-credito/](<https://www.infoautonomos.com/financiacion-autonomos-empresas/poliza-de-credito/>)
+- [https://www.iwoca.co.uk/finance-explained/anna-nava](<https://www.iwoca.co.uk/finance-explained/anna-nava>)
+- [https://www.jpmorganchase.com/institute/all-topics/business-growth-and-entrepreneurship/report-cash-flows-balances-and-buffer-days](<https://www.jpmorganchase.com/institute/all-topics/business-growth-and-entrepreneurship/report-cash-flows-balances-and-buffer-days>)
+- [https://www.karmen.io/en](<https://www.karmen.io/en>)
+- [https://www.legislation.gov.uk/eur/2013/575/article/122](<https://www.legislation.gov.uk/eur/2013/575/article/122>)
+- [https://www.legislation.gov.uk/eur/2016/1799/annex/III](<https://www.legislation.gov.uk/eur/2016/1799/annex/III>)
+- [https://www.lrl.mn.gov/archive/minutes/senate/2025/capinv/20250304/CapInv_20250304_Fitch-Ratings-Rating-Definitions.pdf](<https://www.lrl.mn.gov/archive/minutes/senate/2025/capinv/20250304/CapInv_20250304_Fitch-Ratings-Rating-Definitions.pdf>)
+- [https://www.maalot.co.il/Publications/MT20240214173645.PDF](<https://www.maalot.co.il/Publications/MT20240214173645.PDF>)
+- [https://www.maalot.co.il/Publications/RS20251216162753.pdf](<https://www.maalot.co.il/Publications/RS20251216162753.pdf>)
+- [https://www.moodys.com/sites/products/DefaultResearch/2004700000425139.pdf](<https://www.moodys.com/sites/products/DefaultResearch/2004700000425139.pdf>)
+- [https://www.moodys.com/sites/products/ProductAttachments/Moodys%20Rating%20Symbols%20and%20Definitions.pdf](<https://www.moodys.com/sites/products/ProductAttachments/Moodys%20Rating%20Symbols%20and%20Definitions.pdf>)
+- [https://www.nber.org/papers/w14845](<https://www.nber.org/papers/w14845>)
+- [https://www.nber.org/papers/w22587](<https://www.nber.org/papers/w22587>)
+- [https://www.nber.org/papers/w34148](<https://www.nber.org/papers/w34148>)
+- [https://www.nber.org/system/files/working_papers/w13487/w13487.pdf](<https://www.nber.org/system/files/working_papers/w13487/w13487.pdf>)
+- [https://www.nber.org/system/files/working_papers/w20587/w20587.pdf](<https://www.nber.org/system/files/working_papers/w20587/w20587.pdf>)
+- [https://www.novacredit.com/cash-atlas](<https://www.novacredit.com/cash-atlas>)
+- [https://www.pnas.org/doi/10.1073/pnas.1804597116](<https://www.pnas.org/doi/10.1073/pnas.1804597116>)
+- [https://www.prismdata.com/blog/prism-data-introduces-cashscore-v4-raising-the-bar-for-cash-flow-underwriting-tools-as-the-u-s-adopts-open-banking/](<https://www.prismdata.com/blog/prism-data-introduces-cashscore-v4-raising-the-bar-for-cash-flow-underwriting-tools-as-the-u-s-adopts-open-banking/>)
+- [https://www.sciencedirect.com/science/article/abs/pii/S0016003216303209](<https://www.sciencedirect.com/science/article/abs/pii/S0016003216303209>)
+- [https://www.sciencedirect.com/science/article/abs/pii/S0304407620303948](<https://www.sciencedirect.com/science/article/abs/pii/S0304407620303948>)
+- [https://www.sciencedirect.com/science/article/abs/pii/S037842660100228X](<https://www.sciencedirect.com/science/article/abs/pii/S037842660100228X>)
+- [https://www.sciencedirect.com/science/article/abs/pii/S104295731100026X](<https://www.sciencedirect.com/science/article/abs/pii/S104295731100026X>)
+- [https://www.sciencedirect.com/science/article/pii/S0167923620301846](<https://www.sciencedirect.com/science/article/pii/S0167923620301846>)
+- [https://www.spglobal.com/ratings/en/regulatory/article/250327-default-transition-and-recovery-2024-annual-global-corporate-default-and-rating-transition-study-s13452126](<https://www.spglobal.com/ratings/en/regulatory/article/250327-default-transition-and-recovery-2024-annual-global-corporate-default-and-rating-transition-study-s13452126>)
+- [https://www.tandfonline.com/doi/full/10.1080/17446540600771076](<https://www.tandfonline.com/doi/full/10.1080/17446540600771076>)

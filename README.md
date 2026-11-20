@@ -1,5 +1,9 @@
 # X Ray — score de financiabilidad para pymes
 
+<!-- project-family:start -->
+> **Familia de proyectos:** [Comunidad y proyectos anteriores](https://github.com/alvarovillalbaa#community-and-earlier-work) · **Área:** Hackathons
+<!-- project-family:end -->
+
 Last updated: 2026-09-20
 
 Reto de **Embat** en **HackSpain 2026** (18–20 de septiembre, ETSIT UPM, Madrid). Enunciado: [`CONTEXTO_RETO.md`](CONTEXTO_RETO.md).
